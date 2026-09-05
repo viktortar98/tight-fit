@@ -5,6 +5,7 @@ const KEYMAP = {
   KeyD: 'right', ArrowRight: 'right',
   Space: 'brake',
   ShiftLeft: 'crawl', ShiftRight: 'crawl',
+  KeyQ: 'camleft', KeyE: 'camright',
 };
 
 export class Input {
@@ -20,7 +21,7 @@ export class Input {
       const a = KEYMAP[e.code];
       if (a) this.keys.add(a);
       this.tapped.add(e.code);
-      if (a || ['KeyC', 'KeyG', 'KeyR', 'KeyV', 'KeyM', 'Escape'].includes(e.code)) e.preventDefault();
+      if (a || ['KeyC', 'KeyR', 'KeyV', 'KeyM', 'KeyZ', 'Escape'].includes(e.code)) e.preventDefault();
     });
     target.addEventListener('keyup', (e) => {
       const a = KEYMAP[e.code];

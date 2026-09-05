@@ -3,23 +3,20 @@ import { VEHICLES } from './vehicle.js';
 
 const $ = (id) => document.getElementById(id);
 
-export function fmtTime(s) {
-  if (s == null) return '—';
-  return s < 60 ? `${s.toFixed(1)}s` : `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
-}
-
 export class Hud {
   constructor(handlers) {
     this.h = handlers;
     this.el = {
       hud: $('hud'), menu: $('menu'), result: $('result'), pause: $('pause'),
-      num: $('lvl-num'), name: $('lvl-name'), hint: $('lvl-hint'),
-      time: $('stat-time'), bumps: $('stat-bumps'), best: $('stat-best'),
+      num: $('lvl-num'), name: $('lvl-name'), hint: $('lvl-hint'), veh: $('lvl-veh'),
+      keysKb: $('keys-kb'), keysPad: $('keys-pad'),
+      artic: $('artic'), articDot: $('artic-dot'), articLabel: $('artic-label'),
+      shunts: $('stat-shunts'), bumps: $('stat-bumps'), best: $('stat-best'), record: $('stat-record'),
       gear: $('gear'), speedFill: $('speed-fill'), speedText: $('speed-text'),
       steerDot: $('steer-dot'), sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
       hold: $('hold'), holdFill: $('hold-fill'), toast: $('toast'), flash: $('flash'),
       grid: $('level-grid'), tArrow: $('target-arrow'),
-      rKicker: $('result-kicker'), rTitle: $('result-title'), rTime: $('result-time'),
+      rKicker: $('result-kicker'), rTitle: $('result-title'), rShunts: $('result-shunts'), rRecord: $('result-record'),
       rBumps: $('result-bumps'), rRank: $('result-rank'), rNote: $('result-note'),
       btnNext: $('btn-next'),
     };
@@ -46,7 +43,9 @@ export class Hud {
       b.innerHTML = `<span class="veh">${VEHICLES[lvl.vehicle].name}</span>
         <span class="n">${String(i + 1).padStart(2, '0')}</span>
         <span class="t">${unlocked ? lvl.name : 'Locked'}</span>
-        <span class="m">${best ? `${fmtTime(best.time)} &middot; ${best.bumps} bump${best.bumps === 1 ? '' : 's'}` : unlocked ? 'not parked yet' : 'finish the one before'}</span>`;
+        <span class="m">${unlocked
+          ? `${best ? `you ${best.shunts}` : 'not parked yet'} &middot; record ${lvl.record}`
+          : 'finish the one before'}</span>`;
       b.onclick = () => this.h.play(i);
       this.el.grid.appendChild(b);
     });
@@ -75,11 +74,20 @@ export class Hud {
     this.el.num.textContent = `${String(index + 1).padStart(2, '0')} / ${LEVELS.length}`;
     this.el.name.textContent = level.name;
     this.el.hint.textContent = level.hint;
-    this.el.best.textContent = best ? fmtTime(best.time) : '—';
+    this.el.veh.textContent = VEHICLES[level.vehicle].name;
+    this.el.best.textContent = best ? `${best.shunts}` : '—';
+    this.el.record.textContent = level.record ?? '—';
+    this.el.artic.classList.toggle('hidden', !VEHICLES[level.vehicle].trailer);
+  }
+
+  setPadMode(on) {
+    this.el.keysKb.classList.toggle('hidden', on);
+    this.el.keysPad.classList.toggle('hidden', !on);
   }
 
   update(s) {
-    this.el.time.textContent = s.time.toFixed(1);
+    this.el.shunts.textContent = s.shunts;
+    this.el.shunts.parentElement.classList.toggle('hot', s.par != null && s.shunts > s.par);
     this.el.bumps.textContent = s.bumps;
     this.el.bumps.parentElement.classList.toggle('hot', s.bumps > 0);
 
@@ -100,6 +108,15 @@ export class Hud {
     this.el.sensorFill.style.background = col;
     this.el.sensorText.textContent = d > 1.5 ? 'clear' : `${d.toFixed(2)} m`;
     this.el.sensorText.style.color = d < 0.15 ? 'var(--danger)' : 'var(--dim)';
+
+    if (s.maxArticulation) {
+      const norm = s.articulation / s.maxArticulation;
+      this.el.articDot.style.transform = `translateX(${-norm * 42}px)`;
+      const mag = Math.abs(norm);
+      this.el.artic.classList.toggle('warn', mag > 0.6 && mag <= 0.88);
+      this.el.artic.classList.toggle('bad', mag > 0.88);
+      this.el.articLabel.textContent = mag > 0.88 ? 'jackknife' : 'trailer';
+    }
 
     this.el.hold.classList.toggle('hidden', s.hold <= 0);
     this.el.holdFill.style.width = `${Math.min(100, s.hold * 100)}%`;
@@ -132,10 +149,11 @@ export class Hud {
     });
   }
 
-  showResult({ level, index, time, bumps, rank, note, isLast }) {
+  showResult({ level, index, shunts, bumps, rank, note, isLast }) {
     this.el.rKicker.textContent = rank.kicker;
     this.el.rTitle.textContent = level.name;
-    this.el.rTime.textContent = fmtTime(time);
+    this.el.rShunts.textContent = shunts;
+    this.el.rRecord.textContent = level.record;
     this.el.rBumps.textContent = bumps;
     this.el.rRank.textContent = rank.label;
     this.el.rNote.textContent = note;

@@ -46,6 +46,11 @@ html, body {
 .lvl-line #lvl-name { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
 .hint { margin-top: 5px; font-size: 12.5px; line-height: 1.45; color: var(--dim); max-width: 34ch; }
 
+.veh-tag {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--dim); border: 1px solid var(--edge); border-radius: 999px; padding: 1px 7px;
+}
+
 .stats { display: flex; gap: 18px; }
 .stat { text-align: right; }
 .stat b { display: block; font-family: var(--mono); font-size: 19px; font-variant-numeric: tabular-nums; }
@@ -83,8 +88,11 @@ kbd {
 #speed-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #9df1ff); transition: width 0.06s linear; }
 .speedo span, .steer span { display: block; margin-top: 4px; font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
 .steer { width: 96px; }
+.artic #artic-dot { background: var(--accent); }
+.artic.warn #artic-dot { background: var(--warn); }
+.artic.bad #artic-dot { background: var(--danger); }
 .steer-track { overflow: visible; }
-#steer-dot {
+#steer-dot, #artic-dot {
   position: absolute; top: -3px; left: 50%; width: 12px; height: 12px; margin-left: -6px;
   border-radius: 50%; background: var(--ink); transition: transform 0.05s linear;
 }
@@ -172,10 +180,13 @@ button {
   border-radius: 9px; padding: 9px 15px; transition: 0.14s;
 }
 button:hover { background: rgba(255, 255, 255, 0.13); }
+button:focus-visible, .tile:focus, button:focus {
+  outline: 2px solid var(--accent); outline-offset: 3px;
+}
 button.primary { background: var(--accent); color: #06210f; border-color: transparent; }
 button.primary:hover { filter: brightness(1.1); }
 
-@media (max-width: 1100px) {
+@media (max-width: 1340px) {
   .corner.bl { display: none; }
 }
 

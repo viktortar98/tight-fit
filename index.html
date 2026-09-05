@@ -14,23 +14,28 @@
     <div id="hud" class="hidden">
       <div class="corner tl">
         <div class="panel">
-          <div class="lvl-line"><span id="lvl-num">1 / 10</span><span id="lvl-name">First Bay</span></div>
+          <div class="lvl-line"><span id="lvl-num">1 / 10</span><span id="lvl-name">First Bay</span><span id="lvl-veh" class="veh-tag"></span></div>
           <div id="lvl-hint" class="hint"></div>
         </div>
       </div>
 
       <div class="corner tr">
         <div class="panel stats">
-          <div class="stat"><b id="stat-time">0.0</b><span>time</span></div>
-          <div class="stat"><b id="stat-bumps">0</b><span>bumps</span></div>
+          <div class="stat"><b id="stat-shunts">0</b><span>shunts</span></div>
+          <div class="stat"><b id="stat-bumps">0</b><span>crashes</span></div>
           <div class="stat"><b id="stat-best">—</b><span>best</span></div>
+          <div class="stat"><b id="stat-record">—</b><span>record</span></div>
         </div>
       </div>
 
       <div class="corner bl">
-        <div class="panel keys">
+        <div class="panel keys" id="keys-kb">
           <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive &middot; <kbd>Shift</kbd> crawl &middot; <kbd>Space</kbd> brake</div>
-          <div><kbd>C</kbd> camera &middot; <kbd>G</kbd> guides &middot; <kbd>V</kbd> auto-flip &middot; <kbd>R</kbd> restart &middot; <kbd>Esc</kbd> menu</div>
+          <div><kbd>Q</kbd><kbd>E</kbd> swing &middot; <kbd>Z</kbd> recentre &middot; <kbd>C</kbd> camera &middot; <kbd>R</kbd> restart &middot; <kbd>Esc</kbd> menu</div>
+        </div>
+        <div class="panel keys hidden" id="keys-pad">
+          <div><kbd>RT</kbd> drive &middot; <kbd>LT</kbd> reverse &middot; <kbd>LS</kbd> steer &middot; <kbd>LB</kbd> crawl &middot; <kbd>A</kbd> brake</div>
+          <div><kbd>RS</kbd> look &middot; <kbd>D-pad</kbd> zoom &middot; <kbd>RB</kbd> camera &middot; <kbd>Y</kbd> restart &middot; <kbd>&#9776;</kbd> menu</div>
         </div>
       </div>
 
@@ -49,6 +54,10 @@
             <div class="steer-track"><div id="steer-dot"></div></div>
             <span>steering</span>
           </div>
+          <div class="steer artic hidden" id="artic">
+            <div class="steer-track"><div id="artic-dot"></div></div>
+            <span id="artic-label">trailer</span>
+          </div>
         </div>
       </div>
 
@@ -61,7 +70,7 @@
     <div id="menu" class="overlay">
       <div class="menu-inner">
         <h1>Tight&nbsp;Fit</h1>
-        <p class="tag">Ten parking problems that look impossible. All ten are provably not.</p>
+        <p class="tag">Fourteen parking problems that look impossible. All fourteen are provably not.</p>
         <div id="level-grid" class="grid"></div>
         <div class="menu-foot">
           <span>Desktop keyboard. Drag to look, scroll to zoom.</span>
@@ -76,8 +85,9 @@
         <div id="result-kicker" class="kicker">parked</div>
         <h2 id="result-title">First Bay</h2>
         <div class="result-stats">
-          <div><b id="result-time">0.0s</b><span>time</span></div>
-          <div><b id="result-bumps">0</b><span>bumps</span></div>
+          <div><b id="result-shunts">0</b><span>direction changes</span></div>
+          <div><b id="result-bumps">0</b><span>crashes</span></div>
+          <div><b id="result-record">0</b><span>record</span></div>
           <div><b id="result-rank">clean</b><span>rating</span></div>
         </div>
         <div id="result-note" class="note"></div>

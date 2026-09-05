@@ -1,27 +1,28 @@
 import * as THREE from 'three';
-import { VEHICLES } from './vehicle.js';
-import { createCarMesh } from './carMesh.js';
+import { VEHICLES, trailerAxle } from './vehicle.js';
+import { createVehicleMesh } from './carMesh.js';
+import { collidersOf } from './colliders.js';
 
 const THEMES = {
   lot: {
     sky: 0x9fc0e0, fog: [0x9fc0e0, 60, 190], ground: '#33353a', speck: '#41444a',
     hemi: [0xcfe2f5, 0x54544e, 0.5], sun: [0xfff2dc, 1.25, [38, 46, 22]],
-    wall: 0x8d8d86, boundaryH: 1.0, ambient: 0.0, env: 0.32,
+    wall: 0xdcd9d0, boundaryH: 1.0, ambient: 0.0, env: 0.32,
   },
   street: {
     sky: 0x8fb3d6, fog: [0x8fb3d6, 50, 160], ground: '#313337', speck: '#3f4046',
     hemi: [0xc8ddf2, 0x50504a, 0.48], sun: [0xffeed2, 1.2, [-30, 44, 26]],
-    wall: 0x7d766c, boundaryH: 1.2, ambient: 0.0, env: 0.3,
+    wall: 0xd9d2c6, boundaryH: 1.2, ambient: 0.0, env: 0.3,
   },
   garage: {
-    sky: 0x14161b, fog: [0x14161b, 18, 70], ground: '#2c2e32', speck: '#36383d',
-    hemi: [0x60687a, 0x1b1c20, 0.5], sun: [0xdfe6ff, 0.55, [10, 40, 14]],
-    wall: 0x5f6066, boundaryH: 3.0, ambient: 0.18, lamps: true, env: 0.2,
+    sky: 0x3c424c, fog: [0x3c424c, 30, 110], ground: '#3c3f45', speck: '#494c53',
+    hemi: [0xaebbd0, 0x33353a, 0.62], sun: [0xe8eeff, 0.6, [10, 40, 14]],
+    wall: 0xd2d4d9, boundaryH: 3.0, ambient: 0.3, lamps: true, env: 0.26,
   },
   alley: {
-    sky: 0x2b2a33, fog: [0x2b2a33, 24, 90], ground: '#333238', speck: '#3d3c43',
-    hemi: [0x8a94ad, 0x2a2830, 0.55], sun: [0xffd9a8, 0.75, [-22, 40, -18]],
-    wall: 0x7a6c60, boundaryH: 3.4, ambient: 0.12, lamps: true, env: 0.18,
+    sky: 0x6d7686, fog: [0x6d7686, 34, 120], ground: '#3a393f', speck: '#46454c',
+    hemi: [0xb6c1d4, 0x35333a, 0.6], sun: [0xffe6c6, 0.8, [-22, 40, -18]],
+    wall: 0xd8ccc0, boundaryH: 3.4, ambient: 0.22, lamps: true, env: 0.24,
   },
 };
 
@@ -56,9 +57,9 @@ function stripeTexture() {
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#d8d2c8';
+  ctx.fillStyle = '#f3eee5';
   ctx.fillRect(0, 0, 128, 128);
-  ctx.fillStyle = '#c33a2a';
+  ctx.fillStyle = '#e8b3a4';
   ctx.lineWidth = 0;
   for (let i = -128; i < 256; i += 44) {
     ctx.beginPath();
@@ -71,15 +72,6 @@ function stripeTexture() {
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   return tex;
-}
-
-// A collider is the flat rectangle the physics actually uses.
-export function colliderOf(o) {
-  if (o.kind === 'parked') {
-    const s = VEHICLES[o.spec];
-    return { x: o.x, z: o.z, w: s.width, d: s.length, rot: o.rot, kind: 'parked' };
-  }
-  return { x: o.x, z: o.z, w: o.w, d: o.d, rot: o.rot ?? 0, kind: o.kind };
 }
 
 export class World {
@@ -198,7 +190,7 @@ export class World {
 
     // --- obstacles
     for (const o of level.obstacles) {
-      this.colliders.push(colliderOf(o));
+      this.colliders.push(...collidersOf(o));
       const mesh = this.obstacleMesh(o, theme);
       this.root.add(mesh);
       // Cones and kerbs are too small to be worth shoving the camera around.
@@ -217,11 +209,41 @@ export class World {
     const g = new THREE.Group();
     if (o.kind === 'parked') {
       const spec = VEHICLES[o.spec];
-      const car = createCarMesh(spec, o.color ?? spec.bodyColor);
-      const off = (spec.wheelbase + (spec.length - spec.wheelbase - spec.rearOverhang) - spec.rearOverhang) / 2;
-      car.group.position.set(o.x - Math.sin(o.rot) * off, 0, o.z - Math.cos(o.rot) * off);
+      const car = createVehicleMesh(spec, o.color ?? 0xdfe3e8, { pastel: true });
+      car.group.position.set(o.x, 0, o.z);
       car.group.rotation.y = o.rot;
       g.add(car.group);
+      if (car.trailerGroup) {
+        const axle = trailerAxle(spec, { x: o.x, z: o.z, yaw: o.rot, trailerYaw: o.rot });
+        car.trailerGroup.position.set(axle.x, 0, axle.z);
+        car.trailerGroup.rotation.y = o.rot;
+        g.add(car.trailerGroup);
+      }
+      return g;
+    }
+
+    if (o.kind === 'dropped') {
+      const paint = new THREE.MeshStandardMaterial({ color: o.color ?? 0xdfe3e8, roughness: 0.62 });
+      const deckY = 1.1;
+      const box = new THREE.Mesh(new THREE.BoxGeometry(o.w, o.h - deckY, o.d), paint);
+      box.position.set(o.x, deckY + (o.h - deckY) / 2, o.z);
+      box.rotation.y = o.rot;
+      const under = new THREE.Mesh(
+        new THREE.BoxGeometry(o.w * 0.9, 0.22, o.d * 0.94),
+        new THREE.MeshStandardMaterial({ color: 0x9aa0a9, roughness: 0.6 }),
+      );
+      under.position.set(o.x, deckY - 0.1, o.z);
+      under.rotation.y = o.rot;
+      g.add(box, under);
+      const c = Math.cos(o.rot), sn = Math.sin(o.rot);
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x8d939c, roughness: 0.5, metalness: 0.4 });
+      for (const [lx, lz] of [[-o.w * 0.34, o.d * 0.3], [o.w * 0.34, o.d * 0.3],
+        [-o.w * 0.34, -o.d * 0.34], [o.w * 0.34, -o.d * 0.34]]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.16, deckY - 0.2, 0.16), legMat);
+        leg.position.set(o.x + lx * c + lz * sn, (deckY - 0.2) / 2, o.z - lx * sn + lz * c);
+        g.add(leg);
+      }
+      for (const m of g.children) { m.castShadow = true; m.receiveShadow = true; }
       return g;
     }
 
@@ -232,11 +254,11 @@ export class World {
       tex.repeat.set(Math.max(1, o.w / 1.2), 1);
       mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75 });
     } else if (o.kind === 'kerb') {
-      mat = new THREE.MeshStandardMaterial({ color: 0xa8a49a, roughness: 0.95 });
+      mat = new THREE.MeshStandardMaterial({ color: 0xe6e3db, roughness: 0.95 });
     } else if (o.kind === 'pillar') {
-      mat = new THREE.MeshStandardMaterial({ color: 0x74757a, roughness: 0.92 });
+      mat = new THREE.MeshStandardMaterial({ color: 0xd3d5d9, roughness: 0.92 });
     } else if (o.kind === 'cone') {
-      mat = new THREE.MeshStandardMaterial({ color: 0xe2621f, roughness: 0.7 });
+      mat = new THREE.MeshStandardMaterial({ color: 0xf2b795, roughness: 0.7 });
     } else {
       mat = new THREE.MeshStandardMaterial({ color: o.color ?? theme.wall, roughness: 0.9 });
     }
@@ -246,12 +268,12 @@ export class World {
       cone.position.set(o.x, o.h / 2, o.z);
       const base = new THREE.Mesh(
         new THREE.BoxGeometry(0.42, 0.05, 0.42),
-        new THREE.MeshStandardMaterial({ color: 0x2b2b2e, roughness: 0.9 }),
+        new THREE.MeshStandardMaterial({ color: 0x9ea3ac, roughness: 0.9 }),
       );
       base.position.set(o.x, 0.025, o.z);
       const band = new THREE.Mesh(
         new THREE.CylinderGeometry(0.15, 0.175, 0.12, 14),
-        new THREE.MeshStandardMaterial({ color: 0xeeeae2, roughness: 0.7 }),
+        new THREE.MeshStandardMaterial({ color: 0xfbf7ef, roughness: 0.7 }),
       );
       band.position.set(o.x, o.h * 0.52, o.z);
       for (const m of [cone, base, band]) { m.castShadow = true; g.add(m); }
@@ -268,7 +290,7 @@ export class World {
     if (o.kind === 'pillar') {
       const stripe = new THREE.Mesh(
         new THREE.BoxGeometry(o.w * 1.03, 0.28, o.d * 1.03),
-        new THREE.MeshStandardMaterial({ color: 0xd8b03a, roughness: 0.8 }),
+        new THREE.MeshStandardMaterial({ color: 0xf0dcab, roughness: 0.8 }),
       );
       stripe.position.set(o.x, 0.85, o.z);
       stripe.rotation.y = o.rot ?? 0;

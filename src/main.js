@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { LEVELS } from './levels.js';
-import { VEHICLES, Vehicle, centerOffset } from './vehicle.js';
+import { VEHICLES, Vehicle, trailerRect } from './vehicle.js';
 import { World } from './world.js';
-import { createCarMesh, updateCarMesh } from './carMesh.js';
+import { createVehicleMesh, updateVehicleMesh } from './carMesh.js';
 import { CameraRig } from './camera.js';
-import { Guides } from './guides.js';
 import { Input } from './input.js';
 import { Sfx } from './audio.js';
-import { Hud, fmtTime } from './hud.js';
+import { Pad, BTN } from './gamepad.js';
+import { Hud } from './hud.js';
 import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.js';
 
 const STORE = 'tight-fit.v1';
@@ -17,7 +17,14 @@ const PHYS_DT = 1 / 120;
 function loadProgress() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORE));
-    if (raw && typeof raw.unlocked === 'number') return { unlocked: raw.unlocked, best: raw.best ?? {} };
+    if (raw && typeof raw.unlocked === 'number') {
+      // Bests used to be times. Keep the unlocks, drop scores in the old unit.
+      const best = {};
+      for (const [id, b] of Object.entries(raw.best ?? {})) {
+        if (b && typeof b.shunts === 'number') best[id] = b;
+      }
+      return { unlocked: raw.unlocked, best };
+    }
   } catch { /* fresh start */ }
   return { unlocked: 0, best: {} };
 }
@@ -41,8 +48,8 @@ class Game {
     this.camera = new THREE.PerspectiveCamera(52, 1, 0.1, 400);
     this.rig = new CameraRig(this.camera);
     this.world = new World(this.scene);
-    this.guides = new Guides(this.scene);
     this.input = new Input();
+    this.pad = new Pad();
     this.sfx = new Sfx();
     this.progress = loadProgress();
 
@@ -66,6 +73,9 @@ class Game {
 
     this.state = 'menu';
     this.index = 0;
+    this.navIndex = 0;
+    this.navLatch = 0;
+    this.padSeen = false;
     this.carMesh = null;
     this.vehicle = null;
     this.time = 0;
@@ -100,9 +110,13 @@ class Game {
     this.spec = VEHICLES[this.level.vehicle];
     this.world.build(this.level);
 
-    if (this.carMesh) this.scene.remove(this.carMesh.group);
-    this.carMesh = createCarMesh(this.spec);
+    if (this.carMesh) {
+      this.scene.remove(this.carMesh.group);
+      if (this.carMesh.trailerGroup) this.scene.remove(this.carMesh.trailerGroup);
+    }
+    this.carMesh = createVehicleMesh(this.spec);
     this.scene.add(this.carMesh.group);
+    if (this.carMesh.trailerGroup) this.scene.add(this.carMesh.trailerGroup);
     this.vehicle = new Vehicle(this.spec);
 
     this.hud.setLevel(index, this.level, this.progress.best[this.level.id]);
@@ -117,6 +131,8 @@ class Game {
     this.vehicle.reset(s.x, s.z, s.yaw);
     this.time = 0;
     this.bumps = 0;
+    this.shunts = 0;
+    this.lastDir = 0;
     this.hold = 0;
     this.started = false;
     this.contactCooldown = 0;
@@ -148,17 +164,35 @@ class Game {
   // --- physics ---------------------------------------------------------
 
   isFree(state) {
-    const body = this.vehicle.body(state);
-    if (!rectInsideRect(body, this.world.arena)) return false;
-    for (const c of this.world.colliders) {
-      if (overlaps(body, c, -0.015)) return false;
+    for (const body of this.vehicle.rects(state)) {
+      if (!rectInsideRect(body, this.world.arena)) return false;
+      for (const c of this.world.colliders) {
+        if (overlaps(body, c, -0.015)) return false;
+      }
     }
     return true;
+  }
+
+  // The rectangle that has to end up in the bay: the trailer, when there is
+  // one to back in.
+  parkRect(state = this.vehicle) {
+    return this.world.target.part === 'trailer'
+      ? trailerRect(this.spec, state)
+      : this.vehicle.body(state);
   }
 
   stepPhysics(dt, input) {
     const car = this.vehicle;
     car.control(dt, input);
+
+    // The score is shunts: every time the vehicle actually reverses its
+    // direction of travel. Rocking on the spot below 0.2 m/s is not one.
+    const dir = car.speed > 0.2 ? 1 : car.speed < -0.2 ? -1 : 0;
+    if (dir) {
+      if (this.lastDir && dir !== this.lastDir) this.shunts++;
+      this.lastDir = dir;
+    }
+
     if (car.speed === 0) return;
 
     const dist = Math.abs(car.speed) * dt;
@@ -190,27 +224,25 @@ class Game {
   onContact(impact) {
     if (this.contactCooldown > 0) return;
     this.contactCooldown = 0.25;
-    this.sfx.bump(clamp(impact / 4, 0.05, 1));
-    if (impact > 0.6) {
-      this.bumps++;
-      this.hud.flash(0.1 + impact * 0.05);
-    } else {
-      this.hud.flash(0.04);
-    }
+    this.sfx.bump(clamp(impact / 2.5, 0.05, 1));
+    this.pad.rumble(clamp(impact / 2.2, 0.15, 1), impact > 0.6 ? 220 : 110);
+    this.bumps++;
+    this.hud.flash(impact > 0.6 ? 0.1 + impact * 0.05 : 0.05);
   }
 
   nearestGap() {
-    const body = this.vehicle.body();
     let min = Infinity;
-    for (const c of this.world.colliders) {
-      const d = rectDistance(body, c);
-      if (d < min) min = d;
-    }
     const a = this.world.arena;
-    for (const p of corners(body)) {
-      min = Math.min(min,
-        p.x - (a.x - a.w / 2), (a.x + a.w / 2) - p.x,
-        p.z - (a.z - a.d / 2), (a.z + a.d / 2) - p.z);
+    for (const body of this.vehicle.rects()) {
+      for (const c of this.world.colliders) {
+        const d = rectDistance(body, c);
+        if (d < min) min = d;
+      }
+      for (const p of corners(body)) {
+        min = Math.min(min,
+          p.x - (a.x - a.w / 2), (a.x + a.w / 2) - p.x,
+          p.z - (a.z - a.d / 2), (a.z + a.d / 2) - p.z);
+      }
     }
     return Math.max(0, min);
   }
@@ -228,8 +260,10 @@ class Game {
     let sy = (-v.y * 0.5 + 0.5) * h;
     if (behind) { sx = w - sx; sy = h - sy; }
 
+    // Keep the chevron clear of the HUD panels, which own the top strip.
     const m = 54;
-    const inside = !behind && sx > m && sx < w - m && sy > m && sy < h - m;
+    const mTop = 108;
+    const inside = !behind && sx > m && sx < w - m && sy > mTop && sy < h - m;
     if (inside) return this.hud.targetArrow(null);
 
     const cxs = w / 2;
@@ -240,7 +274,7 @@ class Game {
     dx /= len; dy /= len;
     // walk out from the centre to the inset border
     const tx = dx === 0 ? Infinity : (dx > 0 ? (w - m - cxs) : (m - cxs)) / dx;
-    const ty = dy === 0 ? Infinity : (dy > 0 ? (h - m - cys) : (m - cys)) / dy;
+    const ty = dy === 0 ? Infinity : (dy > 0 ? (h - m - cys) : (mTop - cys)) / dy;
     const k = Math.min(tx, ty);
     const car = this.vehicle;
     this.hud.targetArrow({
@@ -254,18 +288,21 @@ class Game {
   telemetry(gap) {
     const car = this.vehicle;
     return {
-      time: this.time,
+      shunts: this.shunts,
+      par: this.level.par,
       bumps: this.bumps,
       speed: car.speed,
       steerNorm: car.steer / this.spec.maxSteer,
       gap: gap ?? this.nearestGap(),
       hold: this.hold / 0.6,
+      articulation: car.articulation,
+      maxArticulation: this.spec.trailer ? this.spec.trailer.maxAngle : 0,
     };
   }
 
   checkParked() {
     const car = this.vehicle;
-    const inside = rectInsideRect(car.body(), this.world.target, 0.02);
+    const inside = rectInsideRect(this.parkRect(), this.world.target, 0.02);
     if (inside && Math.abs(car.speed) < 0.25) this.hold += PHYS_DT;
     else this.hold = 0;
     return { inside, done: this.hold >= 0.6 };
@@ -276,12 +313,13 @@ class Game {
     this.sfx.win();
     const id = this.level.id;
     const prev = this.progress.best[id];
-    const better = !prev || this.time < prev.time || (this.bumps < prev.bumps && this.time < prev.time * 1.4);
-    if (better) this.progress.best[id] = { time: this.time, bumps: this.bumps };
+    const better = !prev || this.shunts < prev.shunts
+      || (this.shunts === prev.shunts && this.bumps < prev.bumps);
+    if (better) this.progress.best[id] = { shunts: this.shunts, bumps: this.bumps };
     if (this.index === this.progress.unlocked) this.progress.unlocked = Math.min(LEVELS.length - 1, this.index + 1);
     this.save();
 
-    const underPar = this.time <= this.level.par;
+    const underPar = this.shunts <= this.level.par;
     const rank = this.bumps === 0 && underPar
       ? { label: 'flawless', kicker: 'not a mark on it' }
       : this.bumps === 0
@@ -291,13 +329,16 @@ class Game {
           : { label: 'rough', kicker: 'parked, eventually' };
 
     const notes = [];
-    if (!underPar) notes.push(`Par is ${fmtTime(this.level.par)}.`);
-    if (this.bumps > 0) notes.push(`${this.bumps} contact${this.bumps === 1 ? '' : 's'} over 0.6 m/s.`);
+    if (this.shunts === this.level.record) notes.push('You matched the record.');
+    else if (this.shunts < this.level.record) notes.push('You beat the record.');
+    if (!underPar) notes.push(`Par is ${this.level.par} direction change${this.level.par === 1 ? '' : 's'}.`);
+    if (this.bumps > 0) notes.push(`${this.bumps} crash${this.bumps === 1 ? '' : 'es'} on this run.`);
     if (better && prev) notes.push('New best.');
     this.hud.showResult({
       level: this.level,
       index: this.index,
-      time: this.time,
+      shunts: this.shunts,
+      par: this.level.par,
       bumps: this.bumps,
       rank,
       note: notes.join(' ') || 'Textbook.',
@@ -307,39 +348,87 @@ class Game {
 
   // --- frame -----------------------------------------------------------
 
+  navButtons() {
+    const el = this.hud.el;
+    const overlay = !el.menu.classList.contains('hidden') ? el.menu
+      : !el.result.classList.contains('hidden') ? el.result
+        : !el.pause.classList.contains('hidden') ? el.pause : null;
+    return overlay ? [...overlay.querySelectorAll('button:not(:disabled)')] : [];
+  }
+
+  padMenu() {
+    const btns = this.navButtons();
+    if (!btns.length) return;
+    if (!btns.includes(document.activeElement)) {
+      this.navIndex = Math.min(this.navIndex, btns.length - 1);
+      btns[this.navIndex].focus();
+    }
+    let step = 0;
+    if (this.pad.tapped(BTN.RIGHT) || this.pad.tapped(BTN.DOWN)) step = 1;
+    if (this.pad.tapped(BTN.LEFT) || this.pad.tapped(BTN.UP)) step = -1;
+    const ax = this.pad.pad?.axes[0] ?? 0;
+    const ay = this.pad.pad?.axes[1] ?? 0;
+    const stick = Math.abs(ax) > 0.6 ? Math.sign(ax) : Math.abs(ay) > 0.6 ? Math.sign(ay) : 0;
+    if (stick && !this.navLatch) step = stick;
+    this.navLatch = stick !== 0;
+    if (step) {
+      this.navIndex = (btns.indexOf(document.activeElement) + step + btns.length) % btns.length;
+      btns[this.navIndex].focus();
+      this.sfx.click();
+    }
+    if (this.pad.tapped(BTN.A)) {
+      const el = btns.includes(document.activeElement) ? document.activeElement : btns[this.navIndex];
+      el.click();
+    }
+    if (this.pad.tapped(BTN.B) && this.state === 'paused') this.setPaused(false);
+  }
+
   frame() {
     const dt = Math.min(this.clock.getDelta(), 0.1);
     const input = this.input;
+    this.pad.poll();
+    if (this.pad.connected !== this.padSeen) {
+      this.padSeen = this.pad.connected;
+      this.hud.setPadMode(this.padSeen);
+      if (this.padSeen) this.hud.toast('controller connected');
+    }
 
-    if (input.pressed('Escape')) {
+    if (input.pressed('Escape') || this.pad.tapped(BTN.START)) {
       if (this.state === 'playing') this.setPaused(true);
       else if (this.state === 'paused') this.setPaused(false);
     }
 
     if (this.state === 'playing' || this.state === 'paused' || this.state === 'won') {
-      if (input.pressed('KeyR')) {
+      if (input.pressed('KeyR') || this.pad.tapped(BTN.Y)) {
         this.restart();
         this.hud.showGame();
         this.state = 'playing';
       }
-      if (input.pressed('KeyC')) this.hud.toast(`camera: ${this.rig.cycle()}`);
-      if (input.pressed('KeyG')) {
-        this.guides.setVisible(!this.guides.visible);
-        this.hud.toast(`guide lines ${this.guides.visible ? 'on' : 'off'}`);
-      }
-      if (input.pressed('KeyV')) {
+      if (input.pressed('KeyC') || this.pad.tapped(BTN.RB)) this.hud.toast(`camera: ${this.rig.cycle()}`);
+      if (input.pressed('KeyV') || this.pad.tapped(BTN.BACK)) {
         this.rig.autoFlip = !this.rig.autoFlip;
         this.hud.toast(`reverse camera ${this.rig.autoFlip ? 'auto' : 'fixed'}`);
       }
-      if (input.pressed('KeyM')) {
+      if (input.pressed('KeyM') || this.pad.tapped(BTN.LS)) {
         this.sfx.muted = !this.sfx.muted;
         this.hud.toast(this.sfx.muted ? 'muted' : 'sound on');
       }
-      this.rig.handleInput(input);
+      this.rig.handleInput(input, this.pad, dt);
     }
 
+    if (this.state !== 'playing' && this.pad.connected) this.padMenu();
+
     if (this.state === 'playing') {
-      const drive = input.driving();
+      const keys = input.driving();
+      const padDrive = this.pad.driving();
+      const drive = padDrive
+        ? {
+          throttle: Math.abs(padDrive.throttle) > Math.abs(keys.throttle) ? padDrive.throttle : keys.throttle,
+          steer: Math.abs(padDrive.steer) > Math.abs(keys.steer) ? padDrive.steer : keys.steer,
+          brake: keys.brake || padDrive.brake,
+          crawl: keys.crawl || padDrive.crawl,
+        }
+        : keys;
       if (!this.started && (drive.throttle || drive.steer)) this.started = true;
 
       this.accum += dt;
@@ -364,17 +453,20 @@ class Game {
       const car = this.vehicle;
       this.carMesh.group.position.set(car.x, 0, car.z);
       this.carMesh.group.rotation.y = car.yaw;
-      updateCarMesh(this.carMesh, this.spec, {
+      if (this.carMesh.trailerGroup) {
+        const axle = this.vehicle.trailerAxleWorld();
+        this.carMesh.trailerGroup.position.set(axle.x, 0, axle.z);
+        this.carMesh.trailerGroup.rotation.y = car.trailerYaw;
+      }
+      updateVehicleMesh(this.carMesh, this.spec, {
         steer: car.steer,
         spin: car.wheelSpin,
         braking: car.braking,
         reversing: car.speed < -0.05,
       });
       this.rig.update(dt, car, this.spec, this.world);
-      this.guides.update(car, this.spec, car.speed < -0.05 ? -1 : 1);
-      this.world.animateTarget(performance.now() / 1000, rectInsideRect(car.body(), this.world.target, 0.02));
+      this.world.animateTarget(performance.now() / 1000, rectInsideRect(this.parkRect(), this.world.target, 0.02));
     }
-    this.guides.group.visible = this.guides.visible && this.state !== 'menu';
 
     this.renderer.render(this.scene, this.camera);
     input.endFrame();
