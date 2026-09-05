@@ -61,7 +61,6 @@ export const LEVELS = [
     hint: 'Swing wide, then straighten up. Hold Shift to crawl.',
     vehicle: 'hatch',
     theme: 'lot',
-    par: 2,
     // proven possible in this many direction changes by tools/validate.js
     record: 0,
     bounds: { minX: -16, maxX: 16, minZ: -15.5, maxZ: 10 },
@@ -85,7 +84,6 @@ export const LEVELS = [
     hint: 'The lane is 4.4 m wide — too tight to swing in nose-first. Drive past, then reverse.',
     vehicle: 'hatch',
     theme: 'lot',
-    par: 3,
     // proven possible in this many direction changes by tools/validate.js
     record: 1,
     bounds: { minX: -14, maxX: 17, minZ: -15.5, maxZ: 4 },
@@ -109,7 +107,6 @@ export const LEVELS = [
     hint: 'A 5.7 m gap for a 3.95 m car. Line up your rear wheels with their bumper, full lock, reverse.',
     vehicle: 'hatch',
     theme: 'street',
-    par: 6,
     // proven possible in this many direction changes by tools/validate.js
     record: 4,
     bounds: { minX: -9, maxX: 9, minZ: -22, maxZ: 12 },
@@ -134,7 +131,6 @@ export const LEVELS = [
     hint: '4.85 m of kerb for a 3.95 m car, with a wall 4.6 m behind you. Expect three or four shunts.',
     vehicle: 'hatch',
     theme: 'street',
-    par: 10,
     // proven possible in this many direction changes by tools/validate.js
     record: 8,
     bounds: { minX: -6, maxX: 9, minZ: -20, maxZ: 10 },
@@ -159,7 +155,6 @@ export const LEVELS = [
     hint: 'A 3.4 m alley into a 3.0 m doorway. No single arc fits — borrow the dead end behind you.',
     vehicle: 'hatch',
     theme: 'alley',
-    par: 6,
     // proven possible in this many direction changes by tools/validate.js
     record: 4,
     bounds: { minX: -4.5, maxX: 8, minZ: -13, maxZ: 13 },
@@ -184,7 +179,6 @@ export const LEVELS = [
     hint: 'Concrete does not move. Past the lane pillar, then reverse around the one on the bay corner.',
     vehicle: 'hatch',
     theme: 'garage',
-    par: 5,
     // proven possible in this many direction changes by tools/validate.js
     record: 3,
     bounds: { minX: -14, maxX: 17, minZ: -14, maxZ: 4 },
@@ -210,7 +204,6 @@ export const LEVELS = [
     hint: 'Three 2.25 m gates, each offset 3 m from the last. Straighten before every one.',
     vehicle: 'hatch',
     theme: 'lot',
-    par: 9,
     // proven possible in this many direction changes by tools/validate.js
     record: 7,
     bounds: { minX: -6, maxX: 6, minZ: -30, maxZ: 11 },
@@ -234,7 +227,6 @@ export const LEVELS = [
     hint: '5.3 m of van, a 5.6 m lane, a 3 m bay. Everything you learned is now half a metre too big.',
     vehicle: 'van',
     theme: 'lot',
-    par: 5,
     // proven possible in this many direction changes by tools/validate.js
     record: 3,
     bounds: { minX: -16, maxX: 19, minZ: -16, maxZ: 4 },
@@ -257,7 +249,6 @@ export const LEVELS = [
     hint: 'Reverse blind around the corner between two vans. Press C for the overhead view.',
     vehicle: 'van',
     theme: 'garage',
-    par: 8,
     // proven possible in this many direction changes by tools/validate.js
     record: 6,
     bounds: { minX: -10, maxX: 21, minZ: -13, maxZ: 6 },
@@ -286,7 +277,6 @@ export const LEVELS = [
     hint: 'A 2.3 m slot, then ninety degrees inside a 2.6 m corridor. It fits. Barely.',
     vehicle: 'hatch',
     theme: 'alley',
-    par: 5,
     // proven possible in this many direction changes by tools/validate.js
     record: 3,
     bounds: { minX: -16, maxX: 11.5, minZ: -9.5, maxZ: 11 },
@@ -316,7 +306,6 @@ export const LEVELS = [
     hint: '11 m of bus into a 13.5 m gap. The lock is good — the overhang is not.',
     vehicle: 'bus',
     theme: 'street',
-    par: 6,
     // proven possible in this many direction changes by tools/validate.js
     record: 4,
     bounds: { minX: -13, maxX: 11, minZ: -32, maxZ: 22 },
@@ -347,7 +336,6 @@ export const LEVELS = [
     hint: 'Reverse the trailer, not the car. Turn the wrong way and it folds — watch the trailer gauge.',
     vehicle: 'towcar',
     theme: 'lot',
-    par: 5,
     // proven possible in this many direction changes by tools/validate.js
     record: 3,
     bounds: { minX: -17, maxX: 19, minZ: -16.5, maxZ: 7 },
@@ -371,7 +359,6 @@ export const LEVELS = [
     hint: 'Sixteen and a half metres, hinged in the middle. The trailer parks, not the cab.',
     vehicle: 'semi',
     theme: 'lot',
-    par: 7,
     // proven possible in this many direction changes by tools/validate.js
     record: 5,
     bounds: { minX: -26, maxX: 26, minZ: -26, maxZ: 13 },
@@ -398,7 +385,6 @@ export const LEVELS = [
     hint: 'The dock is on your right, where the mirror shows you nothing, and the yard is shorter than the truck plus its swing.',
     vehicle: 'semi',
     theme: 'garage',
-    par: 3,
     // proven possible in this many direction changes by tools/validate.js
     record: 1,
     bounds: { minX: -26, maxX: 30, minZ: -26, maxZ: 6 },
@@ -423,6 +409,12 @@ export const LEVELS = [
     paint: [...bayPaint(8.1, -17.1, 3.9, 15.0), { x: 0, z: -4, w: 44, d: 0.16, rot: 0 }],
   },
 ];
+
+// Par is the record plus a working allowance. Matching a solver that can try
+// every line is not the bar; getting near it is. It lives here, once, so that
+// changing the bar changes every level at the same time.
+export const PAR_ALLOWANCE = 2;
+export const parOf = (level) => level.record + PAR_ALLOWANCE;
 
 export function levelById(id) {
   return LEVELS.find((l) => l.id === id);

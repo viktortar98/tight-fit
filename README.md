@@ -14,6 +14,10 @@ Crashes are counted per attempt too, and every contact counts, however gentle.
 Nothing tops 2.9 m/s. Holding a steady creep is not the challenge, so the
 vehicles do it for you — the throttle is analog, but first gear is all there is.
 
+The rules this game is held to — what is scored, what is never scored, what a
+level has to prove before it ships — are in [DESIGN.md](DESIGN.md). Read that
+before changing how a level or the scoring works.
+
 ```bash
 pnpm install
 pnpm dev        # http://127.0.0.1:5183
@@ -125,6 +129,7 @@ record claims, so the target in the HUD is always one that has been proved.
 | `src/gamepad.js` | Xbox mapping, analog triggers, rumble |
 | `src/main.js` | game loop, collision resolution, progression |
 | `tools/validate.js` | the solvability prover |
+| `DESIGN.md` | the constraints all of the above exist to satisfy |
 
 Collision is 2D: every obstacle, and every unit of the vehicle, is a rectangle
 on the XZ plane, so what you see in the overhead view is exactly what the

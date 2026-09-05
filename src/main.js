@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { LEVELS } from './levels.js';
+import { LEVELS, parOf } from './levels.js';
 import { VEHICLES, Vehicle, trailerRect } from './vehicle.js';
 import { World } from './world.js';
 import { createVehicleMesh, updateVehicleMesh } from './carMesh.js';
@@ -221,6 +221,8 @@ class Game {
     }
   }
 
+  // Every contact is a crash for this attempt — see DESIGN.md 5. The 0.6 m/s
+  // below is not a threshold for counting one; it only scales what you feel.
   onContact(impact) {
     if (this.contactCooldown > 0) return;
     this.contactCooldown = 0.25;
@@ -289,7 +291,7 @@ class Game {
     const car = this.vehicle;
     return {
       shunts: this.shunts,
-      par: this.level.par,
+      par: parOf(this.level),
       bumps: this.bumps,
       speed: car.speed,
       steerNorm: car.steer / this.spec.maxSteer,
@@ -319,7 +321,8 @@ class Game {
     if (this.index === this.progress.unlocked) this.progress.unlocked = Math.min(LEVELS.length - 1, this.index + 1);
     this.save();
 
-    const underPar = this.shunts <= this.level.par;
+    const par = parOf(this.level);
+    const underPar = this.shunts <= par;
     const rank = this.bumps === 0 && underPar
       ? { label: 'flawless', kicker: 'not a mark on it' }
       : this.bumps === 0
@@ -331,14 +334,14 @@ class Game {
     const notes = [];
     if (this.shunts === this.level.record) notes.push('You matched the record.');
     else if (this.shunts < this.level.record) notes.push('You beat the record.');
-    if (!underPar) notes.push(`Par is ${this.level.par} direction change${this.level.par === 1 ? '' : 's'}.`);
+    if (!underPar) notes.push(`Par is ${par} direction change${par === 1 ? '' : 's'}.`);
     if (this.bumps > 0) notes.push(`${this.bumps} crash${this.bumps === 1 ? '' : 'es'} on this run.`);
     if (better && prev) notes.push('New best.');
     this.hud.showResult({
       level: this.level,
       index: this.index,
       shunts: this.shunts,
-      par: this.level.par,
+      par: parOf(this.level),
       bumps: this.bumps,
       rank,
       note: notes.join(' ') || 'Textbook.',

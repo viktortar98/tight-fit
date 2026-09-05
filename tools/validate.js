@@ -193,6 +193,8 @@ for (const level of LEVELS) {
   const res = solve(level);
   const ms = Date.now() - t0;
   if (!res.ok) issues.push(`NO SOLUTION FOUND (${res.reason})`);
+  // The record is shown to the player as the target, so it has to stay a
+  // number that was actually reached — see DESIGN.md 4.
   if (res.ok && level.record != null && res.shunts < level.record) {
     issues.push(`record is stale: the search parks it in ${res.shunts}, level claims ${level.record}`);
   }
