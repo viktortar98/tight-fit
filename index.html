@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Tight Fit — a 3D parking game</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#128663;</text></svg>" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <div id="ui">
+    <div id="hud" class="hidden">
+      <div class="corner tl">
+        <div class="panel">
+          <div class="lvl-line"><span id="lvl-num">1 / 10</span><span id="lvl-name">First Bay</span></div>
+          <div id="lvl-hint" class="hint"></div>
+        </div>
+      </div>
+
+      <div class="corner tr">
+        <div class="panel stats">
+          <div class="stat"><b id="stat-time">0.0</b><span>time</span></div>
+          <div class="stat"><b id="stat-bumps">0</b><span>bumps</span></div>
+          <div class="stat"><b id="stat-best">—</b><span>best</span></div>
+        </div>
+      </div>
+
+      <div class="corner bl">
+        <div class="panel keys">
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive &middot; <kbd>Shift</kbd> crawl &middot; <kbd>Space</kbd> brake</div>
+          <div><kbd>C</kbd> camera &middot; <kbd>G</kbd> guides &middot; <kbd>V</kbd> auto-flip &middot; <kbd>R</kbd> restart &middot; <kbd>Esc</kbd> menu</div>
+        </div>
+      </div>
+
+      <div class="dash">
+        <div id="sensor" class="sensor">
+          <div class="sensor-track"><div id="sensor-fill"></div></div>
+          <span id="sensor-text">clear</span>
+        </div>
+        <div class="dash-row">
+          <div id="gear">N</div>
+          <div class="speedo">
+            <div class="speed-track"><div id="speed-fill"></div></div>
+            <span id="speed-text">0 km/h</span>
+          </div>
+          <div class="steer">
+            <div class="steer-track"><div id="steer-dot"></div></div>
+            <span>steering</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="hold" class="hold hidden"><div id="hold-fill"></div><span>hold it…</span></div>
+      <div id="target-arrow" class="target-arrow hidden"><span class="tri"></span><b>0 m</b></div>
+      <div id="toast" class="toast"></div>
+      <div id="flash" class="flash"></div>
+    </div>
+
+    <div id="menu" class="overlay">
+      <div class="menu-inner">
+        <h1>Tight&nbsp;Fit</h1>
+        <p class="tag">Ten parking problems that look impossible. All ten are provably not.</p>
+        <div id="level-grid" class="grid"></div>
+        <div class="menu-foot">
+          <span>Desktop keyboard. Drag to look, scroll to zoom.</span>
+          <button id="unlock-all" class="link">unlock all levels</button>
+          <button id="wipe" class="link">reset progress</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="result" class="overlay hidden">
+      <div class="card">
+        <div id="result-kicker" class="kicker">parked</div>
+        <h2 id="result-title">First Bay</h2>
+        <div class="result-stats">
+          <div><b id="result-time">0.0s</b><span>time</span></div>
+          <div><b id="result-bumps">0</b><span>bumps</span></div>
+          <div><b id="result-rank">clean</b><span>rating</span></div>
+        </div>
+        <div id="result-note" class="note"></div>
+        <div class="buttons">
+          <button id="btn-next" class="primary">Next level</button>
+          <button id="btn-retry">Retry</button>
+          <button id="btn-menu">Levels</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pause" class="overlay hidden">
+      <div class="card">
+        <h2>Paused</h2>
+        <div class="buttons">
+          <button id="btn-resume" class="primary">Resume</button>
+          <button id="btn-restart">Restart level</button>
+          <button id="btn-quit">Level select</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
