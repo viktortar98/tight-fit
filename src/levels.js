@@ -103,7 +103,7 @@ export const LEVELS = [
     theme: 'street',
     par: 40,
     bounds: { minX: -9, maxX: 9, minZ: -22, maxZ: 12 },
-    start: { x: 0.8, z: -14, yaw: 0 },
+    start: { x: -0.4, z: -15, yaw: 0 },
     target: { x: 2.85, z: -1.23, w: 2.2, d: 5.4, rot: 0 },
     obstacles: [
       kerb(4.2, -5, 0.4, 32),
@@ -126,7 +126,7 @@ export const LEVELS = [
     theme: 'street',
     par: 55,
     bounds: { minX: -6, maxX: 9, minZ: -20, maxZ: 10 },
-    start: { x: 0.2, z: -13, yaw: 0 },
+    start: { x: -0.2, z: -13.5, yaw: 0 },
     target: { x: 2.85, z: -1.65, w: 2.2, d: 4.6, rot: 0 },
     obstacles: [
       kerb(4.2, -5, 0.4, 28),
