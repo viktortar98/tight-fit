@@ -9,7 +9,9 @@ What is scored is **direction changes**: every time you swap between forward
 and reverse. Parking anything is easy given unlimited shunts, so the shunts are
 the game. Each level ships with the record — the fewest direction changes the
 solver has ever proved possible on it — and your own best sits next to it.
-Crashes are counted per attempt too, and every contact counts, however gentle.
+Crashes are counted per attempt too, however gentle: a crash is the moment you
+touch something, so grinding along a wall is one crash, and letting go before
+you hit it again is what makes it two.
 
 Nothing tops 2.9 m/s. Holding a steady creep is not the challenge, so the
 vehicles do it for you — the throttle is analog, but first gear is all there is.
@@ -26,32 +28,46 @@ pnpm build      # static bundle in dist/
 
 ## Controls
 
-Keyboard and mouse, or an Xbox controller — plug it in and press anything, the
-HUD legend swaps over on its own. Menus, level select and the pause card are
-all navigable from the pad.
+Built for a controller — analog steering and an analog throttle are what a game
+about the last half-metre wants. Keyboard and mouse work too, and the HUD
+legend follows whichever you touched last. Menus, level select and the pause
+card are all pad-navigable.
 
-| Keyboard | Pad | |
+| Pad | Keyboard | |
 |---|---|---|
-| `W` / `S` | `RT` / `LT` | throttle, reverse (also brakes when moving the other way) |
-| `A` / `D` | left stick | steer (works at a standstill, like power steering) |
-| `Shift` | `LB` | crawl — caps the speed at ~1 m/s for the tight bits |
-| `Space` | `A` | brake |
-| `Q` / `E` | right stick | swing the camera around the body |
-| drag / scroll | right stick / `D-pad ↑↓` | look around, zoom |
-| `Z` | `RS` click | recentre the camera behind the vehicle |
-| `C` | `RB` | camera: chase → overhead → free orbit |
-| `R` | `Y` | restart level |
-| `V` | `View` | reverse camera auto-flip on/off |
-| `M` | `LS` click | mute |
-| `Esc` | `Menu` | pause |
+| `RT` / `LT` | `W` / `S` | throttle, reverse (also brakes when moving the other way) |
+| left stick | `A` / `D` | steer (works at a standstill, like power steering) |
+| `LB` | `Shift` | crawl — caps the speed at ~1 m/s for the tight bits |
+| `A` | `Space` | brake |
+| right stick | `Q` / `E`, drag | look around the body |
+| `D-pad ↑↓` | scroll | zoom |
+| `RS` click | `Z` | recentre the view where the level handed it to you |
+| `RB` | `C` | camera: chase ↔ overhead |
+| `Y` | `R` | restart level |
+| `LS` click | `M` | mute |
+| `Menu` | `Esc` | pause |
 
-The camera angle is held relative to the driven unit's body, not the world, so
-a jackknifed trailer never drags your viewpoint with it — you keep looking
-where the cab is pointing until you say otherwise.
+A pad whose triggers report no analog value drives from the left stick instead,
+with full lock still reachable — a fallback that could not turn at full lock
+could not finish several of the levels.
 
-The bar above the dash is a parking sensor: the distance to the nearest thing in any direction. Articulated
-vehicles get a second gauge showing the angle at the hitch, which is the only
-honest warning you get before it folds.
+**The camera does what you told it and nothing else.** It does not swing round
+when you reverse, pull itself in past walls, or trade distance for height on
+your behalf. Two views: chase, which is what the driver can see, and overhead,
+which is what the collision model sees — collision is 2D, so the overhead view
+*is* the physics. Angles are held relative to the driven body, so a jackknifed
+trailer never drags your viewpoint with it, and a view you chose stays on the
+same corner of the vehicle as it turns. If a wall is in the way, it is in the
+way; the overhead view is one button away.
+
+The bar across the bottom is a parking sensor: the distance to the nearest
+thing in any direction. Articulated vehicles get a second gauge showing the
+angle at the hitch, which is the only honest warning you get before it folds.
+Those are the only two gauges, because they are the only two things the view
+cannot tell you — there is no speedometer, no gear indicator and no
+steering-angle readout, and nothing on screen is there to help you find the bay
+on your first attempt. The level's hint lives on the level-select tile and the
+pause card, for a player who wants it.
 
 ## Vehicles
 
