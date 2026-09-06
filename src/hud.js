@@ -8,14 +8,14 @@ export class Hud {
     this.h = handlers;
     this.el = {
       hud: $('hud'), menu: $('menu'), result: $('result'), pause: $('pause'),
-      num: $('lvl-num'), name: $('lvl-name'), hint: $('lvl-hint'), veh: $('lvl-veh'),
+      lvlLabel: $('lvl-label'),
       keysKb: $('keys-kb'), keysPad: $('keys-pad'),
       artic: $('artic'), articDot: $('artic-dot'), articLabel: $('artic-label'),
       shunts: $('stat-shunts'), bumps: $('stat-bumps'), best: $('stat-best'), record: $('stat-record'),
-      gear: $('gear'), speedFill: $('speed-fill'), speedText: $('speed-text'),
-      steerDot: $('steer-dot'), sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
+      sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
       hold: $('hold'), holdFill: $('hold-fill'), toast: $('toast'), flash: $('flash'),
-      grid: $('level-grid'), tArrow: $('target-arrow'),
+      grid: $('level-grid'),
+      pTitle: $('pause-title'), pHint: $('pause-hint'),
       rKicker: $('result-kicker'), rTitle: $('result-title'), rShunts: $('result-shunts'), rRecord: $('result-record'),
       rBumps: $('result-bumps'), rRank: $('result-rank'), rNote: $('result-note'),
       btnNext: $('btn-next'),
@@ -29,6 +29,12 @@ export class Hud {
     $('btn-quit').onclick = () => handlers.toMenu();
     $('unlock-all').onclick = () => handlers.unlockAll();
     $('wipe').onclick = () => handlers.wipe();
+
+    // Pad glyphs are what the legend shows until there is evidence otherwise:
+    // this game is played on a controller. Touching the keyboard is that
+    // evidence; plugging a pad back in (setPadMode) undoes it.
+    addEventListener('keydown', () => this.setPadMode(false));
+
     this._toastTimer = 0;
   }
 
@@ -40,9 +46,12 @@ export class Hud {
       const b = document.createElement('button');
       b.className = `tile${unlocked ? '' : ' locked'}`;
       b.disabled = !unlocked;
+      // The hint lives here: it is read once, when you pick the level, not on
+      // every one of the attempts that follow.
       b.innerHTML = `<span class="veh">${VEHICLES[lvl.vehicle].name}</span>
         <span class="n">${String(i + 1).padStart(2, '0')}</span>
         <span class="t">${unlocked ? lvl.name : 'Locked'}</span>
+        ${unlocked ? `<span class="h">${lvl.hint}</span>` : ''}
         <span class="m">${unlocked
           ? `${best ? `you ${best.shunts}` : 'not parked yet'} &middot; record ${lvl.record}`
           : 'finish the one before'}</span>`;
@@ -71,18 +80,21 @@ export class Hud {
   }
 
   setLevel(index, level, best) {
-    this.el.num.textContent = `${String(index + 1).padStart(2, '0')} / ${LEVELS.length}`;
-    this.el.name.textContent = level.name;
-    this.el.hint.textContent = level.hint;
-    this.el.veh.textContent = VEHICLES[level.vehicle].name;
+    this.el.lvlLabel.textContent =
+      `${String(index + 1).padStart(2, '0')} / ${LEVELS.length} · ${level.name}`;
     this.el.best.textContent = best ? `${best.shunts}` : '—';
     this.el.record.textContent = level.record ?? '—';
     this.el.artic.classList.toggle('hidden', !VEHICLES[level.vehicle].trailer);
+    // The pause card is the second place the hint is available — the one you
+    // can reach mid-attempt without leaving the level.
+    this.el.pTitle.textContent = level.name;
+    this.el.pHint.textContent = level.hint;
   }
 
+  // `on` means "show the pad legend", not "a pad exists".
   setPadMode(on) {
-    this.el.keysKb.classList.toggle('hidden', on);
     this.el.keysPad.classList.toggle('hidden', !on);
+    this.el.keysKb.classList.toggle('hidden', on);
   }
 
   update(s) {
@@ -90,16 +102,6 @@ export class Hud {
     this.el.shunts.parentElement.classList.toggle('hot', s.par != null && s.shunts > s.par);
     this.el.bumps.textContent = s.bumps;
     this.el.bumps.parentElement.classList.toggle('hot', s.bumps > 0);
-
-    const kmh = Math.abs(s.speed) * 3.6;
-    this.el.speedFill.style.width = `${Math.min(100, (kmh / 26) * 100)}%`;
-    this.el.speedText.textContent = `${kmh.toFixed(1)} km/h`;
-
-    const gear = s.speed > 0.15 ? 'D' : s.speed < -0.15 ? 'R' : 'N';
-    this.el.gear.textContent = gear;
-    this.el.gear.className = gear.toLowerCase();
-
-    this.el.steerDot.style.transform = `translateX(${-s.steerNorm * 42}px)`;
 
     const d = s.gap;
     const pct = Math.max(0, Math.min(1, 1 - d / 1.5));
@@ -120,16 +122,6 @@ export class Hud {
 
     this.el.hold.classList.toggle('hidden', s.hold <= 0);
     this.el.holdFill.style.width = `${Math.min(100, s.hold * 100)}%`;
-  }
-
-  targetArrow(pos) {
-    const el = this.el.tArrow;
-    if (!pos) { el.classList.add('hidden'); return; }
-    el.classList.remove('hidden');
-    el.style.left = `${pos.x}px`;
-    el.style.top = `${pos.y}px`;
-    el.firstElementChild.style.transform = `rotate(${pos.angle}rad)`;
-    el.lastElementChild.textContent = `${pos.dist.toFixed(0)} m`;
   }
 
   toast(msg) {

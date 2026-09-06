@@ -37,21 +37,17 @@ html, body {
 }
 
 .corner { position: absolute; max-width: min(38vw, 420px); }
-.tl { top: 16px; left: 16px; }
 .tr { top: 16px; right: 16px; }
 .bl { bottom: 16px; left: 16px; }
 
-.lvl-line { display: flex; align-items: baseline; gap: 10px; }
-.lvl-line #lvl-num { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 0.06em; }
-.lvl-line #lvl-name { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
-.hint { margin-top: 5px; font-size: 12.5px; line-height: 1.45; color: var(--dim); max-width: 34ch; }
-
-.veh-tag {
-  font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--dim); border: 1px solid var(--edge); border-radius: 999px; padding: 1px 7px;
+/* Which level, and how this attempt is going — one block, because best and
+   record are facts about the level as much as about the run. */
+.stats { display: flex; flex-direction: column; align-items: flex-end; gap: 9px; }
+.lvl-label {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+  color: var(--dim); white-space: nowrap;
 }
-
-.stats { display: flex; gap: 18px; }
+.stat-row { display: flex; gap: 18px; }
 .stat { text-align: right; }
 .stat b { display: block; font-family: var(--mono); font-size: 19px; font-variant-numeric: tabular-nums; }
 .stat span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); }
@@ -65,44 +61,42 @@ kbd {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.dash {
+/* The two things the view itself cannot tell you: how close the nearest thing
+   is, and how far the hitch has folded. */
+.gauges {
   position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
-  width: min(470px, 62vw); display: flex; flex-direction: column; gap: 8px; align-items: center;
-}
-.dash-row {
-  display: flex; align-items: center; gap: 14px; width: 100%;
+  width: min(470px, 62vw); display: flex; align-items: center; gap: 14px;
   background: var(--panel); border: 1px solid var(--edge); border-radius: 12px;
   padding: 9px 14px; backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
-#gear {
-  font-family: var(--mono); font-weight: 700; font-size: 20px; width: 40px; height: 34px;
-  display: grid; place-items: center; border-radius: 8px;
-  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--edge);
+.sensor { flex: 1; display: flex; align-items: center; gap: 10px; }
+.sensor-track, .artic-track {
+  height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); position: relative;
 }
-#gear.d { color: var(--accent); }
-#gear.r { color: var(--warn); }
-.speedo { flex: 1; }
-.speed-track, .steer-track, .sensor-track {
-  height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; position: relative;
+.sensor-track { flex: 1; overflow: hidden; }
+#sensor-fill { position: absolute; inset: 0 auto 0 0; width: 0%; background: var(--accent); transition: width 0.08s linear, background 0.2s; }
+#sensor-text { font-family: var(--mono); font-size: 11px; color: var(--dim); min-width: 62px; text-align: right; }
+/* Without the speedo beside it, an unlabelled bar bottom-centre could be read
+   as anything; the caption says which quantity it is. */
+.cap { font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
+
+/* Same shape as the sensor beside it — caption, then gauge — so the two
+   tracks sit on one line. */
+.artic { width: 172px; display: flex; align-items: center; gap: 8px; padding-left: 14px; border-left: 1px solid var(--edge); }
+.artic .cap { width: 60px; flex: none; }
+.artic-track { flex: 1; }
+#artic-dot {
+  position: absolute; top: -3px; left: 50%; width: 12px; height: 12px; margin-left: -6px;
+  border-radius: 50%; background: var(--accent); transition: transform 0.05s linear;
 }
-#speed-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #9df1ff); transition: width 0.06s linear; }
-.speedo span, .steer span { display: block; margin-top: 4px; font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
-.steer { width: 96px; }
-.artic #artic-dot { background: var(--accent); }
 .artic.warn #artic-dot { background: var(--warn); }
 .artic.bad #artic-dot { background: var(--danger); }
-.steer-track { overflow: visible; }
-#steer-dot, #artic-dot {
-  position: absolute; top: -3px; left: 50%; width: 12px; height: 12px; margin-left: -6px;
-  border-radius: 50%; background: var(--ink); transition: transform 0.05s linear;
-}
-.sensor { width: 100%; display: flex; align-items: center; gap: 10px; padding: 0 4px; }
-.sensor-track { flex: 1; }
-#sensor-fill { position: absolute; inset: 0 auto 0 0; width: 0%; background: var(--accent); transition: width 0.08s linear, background 0.2s; }
-#sensor-text { font-family: var(--mono); font-size: 11px; color: var(--dim); min-width: 78px; text-align: right; }
+.artic.warn .cap { color: var(--warn); }
+.artic.bad .cap { color: var(--danger); }
 
 .hold {
-  position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: 78px; left: 50%; transform: translateX(-50%);
   width: 190px; text-align: center;
 }
 .hold span { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
@@ -115,19 +109,6 @@ kbd {
   padding: 6px 14px; opacity: 0; transition: opacity 0.25s;
 }
 .toast.on { opacity: 1; }
-
-.target-arrow {
-  position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center;
-  gap: 2px; transform: translate(-50%, -50%); pointer-events: none;
-}
-.target-arrow .tri {
-  width: 0; height: 0; border: 11px solid transparent; border-bottom-color: var(--accent);
-  filter: drop-shadow(0 0 6px rgba(92, 242, 160, 0.55));
-}
-.target-arrow b {
-  font-family: var(--mono); font-size: 10.5px; color: var(--accent);
-  background: rgba(10, 14, 18, 0.7); border-radius: 999px; padding: 1px 6px;
-}
 
 .flash { position: absolute; inset: 0; background: var(--danger); opacity: 0; pointer-events: none; }
 
@@ -144,8 +125,9 @@ h1 {
 h1::after { content: ""; display: block; width: 54px; height: 3px; background: var(--accent); margin-top: 12px; border-radius: 2px; }
 .tag { color: var(--dim); font-size: 15px; margin: 14px 0 26px; max-width: 52ch; line-height: 1.5; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 10px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .tile {
+  display: flex; flex-direction: column;
   text-align: left; font: inherit; color: inherit; cursor: pointer;
   background: rgba(255, 255, 255, 0.045); border: 1px solid var(--edge);
   border-radius: 12px; padding: 12px 13px; transition: 0.14s;
@@ -154,8 +136,17 @@ h1::after { content: ""; display: block; width: 54px; height: 3px; background: v
 .tile:disabled { opacity: 0.34; cursor: not-allowed; }
 .tile .n { font-family: var(--mono); font-size: 11px; color: var(--accent); }
 .tile .t { display: block; font-weight: 620; margin: 3px 0 6px; }
-.tile .m { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+/* The level's problem, stated where you choose the level rather than while you
+   are driving it. */
+.tile .h { display: block; font-size: 11.5px; line-height: 1.45; color: var(--dim); margin-bottom: 9px; }
+.tile .m {
+  font-family: var(--mono); font-size: 11px; color: var(--dim);
+  margin-top: auto; padding-top: 8px; border-top: 1px solid var(--edge);
+}
 .tile.locked .n { color: var(--dim); }
+/* A locked tile has no hint, so its score line sits under the name rather
+   than being pushed to the bottom of a row sized by unlocked neighbours. */
+.tile.locked .m { margin-top: 0; }
 .tile .veh { float: right; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
 
 .menu-foot { margin-top: 22px; display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--dim); }
@@ -191,7 +182,5 @@ button.primary:hover { filter: brightness(1.1); }
 }
 
 @media (max-width: 720px) {
-  .hint { display: none; }
-  .corner.bl { display: none; }
-  .dash { width: 94vw; }
+  .gauges { width: 94vw; }
 }

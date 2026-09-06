@@ -12,57 +12,42 @@
 
   <div id="ui">
     <div id="hud" class="hidden">
-      <div class="corner tl">
-        <div class="panel">
-          <div class="lvl-line"><span id="lvl-num">1 / 10</span><span id="lvl-name">First Bay</span><span id="lvl-veh" class="veh-tag"></span></div>
-          <div id="lvl-hint" class="hint"></div>
-        </div>
-      </div>
-
       <div class="corner tr">
         <div class="panel stats">
-          <div class="stat"><b id="stat-shunts">0</b><span>shunts</span></div>
-          <div class="stat"><b id="stat-bumps">0</b><span>crashes</span></div>
-          <div class="stat"><b id="stat-best">—</b><span>best</span></div>
-          <div class="stat"><b id="stat-record">—</b><span>record</span></div>
+          <div id="lvl-label" class="lvl-label">01 / 14 &middot; First Bay</div>
+          <div class="stat-row">
+            <div class="stat"><b id="stat-shunts">0</b><span>shunts</span></div>
+            <div class="stat"><b id="stat-bumps">0</b><span>crashes</span></div>
+            <div class="stat"><b id="stat-best">—</b><span>best</span></div>
+            <div class="stat"><b id="stat-record">—</b><span>record</span></div>
+          </div>
         </div>
       </div>
 
       <div class="corner bl">
-        <div class="panel keys" id="keys-kb">
-          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive &middot; <kbd>Shift</kbd> crawl &middot; <kbd>Space</kbd> brake</div>
-          <div><kbd>Q</kbd><kbd>E</kbd> swing &middot; <kbd>Z</kbd> recentre &middot; <kbd>C</kbd> camera &middot; <kbd>R</kbd> restart &middot; <kbd>Esc</kbd> menu</div>
-        </div>
-        <div class="panel keys hidden" id="keys-pad">
+        <div class="panel keys" id="keys-pad">
           <div><kbd>RT</kbd> drive &middot; <kbd>LT</kbd> reverse &middot; <kbd>LS</kbd> steer &middot; <kbd>LB</kbd> crawl &middot; <kbd>A</kbd> brake</div>
           <div><kbd>RS</kbd> look &middot; <kbd>D-pad</kbd> zoom &middot; <kbd>RB</kbd> camera &middot; <kbd>Y</kbd> restart &middot; <kbd>&#9776;</kbd> menu</div>
         </div>
+        <div class="panel keys hidden" id="keys-kb">
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive &middot; <kbd>Shift</kbd> crawl &middot; <kbd>Space</kbd> brake</div>
+          <div><kbd>Q</kbd><kbd>E</kbd> swing &middot; <kbd>Z</kbd> recentre &middot; <kbd>C</kbd> camera &middot; <kbd>R</kbd> restart &middot; <kbd>Esc</kbd> menu</div>
+        </div>
       </div>
 
-      <div class="dash">
-        <div id="sensor" class="sensor">
+      <div class="gauges">
+        <div class="sensor">
+          <span class="cap">nearest</span>
           <div class="sensor-track"><div id="sensor-fill"></div></div>
           <span id="sensor-text">clear</span>
         </div>
-        <div class="dash-row">
-          <div id="gear">N</div>
-          <div class="speedo">
-            <div class="speed-track"><div id="speed-fill"></div></div>
-            <span id="speed-text">0 km/h</span>
-          </div>
-          <div class="steer">
-            <div class="steer-track"><div id="steer-dot"></div></div>
-            <span>steering</span>
-          </div>
-          <div class="steer artic hidden" id="artic">
-            <div class="steer-track"><div id="artic-dot"></div></div>
-            <span id="artic-label">trailer</span>
-          </div>
+        <div class="artic hidden" id="artic">
+          <span class="cap" id="artic-label">trailer</span>
+          <div class="artic-track"><div id="artic-dot"></div></div>
         </div>
       </div>
 
       <div id="hold" class="hold hidden"><div id="hold-fill"></div><span>hold it…</span></div>
-      <div id="target-arrow" class="target-arrow hidden"><span class="tri"></span><b>0 m</b></div>
       <div id="toast" class="toast"></div>
       <div id="flash" class="flash"></div>
     </div>
@@ -73,7 +58,7 @@
         <p class="tag">Fourteen parking problems that look impossible. All fourteen are provably not.</p>
         <div id="level-grid" class="grid"></div>
         <div class="menu-foot">
-          <span>Desktop keyboard. Drag to look, scroll to zoom.</span>
+          <span>Made for a controller — every menu and card is pad-navigable. Keyboard and mouse work too.</span>
           <button id="unlock-all" class="link">unlock all levels</button>
           <button id="wipe" class="link">reset progress</button>
         </div>
@@ -101,7 +86,9 @@
 
     <div id="pause" class="overlay hidden">
       <div class="card">
-        <h2>Paused</h2>
+        <div class="kicker">paused</div>
+        <h2 id="pause-title">First Bay</h2>
+        <div id="pause-hint" class="note"></div>
         <div class="buttons">
           <button id="btn-resume" class="primary">Resume</button>
           <button id="btn-restart">Restart level</button>

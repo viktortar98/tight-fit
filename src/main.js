@@ -70,7 +70,8 @@ class Game {
     this.index = 0;
     this.navIndex = 0;
     this.navLatch = 0;
-    this.padSeen = false;
+    this.padSeen = true;
+    this.padWasConnected = false;
     this.carMesh = null;
     this.vehicle = null;
     this.clock = new THREE.Clock();
@@ -251,8 +252,6 @@ class Game {
       shunts: this.shunts,
       par: parOf(this.level),
       bumps: this.bumps,
-      speed: car.speed,
-      steerNorm: car.steer / this.spec.maxSteer,
       gap,
       hold: this.hold / 0.6,
       articulation: car.articulation,
@@ -348,10 +347,18 @@ class Game {
     const dt = Math.min(this.clock.getDelta(), 0.1);
     const input = this.input;
     this.pad.poll();
-    if (this.pad.connected !== this.padSeen) {
-      this.padSeen = this.pad.connected;
-      this.hud.setPadMode(this.padSeen);
-      if (this.padSeen) this.hud.toast('controller connected');
+    if (this.pad.connected && !this.padWasConnected) this.hud.toast('controller connected');
+    this.padWasConnected = this.pad.connected;
+
+    // The legend names the device you last touched. The pad is the default
+    // (DESIGN.md 11), so this only has to notice a hand moving to the keyboard.
+    const padDrive = this.pad.driving();
+    const padUsed = this.pad.tappedSet.size > 0
+      || !!(padDrive && (padDrive.throttle || padDrive.steer || padDrive.brake || padDrive.crawl));
+    const keyUsed = input.keys.size > 0 || input.tapped.size > 0;
+    if (padUsed !== keyUsed && padUsed !== this.padSeen) {
+      this.padSeen = padUsed;
+      this.hud.setPadMode(padUsed);
     }
 
     if (input.pressed('Escape') || this.pad.tapped(BTN.START)) {
@@ -381,7 +388,6 @@ class Game {
 
     if (this.state === 'playing') {
       const keys = input.driving();
-      const padDrive = this.pad.driving();
       const drive = padDrive
         ? {
           throttle: Math.abs(padDrive.throttle) > Math.abs(keys.throttle) ? padDrive.throttle : keys.throttle,

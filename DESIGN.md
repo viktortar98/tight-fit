@@ -220,6 +220,22 @@ letter and the steering-angle dot were none of those — they measured a
 quantity constraint 6 exists to make not matter, twice over, next to a scored
 number displayed smaller than either.
 
+Two consequences that were derived rather than decided, and are worth keeping
+because the derivation generalises:
+
+- **The vehicle name is not on the play HUD.** The player's vehicle is the only
+  saturated colour on screen (constraint 8), so a tag naming it labels the one
+  thing that cannot be missed. The level-select tile says it before you enter.
+- **The proximity bar is captioned `nearest`.** With the speedometer gone, an
+  unlabelled bar across the bottom centre sits exactly where a speedometer
+  would, and the gauge read most often must not be mistakable for the quantity
+  the game refuses to measure.
+
+Level identity — number, name, best, record — lives with the stats rather than
+in a panel of its own, because best and record are facts about the *level*, not
+about the run in progress. The pause card uses the result card's shape, so
+there is one card idiom rather than two.
+
 *Held by:* `src/hud.js` and `index.html`. Nothing checks it.
 
 ## 13. Written in JavaScript, deliberately
