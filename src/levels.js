@@ -274,12 +274,25 @@ export const LEVELS = [
     paint: bayRow(0, -12.5, 9, 3, 6),
   },
 
+  // The record was 3 until the validator was made to solve both handednesses.
+  // A level and its mirror image are the same puzzle — the model is equivariant
+  // under (x, yaw, steer) -> (-x, -yaw, -steer) — but the lattice bins position
+  // from the arena's own corner, so reflecting slides the cell walls. Mirrored,
+  // this level parks in 1: reverse straight back, which is free because nothing
+  // has moved yet, then one 88-degree forward arc through the 8.5 m gap into
+  // the dock. Reflect that route and it is legal here.
+  //
+  // So the three-shunt manoeuvre this was built around is not what it costs,
+  // and the difference probe now reads 1/0/0 rather than 3/3/3: with 0.15 m of
+  // relief per side it parks in a single sweep. By constraint 1 that is the
+  // failing condition. It ships with an honest record while its re-cut is
+  // decided; it is not a level that has been shown to work.
   {
     id: 'loading-dock',
     name: 'Loading Dock',
     vehicle: 'van',
     theme: 'garage',
-    record: 3,
+    record: 1,
     bounds: { minX: -10, maxX: 21, minZ: -13, maxZ: 6 },
     start: { x: -3.5, z: 0, yaw: P2 },
     target: { x: 13.3, z: -9.5, w: 3.2, d: 6, rot: 0 },

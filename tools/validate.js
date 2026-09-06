@@ -270,6 +270,46 @@ export function solve(level, opts = {}) {
   return { ok: false, reason: `exhausted (${expanded} nodes)` };
 }
 
+// A level reflected about x = 0 is the same puzzle. The bicycle model is
+// equivariant under (x, yaw, steer) -> (-x, -yaw, -steer) — tan() is odd, so
+// the yaw rate flips, x maps to -x and z is untouched, and the articulation
+// rate flips with it — the steering set is symmetric, and SAT is geometric.
+// So every route maps to a route in the mirror with the same direction-change
+// count and the same distance, and the true optimum of the pair is identical.
+//
+// The search does not agree with itself about that. key() bins position with
+// floor((x - minX) / XY), anchoring cell walls to the arena's own corner, and
+// `seen` is first-come-wins per cell — so reflecting the level slides the
+// lattice and changes which pose represents a cell. Loading Dock shipped a
+// record of 3 that its own mirror parks in 1. Solving both handednesses and
+// keeping the better one costs one extra solve and is a strictly tighter upper
+// bound; more to the point, it is what lets the stale-record check see a record
+// that is too *high*, which against a single handedness it structurally cannot.
+//
+// This does not make the number a property of the level. It is still an upper
+// bound, now taken over two lattices instead of one.
+function mirror(level) {
+  return {
+    ...level,
+    bounds: { ...level.bounds, minX: -level.bounds.maxX, maxX: -level.bounds.minX },
+    start: { ...level.start, x: -level.start.x, yaw: -level.start.yaw },
+    target: { ...level.target, x: -level.target.x, rot: -(level.target.rot ?? 0) },
+    obstacles: level.obstacles.map((o) => ({ ...o, x: -o.x, rot: -(o.rot ?? 0) })),
+  };
+}
+
+// Fewer direction changes first, then shorter — the same order the search uses.
+function betterResult(a, b) {
+  if (a.ok !== b.ok) return a.ok;
+  if (!a.ok) return false;
+  return a.shunts !== b.shunts ? a.shunts < b.shunts : a.length < b.length;
+}
+const bothWays = (level, opts) => {
+  const direct = solve(level, opts);
+  const flipped = solve(mirror(level), opts);
+  return betterResult(flipped, direct) ? { ...flipped, viaMirror: true } : direct;
+};
+
 // Importable: a sweep script wants solve() without running the whole set, and
 // without the exit() below firing under it.
 const RUN = !process.env.NO_RUN;
@@ -307,14 +347,14 @@ for (const level of RUN ? LEVELS : []) {
   for (const c of colliders) nearest = Math.min(nearest, rectDistance(level.target, c));
 
   const t0 = Date.now();
-  let res = solve(level);
+  let res = bothWays(level);
   // Out of budget is not "unsolvable" — it is "not answered". Fall back to the
   // finder so the solvability gate still gets a verdict, and say plainly that
   // the number this level carries was not re-established on this run.
   let bounded = false;
   if (!res.ok && res.reason.startsWith('gave up')) {
     bounded = true;
-    res = solve(level, { greedy: true });
+    res = bothWays(level, { greedy: true });
   }
   const ms = Date.now() - t0;
   if (!res.ok) issues.push(`NO SOLUTION FOUND (${res.reason})`);
@@ -324,12 +364,14 @@ for (const level of RUN ? LEVELS : []) {
   // set the record collapse exact poses into lattice cells, so which pose
   // represents a cell decides what continuations exist from it — see DESIGN.md 4.
   if (res.ok && !bounded && level.record != null && res.shunts < level.record) {
-    issues.push(`record is stale: the search parks it in ${res.shunts}, level claims ${level.record}`);
+    issues.push(`record is stale: the search parks it in ${res.shunts}`
+      + `${res.viaMirror ? ' (mirrored)' : ''}, level claims ${level.record}`);
   }
 
   const sw = sweptWidth(spec);
   const solved = res.ok
     ? `solved in ${String(res.moves).padStart(4)} moves, ${String(res.shunts).padStart(2)} direction changes, ${res.length.toFixed(1)} m`
+      + (res.viaMirror ? ' [mirror]' : '')
       + (bounded ? ' [finder only — out of budget, record not checked]' : '')
     : 'UNSOLVED';
   console.log(

@@ -188,6 +188,68 @@ checks it in one direction only: finding fewer fails the level, because the
 number is stale and the level is easier than its design believes. Finding more
 is not a failure — it is the lattice.
 
+**The number is not a property of the level, and here is the proof.** A level
+reflected about x = 0 is the same puzzle: `integrate()` is equivariant under
+(x, yaw, steer) -> (-x, -yaw, -steer) — `tan()` is odd so the yaw rate flips, x
+maps to -x, z is untouched, and the trailer's articulation rate flips with it —
+the steering set is symmetric, and SAT is geometric. So every route maps to a
+route in the mirror with the same direction-change count and the same distance,
+and the true optimum of the pair is identical. The reflection was checked
+first: every collider, arena rect, start pose and target of all fourteen levels
+matches the reflection of the original exactly, to the bit.
+
+**Five of the first twelve audited disagree.** Parallel 1 against 2, Dead End
+5 against UNSOLVED, Van Life 1 against 4, Loading Dock 3 against 1, and Bus
+Stop 1 against 10. The peer who found this reports Yard Full at 1 against 2 as
+well, on the commit before the coach landed; the two semi levels take about
+twenty minutes a pair and that half of the audit is still running. The cause is
+`key()`,
+which bins position as `floor((x - minX) / XY)`: cell walls are anchored to the
+arena's own corner, so reflecting the level slides the lattice, and `seen` is
+first-come-wins per cell, so which pose gets to represent a cell decides what
+continuations exist from it.
+
+Two things follow, and they point in opposite directions.
+
+- **Five of the six are harmless, and they look alike.** In those the mirror
+  finds a *worse* route, so the shipped number is still the minimum. They also
+  share a signature: Bus Stop's mirror is `F+19 R+0 F+0 R+10 F+0 R+0 F+0 R+0
+  F+10 R+0 F-3` — six zero-turn legs. **When the lattice fights, it saws.** So
+  a route full of `R+0` legs is a symptom of the instrument as well as of a bad
+  level, and the two are told apart by whether the route is also shorter.
+- **The sixth was a real error, in the level the table called soundest.**
+  Loading Dock's mirror parks it in 1 over 22.0 m against 3 over 28.8 m, and
+  that route — `R+0 F-88`, reverse straight back, which is free because nothing
+  has moved yet, then one arc into the dock — is legal in the shipped level by
+  reflection. The record was wrong by two.
+
+**What was adopted:** the validator solves both handednesses and keeps the
+better one, marking the line `[mirror]` when the reflection wins. One extra
+solve per level. It is a strictly tighter upper bound, and it is what lets the
+stale-record check catch a record that is too *high* — against a single lattice
+it structurally cannot, because the record was set on that same lattice.
+
+**What that does not fix.** The peer who found this reports that re-anchoring
+the lattice to a global origin does not repair the disagreement but re-rolls
+it — The Short Side going from 2/2 to 6/3, Dead End from 5/UNSOLVED to 3/4 —
+and that Dead End is beatable at 3 against its record of 4. That result is
+theirs and is not reproduced here, but it is the more important half if it
+holds: sliding the lattice by less than 0.3 m changes the reported cost, so the
+cost is a property of the search and not of the level. Solving both ways takes
+a minimum over two lattices; it does not make the minimum true.
+
+**The method that survives this is the one already in use: prefer plateaus to
+points.** A number that holds across a metre of some dimension is a property of
+the level. A number that appears at one setting and nowhere either side of it
+is the instrument — which is exactly why the coach's aisle sweep rejected a
+2-change reading at 14.0 m sitting in a field of 1s, and why the difference
+probe is read as a collapse rather than as a value.
+
+**And UNSOLVED is not proof of unsolvability.** Dead End's mirror does not run
+out of budget; it exhausts its reachable set and reports no solution, on a
+level whose original solves in half a second. That is constraint 3's
+instrument, not only constraint 4's, and the guarantee it offers is one-sided.
+
 **The difference probe.** `SHRINK=δ` (an environment variable, default 0)
 trims δ metres off every side of every rectangle belonging to the vehicle —
 body, trailer, and the rectangle the bay has to contain. Nothing kinematic
@@ -711,8 +773,10 @@ on its own yet.
 Two other entries are weaker than they look. The swept-ring row prints a number
 that is constant per vehicle, so it cannot show drift in anything a level does
 — constraint 7 says what actually governs bay entries. And the stale-record row
-only catches a level getting *easier*; nothing checks that a level still asks
-the question its comment says it asks.
+only catches a level getting *easier* — and until the validator was made to
+solve both handednesses it could not reliably do even that, because a record
+set from one lattice is not comparable with a search on the same lattice.
+Nothing checks that a level still asks the question its comment says it asks.
 
 ---
 
@@ -776,7 +840,7 @@ the peer who proposed the method.
 
 | level | δ=0 | δ=0.15 | δ=0.30 | reading |
 |---|---|---|---|---|
-| Loading Dock | 3 | 3 | 3 | structural outright |
+| Loading Dock | 1 | 0 | 0 | **all of it is clearance** |
 | Kerbside | 1 | 1 | 1 | structural outright |
 | Bus Stop | 1 | 1 | 1 | structural outright |
 | Trailer Trouble | 1 | 1 | 1 | structural outright |
@@ -823,9 +887,15 @@ What it establishes:
   manoeuvre at *any* clearance. Its 0.05 m `nearest` is a real fault and a
   separate one — the idea is structural and the execution is knife-edge. Two
   faults were being conflated. Loosen the gap, keep the level.
-- **Loading Dock is the other structural survivor**, holding 3 through 30 cm,
-  and it was the level with no stated idea at all. It has one; nobody had
-  written it down.
+- **Loading Dock was recorded here as a structural survivor, and it is the
+  worst level in the set.** That entry read 3/3/3 and said the level had an
+  idea nobody had written down. Both halves were wrong, and they were wrong
+  because the number came from one handedness. Solved mirrored it parks in 1,
+  and the honest panel is 1/0/0 — it collapses to a single sweep with 0.15 m of
+  relief, which is constraint 1's stated failing condition. Its record was 3;
+  it is now 1. This is the strongest available argument for reading a table
+  like this one as provisional: the row that looked soundest was the row with
+  the error in it.
 - **First Bay's two direction changes are a 0.45 m nudge.** Found by the
   `ROUTE=1` leg dump the moment it was added: forward 7 m, reverse one step,
   forward into the bay. The count is real and the manoeuvre is not, which is
