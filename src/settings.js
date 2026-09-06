@@ -83,6 +83,40 @@ export const SETTINGS = [
       + 'The brake button is not affected — a brake is a brake.',
     ...scale([1, 1.5, 2, 3, 4], 1),
   },
+  // The driving aids. Each one is a display and nothing else: turning it off
+  // changes what the player is told, never what the vehicle can do or where it
+  // fits, so DESIGN.md 15 holds for these the same way it holds for the
+  // multipliers above. They default on because a player who has never opened
+  // this menu should be given everything (DESIGN.md 12 is about what is on
+  // screen for the first attempt, not about withholding the car's own kit).
+  {
+    id: 'mirrors',
+    name: 'Mirrors',
+    note: 'The three mirror panels in the inside view. Off leaves that view '
+      + 'with only what the windscreen shows.',
+    values: [{ id: 'on', name: 'Shown' }, { id: 'off', name: 'Hidden' }],
+  },
+  {
+    id: 'reverseCam',
+    name: 'Reversing camera',
+    note: 'The rear camera panel and its painted rails, which come up whenever '
+      + 'you select reverse.',
+    values: [{ id: 'on', name: 'Shown' }, { id: 'off', name: 'Hidden' }],
+  },
+  {
+    id: 'radar',
+    name: 'Parking sensor',
+    note: 'The nearest-obstacle bar and the beep that quickens with it. Already '
+      + 'absent from the inside view, which does without it on purpose.',
+    values: [{ id: 'on', name: 'On' }, { id: 'off', name: 'Off' }],
+  },
+  {
+    id: 'traces',
+    name: 'Tyre marks',
+    note: 'The line each wheel leaves on the ground. It is the record of what '
+      + 'you did, so hiding it hides the route as well as the mess.',
+    values: [{ id: 'on', name: 'Shown' }, { id: 'off', name: 'Hidden' }],
+  },
 ];
 
 const DEFAULTS = Object.fromEntries(

@@ -176,8 +176,12 @@ export class Hud {
     // A steering wheel turns much further than the road wheels do; what the
     // number has to be is legible at a glance and never wrapped past vertical,
     // so full lock is a bit under half a turn. Positive steer is a left turn
-    // and SVG rotates clockwise, hence the sign.
-    this.el.wheelRot.setAttribute('transform', `rotate(${-s.steer * 140})`);
+    // and a rotation is clockwise, hence the sign.
+    //
+    // Set as a CSS property with a unit, on the svg itself. As a `transform`
+    // attribute on a group it did not turn about the wheel's centre: at full
+    // lock the graphic left the 42px gauge entirely.
+    this.el.wheelRot.style.transform = `rotate(${-s.steer * 140}deg)`;
 
     this.el.rewind.classList.toggle('hidden', !s.rewinding);
     if (s.rewinding) this.el.rewindLeft.textContent = s.tape.toFixed(1);

@@ -89,6 +89,9 @@ class Game {
         // Re-render rather than toggle a class: the menu is generated from the
         // settings, so the settings are the only place the state lives.
         this.gains = gains(this.settings);
+        // The aids are display state held in three different places, so the
+        // one that changed is pushed out here rather than read every frame.
+        if (this.traces) this.traces.group.visible = this.settings.traces === 'on';
         this.hud.renderSettings(this.settings);
         this.hud.setSteerMode(this.settings.steering);
       },
@@ -148,6 +151,7 @@ class Game {
       this.traces.dispose();
     }
     this.traces = new Traces(this.spec);
+    this.traces.group.visible = this.settings.traces === 'on';
     this.scene.add(this.traces.group);
     this.carMesh = createVehicleMesh(this.spec);
     this.scene.add(this.carMesh.group);
@@ -386,7 +390,7 @@ class Game {
       steer: car.steer / this.spec.maxSteer,
       rewinding: this.rewinding,
       tape: this.tape.len / 120,
-      radar: this.rig.mode !== 'cockpit',
+      radar: this.rig.mode !== 'cockpit' && this.settings.radar === 'on',
       canFinish: this.canFinish,
       articulation: car.articulation,
       maxArticulation: this.spec.trailer ? this.spec.trailer.maxAngle : 0,
@@ -564,8 +568,11 @@ class Game {
       this.reversing = this.vehicle.speed < -0.02 || drive.throttle < -0.1;
 
       const gap = this.nearestGap();
-      // The radar is off in the inside view, along with its gauge.
-      if (this.rig.mode !== 'cockpit') this.sfx.sensor(gap, performance.now() / 1000);
+      // The radar is off in the inside view, along with its gauge, and off
+      // entirely when the player has turned it off: the beep and the bar are
+      // one aid and they go together.
+      const radar = this.rig.mode !== 'cockpit' && this.settings.radar === 'on';
+      if (radar) this.sfx.sensor(gap, performance.now() / 1000);
       this.hud.update(this.telemetry(gap));
     }
 
@@ -588,9 +595,13 @@ class Game {
       this.anyPanel = this.panels.show({
         cockpit: this.rig.mode === 'cockpit',
         reversing: this.reversing,
+        mirrors: this.settings.mirrors === 'on',
+        camera: this.settings.reverseCam === 'on',
       });
       if (this.anyPanel) this.panels.aim(this.spec, car, this.carMesh.view);
-      if (this.reversing) this.panels.guides.update(this.spec, car);
+      if (this.reversing && this.settings.reverseCam === 'on') {
+        this.panels.guides.update(this.spec, car);
+      }
       this.world.animateTarget(performance.now() / 1000, this.inside);
     }
 

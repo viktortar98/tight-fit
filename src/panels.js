@@ -186,10 +186,12 @@ export class Panels {
 
   // Which panels this frame shows. Mirrors belong to the inside view, because
   // the other two answer the same question by showing the vehicle from
-  // outside; the reverse camera belongs to reversing, in every view.
-  show({ cockpit, reversing }) {
+  // outside; the reverse camera belongs to reversing, in every view. Both are
+  // also a player preference, and a panel switched off is not rendered rather
+  // than drawn and hidden — a panel costs a scene pass.
+  show({ cockpit, reversing, mirrors, camera }) {
     for (const p of this.panels) {
-      p.group.visible = p.kind === 'mirror' ? cockpit : reversing;
+      p.group.visible = p.kind === 'mirror' ? cockpit && mirrors : reversing && camera;
     }
     return this.panels.some((p) => p.group.visible);
   }
