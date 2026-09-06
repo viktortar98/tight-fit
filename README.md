@@ -76,9 +76,19 @@ about holding a speed along it, which is why this is the default rather than
 the option. **Accelerator** is the older feel: the trigger builds speed and
 letting go coasts down.
 
-The modes change how you ask, not what the vehicle can do: every combination
-reaches the same steering angles and the same speeds, so every level is
-finishable under any of them and a record means the same thing in all four.
+*Four multipliers* tune the feel: **steering speed** (Rate only — how far the
+wheels turn is the vehicle's own lock, not a preference), **top speed**,
+**acceleration**, and **slow-down**, which is how quickly it comes to rest when
+you let go. At 4x it stops in a third of a second against 1.35 at 1x. Crawl
+ignores the top-speed multiplier, because it exists to be a fixed slow speed,
+and the brake button ignores slow-down, because a brake is a brake.
+
+Settings change the vehicle's timing, never its geometry. The set of paths a
+vehicle can drive is fixed by its lock, its wheelbase and its shape, and none
+of those is settable — drive the same steering profile at 1 m/s and at 6 and
+the path through the world is the same to fifteen decimal places, trailer
+included. So every level is finishable under any combination, and a record
+means the same thing in all of them.
 
 A pad whose triggers report no analog value drives from the left stick instead,
 with full lock still reachable — a fallback that could not turn at full lock

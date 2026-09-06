@@ -743,55 +743,74 @@ defaults worth suppressing are — arrows and space scroll the page.
 
 ---
 
-## 15. A setting may change how the vehicle is commanded, never what it can do
+## 15. A setting may change the vehicle's timing, never its geometry
 
-The game shipped with no options at all. The two it has now exist because each
-covers two genuinely different *skills*, not two difficulties.
+The game shipped with no options at all. The ones it has now are handling, and
+they divide into two modes and four rates.
 
-**Steering.** *Direct* is the original: where you hold the stick is where the
+**Steering.** *Direct* is the default: where you hold the stick is where the
 front wheels point, and letting go straightens them. *Rate* is how a truck sim
 does it — how far you push the stick is how fast the wheels turn, and letting
-go leaves them where they are, so returning to straight is something you do
-rather than something that happens.
+go leaves them where they are, so returning to straight is something you do.
 
-**Throttle.** *Speed* is the default: the trigger is the speedometer — half
-pressed is half speed — and it closes the gap at `brakeAccel` rather than
+**Throttle.** *Speed* is the default: the trigger is the speedometer, half
+pressed is half speed, and it closes the gap at `brakeAccel` rather than
 `rollDrag`. A trigger springs back over tens of milliseconds rather than
 instantly, so following it is already a curve; the rate limit is there for the
 keyboard, which has no such curve. *Accelerator* is the original and is kept as
-the option: the trigger commands acceleration, speed builds toward the cap and
-coasts back down on `rollDrag`.
+the option. Speed is the default because it is what the game actually asks for:
+the difficulty is finding the line, not holding a speed along it, which is
+constraint 6's argument about gears applied to the pedal.
 
-Speed is the default because it is what the game actually asks for. The
-difficulty is finding the line, not holding a speed along it — which is
-constraint 6's argument about gears, applied to the pedal instead of the
-gearbox. Accelerator being first was history, not a decision.
+**Four multipliers**: steering speed (Rate only), top speed, acceleration and
+slow-down. Two are deliberately excluded. Crawl is not scaled, because it
+exists to be a *fixed* slow speed. The brake button is not scaled, because a
+brake is a brake — slow-down governs letting go, which is the thing that felt
+too slow.
 
-The modes share their limits. Both steering branches clamp to the same
-`maxSteer` and move at the same `steerRate`; both throttle branches clamp to
-the same `capF`/`capR`, crawl included. So **the reachable set of steer angles
-and speeds is identical in every combination**. That is not a detail; it is the
-whole reason the settings are allowed to exist. Every route
-`tools/validate.js` proves is driven through `integrate()` at some steer angle
-and speed, and every mode can command all of them, so a proved route is
-drivable under any setting and a record in `src/levels.js` means one thing
-rather than four.
+### Why the line is where it is
 
-The score is safe for the same reason. A shunt is a sign change in the
-direction of travel, with a 0.2 m/s deadband so rocking on the spot is not one
-(`Game.stepPhysics`). Speed mode crosses zero faster than Accelerator does, but
-it crosses it exactly as often, so the two modes produce the same count on the
-same route.
+The line is not "how it is commanded" — that was the first draft of this rule
+and it was too weak to place the multipliers. It is **timing against geometry**.
 
-That is the line a setting may not cross. A setting that moved `maxSteer`, the
-speed caps, the collision boxes or the bay tolerances would make a level's
-record mode-dependent, and constraint 3 would then be proving a game that some
-players are not playing. Comfort, presentation and *how the command is
-expressed* are settable; capability is not.
+A vehicle's reachable set of *paths* is fixed by `maxSteer`, `wheelbase`, the
+body rectangles and the trailer geometry. None of those is settable. Everything
+that is settable only changes how fast a path is traversed, and that is not an
+argument, it is arithmetic: in `integrate()` both the position step and the yaw
+step carry a factor of `v`, and so does the trailer's articulation rate. Over a
+fixed *arc length* the path is therefore identical at any speed. Measured, at
+equal 3 cm steps over 20 m of a varying-lock profile:
+
+| | 1.0 vs 2.5 vs 6.0 m/s |
+|---|---|
+| van | 3.55e-15 m, 4.44e-16 rad |
+| coach | 1.99e-15 m, 4.44e-16 rad |
+| semi (trailer included) | 1.78e-15 m, 2.22e-16 rad |
+
+That is floating-point identity, not similarity. And `steerRate` is not in the
+proof at all: `tools/validate.js` applies steer angles to `integrate()` with no
+rate limit, so how fast the wheel reaches an angle is something the prover
+already ignores.
+
+So every route the prover proves stays drivable under every combination of
+settings, and a record in `src/levels.js` means one thing rather than sixteen.
+The score is safe for the same reason: a shunt is a sign change in the
+direction of travel with a 0.2 m/s deadband (`Game.stepPhysics`), and no
+multiplier changes how many times a route crosses zero.
+
+`maxSteer` is the one geometric constant a player might expect to tune, and it
+is the one that is not offered — which is the same objection the user raised
+before it was built: how far the wheels turn is the vehicle's own lock, not a
+preference. Bay tolerances, collision boxes and the vehicle specs' dimensions
+are geometry too, and are not settable for the same reason.
+
+Collision sampling survives the top end: `Game.stepPhysics` sub-steps by
+distance at 3 cm and caps at 6, which binds only above 21.6 m/s. The fastest
+reachable setting is 1.6 x 2.9 = 4.64 m/s, so nothing tunnels.
 
 *Held by:* the `SETTINGS` table in `src/settings.js` — the menu is generated
-from it, so adding a setting is adding an entry there — and the mode branches
-in `Vehicle.control`, `src/vehicle.js`.
+from it, so adding a setting is adding an entry there — its `gains()`, and the
+mode branches in `Vehicle.control`, `src/vehicle.js`.
 
 ## Where the rules are enforced
 
@@ -802,7 +821,7 @@ in `Vehicle.control`, `src/vehicle.js`.
 | 13 — no dead code | `pnpm knip`, `pnpm lint` | exit 1, names the export |
 | 1 — route, not measurement | `SHRINK`/`WB`/`LOCK`/`OVH`/`TRL` probes | count collapses, or never moves |
 | 7 — swept ring | printed per level by the validator | visible drift |
-| 15 — settings do not change capability | review; every mode branch clamps to the same `maxSteer`, `steerRate`, `capF`, `capR` | silent |
+| 15 — settings are timing, not geometry | review; `gains()` scales only rates, and `maxSteer` / dimensions are not in it | silent |
 | 2, 5, 6, 8, 9, 10, 11, 12, 14 | nothing | silent |
 
 Nine of fourteen are held by reading. That is the honest state of it: the

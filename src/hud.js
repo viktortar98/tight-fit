@@ -68,20 +68,26 @@ export class Hud {
   renderSettings(settings) {
     this.el.settingsList.innerHTML = '';
     for (const s of SETTINGS) {
+      // A setting that is meaningless under the current mode is shown greyed
+      // rather than removed: a menu whose rows move as you use it is harder to
+      // navigate than one that admits a row is inert.
+      const inert = s.when ? !s.when(settings) : false;
       const box = document.createElement('div');
-      box.className = 'setting';
-      box.innerHTML = `<span class="cap">${s.name}</span>`;
+      box.className = `setting${inert ? ' inert' : ''}`;
+      box.innerHTML = `<span class="cap">${s.name}</span>`
+        + (s.note ? `<p class="hint">${s.note}</p>` : '');
       const opts = document.createElement('div');
       opts.className = 'opts';
       opts.setAttribute('role', 'radiogroup');
       opts.setAttribute('aria-label', s.name);
       for (const v of s.values) {
         const b = document.createElement('button');
-        b.className = 'opt';
+        b.className = s.note ? 'opt narrow' : 'opt';
         b.setAttribute('role', 'radio');
         b.setAttribute('aria-checked', String(settings[s.id] === v.id));
         b.innerHTML = `<span class="on">${settings[s.id] === v.id ? 'on' : 'off'}</span>
-          <b>${v.name}</b><p class="note">${v.note}</p>`;
+          <b>${v.name}</b>${v.note ? `<p class="note">${v.note}</p>` : ''}`;
+        b.disabled = inert;
         b.onclick = () => this.h.setSetting(s.id, v.id);
         opts.appendChild(b);
       }

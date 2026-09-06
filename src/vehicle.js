@@ -211,6 +211,10 @@ export function integrate(spec, s, dt, steer) {
   return next;
 }
 
+// A player who has never opened the menu, and every caller that does not
+// have one — the prover included.
+const NO_GAINS = { steerSpeed: 1, topSpeed: 1, acceleration: 1, slowdown: 1 };
+
 export class Vehicle {
   constructor(spec) {
     this.spec = spec;
@@ -252,6 +256,12 @@ export class Vehicle {
   // caller so it can be sub-stepped against collisions.
   control(dt, input) {
     const s = this.spec;
+    // Player multipliers. Every one of them scales a *rate* — how fast the
+    // wheel turns, how fast the vehicle gets to a speed, what a full trigger
+    // is worth. None of them reaches maxSteer, the wheelbase or a body
+    // rectangle, which is why none of them can change the set of paths the
+    // vehicle can drive (DESIGN.md 15).
+    const g = input.gains ?? NO_GAINS;
 
     const wheel = clamp(input.steer, -1, 1);
     if (input.steerMode === 'rate') {
@@ -260,7 +270,7 @@ export class Vehicle {
       // rather than a thing that happens. Both modes reach every angle in
       // [-maxSteer, maxSteer], which is why the solvability proofs in
       // tools/validate.js hold for either (DESIGN.md 7).
-      this.steer = clamp(this.steer + wheel * s.steerRate * dt, -s.maxSteer, s.maxSteer);
+      this.steer = clamp(this.steer + wheel * s.steerRate * g.steerSpeed * dt, -s.maxSteer, s.maxSteer);
     } else {
       const steerTarget = wheel * s.maxSteer;
       const steerRate = s.steerRate * (Math.abs(wheel) < 0.02 ? 1.7 : 1) * dt;
@@ -268,8 +278,10 @@ export class Vehicle {
     }
 
     const throttle = clamp(input.throttle, -1, 1);
-    const capF = input.crawl ? s.crawlSpeed : s.maxSpeed;
-    const capR = input.crawl ? s.crawlSpeed : s.maxReverse;
+    // Crawl is deliberately not scaled: it exists to be a fixed slow speed.
+    const capF = input.crawl ? s.crawlSpeed : s.maxSpeed * g.topSpeed;
+    const capR = input.crawl ? s.crawlSpeed : s.maxReverse * g.topSpeed;
+    const pull = s.accel * g.acceleration;
 
     let accel;
     this.braking = false;
@@ -294,7 +306,7 @@ export class Vehicle {
       // changes how speed is asked for and not how much of it there is.
       const target = throttle * (throttle >= 0 ? capF : capR);
       const closing = Math.abs(target) < Math.abs(this.speed) || target * this.speed < 0;
-      const rate = (closing ? s.brakeAccel : s.accel) * dt;
+      const rate = (closing ? s.brakeAccel * g.slowdown : pull) * dt;
       const step = clamp(target - this.speed, -rate, rate);
       this.braking = closing && Math.abs(step) > 0;
       this.speed += step;
@@ -307,12 +319,13 @@ export class Vehicle {
       } else {
         const cap = (dir > 0 ? capF : capR) * Math.abs(throttle);
         const fade = 1 - Math.min(1, Math.abs(this.speed) / Math.max(cap, 0.15));
-        accel = dir * s.accel * Math.max(fade, 0.08);
+        accel = dir * pull * Math.max(fade, 0.08);
         if (Math.abs(this.speed) > cap) accel = -Math.sign(this.speed) * s.brakeAccel * 0.5;
       }
     } else {
-      accel = -Math.sign(this.speed) * s.rollDrag;
-      if (Math.abs(this.speed) <= s.rollDrag * dt) {
+      const drag = s.rollDrag * g.slowdown;
+      accel = -Math.sign(this.speed) * drag;
+      if (Math.abs(this.speed) <= drag * dt) {
         this.speed = 0;
         accel = 0;
       }

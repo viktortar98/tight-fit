@@ -1,10 +1,19 @@
 // Player preferences. Kept in their own key rather than inside the progress
 // blob: progress is versioned with the scoring unit and gets thrown away when
-// that changes (main.js), and a steering preference is not a score.
+// that changes (main.js), and a handling preference is not a score.
 const KEY = 'tight-fit.settings';
 
-// Every setting is an id plus the fixed list of values it may take. The menu
-// is generated from this, so adding a setting is adding an entry here.
+// A multiplier setting. The values are ordered slow-to-fast rather than
+// default-first, because a row of numbers a player reads left to right is
+// worth more than the table's usual "the default is the first entry" rule.
+const scale = (values, def) => ({
+  values: values.map((v) => ({ id: String(v), name: `${v.toFixed(2).replace(/0$/, '')}×` })),
+  default: String(def),
+});
+
+// Every setting is an id plus the fixed list of values it may take, and
+// optionally a `when` saying which other setting it is meaningful under. The
+// menu is generated from this, so adding a setting is adding an entry here.
 export const SETTINGS = [
   {
     id: 'steering',
@@ -26,6 +35,15 @@ export const SETTINGS = [
     ],
   },
   {
+    id: 'steerSpeed',
+    name: 'Steering speed',
+    note: 'How fast the wheels turn at full stick. There is no equivalent for '
+      + 'Direct steering: how far the wheels turn is the vehicle’s own '
+      + 'lock, not a preference.',
+    when: (s) => s.steering === 'rate',
+    ...scale([0.5, 0.7, 1, 1.4, 2], 1),
+  },
+  {
     id: 'throttle',
     name: 'Throttle',
     values: [
@@ -44,11 +62,33 @@ export const SETTINGS = [
       },
     ],
   },
+  {
+    id: 'topSpeed',
+    name: 'Top speed',
+    note: 'What a fully pressed trigger is worth, forward and in reverse. '
+      + 'Crawl is left alone — it exists to be a fixed slow speed.',
+    ...scale([0.6, 0.8, 1, 1.3, 1.6], 1),
+  },
+  {
+    id: 'acceleration',
+    name: 'Acceleration',
+    note: 'How hard it pulls away. Under Speed throttle this is how quickly '
+      + 'the vehicle catches up to the trigger.',
+    ...scale([0.6, 0.8, 1, 1.5, 2], 1),
+  },
+  {
+    id: 'slowdown',
+    name: 'Slow-down',
+    note: 'How fast it comes to rest when you let go, forward and in reverse. '
+      + 'The brake button is not affected — a brake is a brake.',
+    ...scale([1, 1.5, 2, 3, 4], 1),
+  },
 ];
 
-// The first value of each setting is its default, so the order in the table
-// is the only place a default lives.
-const DEFAULTS = Object.fromEntries(SETTINGS.map((s) => [s.id, s.values[0].id]));
+const DEFAULTS = Object.fromEntries(
+  // The first value is the default unless the setting names one.
+  SETTINGS.map((s) => [s.id, s.default ?? s.values[0].id]),
+);
 
 export function load() {
   const out = { ...DEFAULTS };
@@ -65,4 +105,16 @@ export function load() {
 
 export function save(settings) {
   try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch { /* private mode */ }
+}
+
+// The multipliers the physics reads, as numbers. Everything the player can
+// tune is a rate: see DESIGN.md 15 for why none of them can reach the geometry
+// a level is proved against.
+export function gains(settings) {
+  return {
+    steerSpeed: settings.steering === 'rate' ? Number(settings.steerSpeed) : 1,
+    topSpeed: Number(settings.topSpeed),
+    acceleration: Number(settings.acceleration),
+    slowdown: Number(settings.slowdown),
+  };
 }

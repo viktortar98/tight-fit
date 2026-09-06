@@ -9,7 +9,7 @@ import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { Pad, BTN } from './gamepad.js';
 import { Hud } from './hud.js';
-import { load as loadSettings, save as saveSettings } from './settings.js';
+import { load as loadSettings, save as saveSettings, gains } from './settings.js';
 import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.js';
 
 // Versioned with the scoring unit. When the unit changes this key changes,
@@ -49,6 +49,7 @@ class Game {
     this.sfx = new Sfx();
     this.progress = loadProgress();
     this.settings = loadSettings();
+    this.gains = gains(this.settings);
 
     this.hud = new Hud({
       play: (i) => this.play(i),
@@ -73,6 +74,7 @@ class Game {
         saveSettings(this.settings);
         // Re-render rather than toggle a class: the menu is generated from the
         // settings, so the settings are the only place the state lives.
+        this.gains = gains(this.settings);
         this.hud.renderSettings(this.settings);
         this.hud.setSteerMode(this.settings.steering);
       },
@@ -429,6 +431,7 @@ class Game {
         : keys;
       drive.steerMode = this.settings.steering;
       drive.throttleMode = this.settings.throttle;
+      drive.gains = this.gains;
       this.accum += dt;
       let steps = 0;
       while (this.accum >= PHYS_DT && steps < 12) {
