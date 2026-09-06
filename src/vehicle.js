@@ -25,6 +25,28 @@ const deg = (d) => (d * Math.PI) / 180;
 // `glass` names which of those segments are glazed by index, so the windscreen
 // is the raked segment of the silhouette rather than a slab invented beside it.
 export const VEHICLES = {
+  // The bottom of the range, and the control for every level a bigger vehicle
+  // has to fit into: short, narrow, and 38° of lock on a 2.30 m wheelbase.
+  citycar: {
+    id: 'citycar',
+    name: 'City Car',
+    length: 3.57, width: 1.63, height: 1.49,
+    wheelbase: 2.30, rearOverhang: 0.62, trackWidth: 1.41,
+    wheelRadius: 0.29, wheelWidth: 0.18,
+    mirrors: { z: 1.726, out: 0.13, d: 0.1, h: 0.09, y: 1.22 },
+    maxSteer: deg(38), steerRate: deg(160),
+    accel: 3.1, brakeAccel: 6.0, rollDrag: 2.0,
+    maxSpeed: 2.9, maxReverse: 2.3, crawlSpeed: 1.0,
+    bodyColor: 0xf2c53d,
+    body: {
+      sill: 0.24, arch: 1.22, taper: [0.60, 0.86],
+      top: [[1.000, 0.46], [0.900, 0.53], [0.700, 0.58], [0.530, 0.980],
+        [0.230, 1.000], [0.070, 0.800], [0.000, 0.720]],
+      glass: [2, 4],
+      sides: [[0.25, 0.52, 0.63, 0.95]],
+      eye: [0.545, 0.880], look: [0.645, 0.930],
+    },
+  },
   hatch: {
     id: 'hatch',
     name: 'Hatchback',
@@ -45,6 +67,51 @@ export const VEHICLES = {
       eye: [0.550, 0.876], look: [0.650, 0.928],
     },
   },
+  // Three boxes instead of two: 0.80 m more car than the hatchback, most of it
+  // hung off the ends. Same class to drive, a different gap to fit into.
+  saloon: {
+    id: 'saloon',
+    name: 'Saloon',
+    length: 4.75, width: 1.83, height: 1.46,
+    wheelbase: 2.79, rearOverhang: 1.06, trackWidth: 1.57,
+    wheelRadius: 0.33, wheelWidth: 0.22,
+    mirrors: { z: 2.19, out: 0.14, d: 0.1, h: 0.10, y: 1.20 },
+    maxSteer: deg(34), steerRate: deg(150),
+    accel: 2.9, brakeAccel: 5.9, rollDrag: 2.0,
+    maxSpeed: 2.85, maxReverse: 2.25, crawlSpeed: 1.0,
+    bodyColor: 0x2f6f4e,
+    body: {
+      sill: 0.235, arch: 1.22, taper: [0.60, 0.87],
+      top: [[1.000, 0.44], [0.900, 0.50], [0.735, 0.545], [0.575, 0.965],
+        [0.290, 1.000], [0.185, 0.720], [0.030, 0.660], [0.000, 0.600]],
+      glass: [2, 4],
+      sides: [[0.315, 0.555, 0.62, 0.94]],
+      eye: [0.560, 0.875], look: [0.660, 0.925],
+    },
+  },
+  // The same length as the saloon to within 3 cm, and 12 cm wider. It exists to
+  // isolate width: whatever it cannot do that the saloon can is about the bay
+  // being narrow, not about the vehicle being long.
+  suv: {
+    id: 'suv',
+    name: 'SUV',
+    length: 4.72, width: 1.95, height: 1.72,
+    wheelbase: 2.82, rearOverhang: 0.95, trackWidth: 1.66,
+    wheelRadius: 0.37, wheelWidth: 0.25,
+    mirrors: { z: 2.20, out: 0.15, d: 0.1, h: 0.11, y: 1.38 },
+    maxSteer: deg(33), steerRate: deg(145),
+    accel: 2.7, brakeAccel: 5.6, rollDrag: 1.95,
+    maxSpeed: 2.8, maxReverse: 2.2, crawlSpeed: 0.95,
+    bodyColor: 0x2b4a7a,
+    body: {
+      sill: 0.26, arch: 1.20, taper: [0.62, 0.88],
+      top: [[1.000, 0.42], [0.905, 0.50], [0.740, 0.55], [0.600, 0.955],
+        [0.225, 1.000], [0.075, 0.870], [0.000, 0.780]],
+      glass: [2, 4],
+      sides: [[0.25, 0.585, 0.60, 0.94]],
+      eye: [0.565, 0.855], look: [0.665, 0.925],
+    },
+  },
   van: {
     id: 'van',
     name: 'Delivery Van',
@@ -63,6 +130,98 @@ export const VEHICLES = {
       glass: [2],
       sides: [[0.80, 0.90, 0.55, 0.86]],
       eye: [0.598, 0.808], look: [0.770, 0.889],
+    },
+  },
+  // The wide-circle vehicle: 3.68 m of wheelbase and only 30° of lock, so it
+  // needs 6.4 m of radius where the hatchback needs 3.4 m. It is barely wider
+  // than a van and it will not go where one goes.
+  pickup: {
+    id: 'pickup',
+    name: 'Pickup Truck',
+    length: 6.10, width: 2.03, height: 1.95,
+    wheelbase: 3.68, rearOverhang: 1.35, trackWidth: 1.72,
+    wheelRadius: 0.40, wheelWidth: 0.27,
+    mirrors: { z: 2.93, out: 0.18, d: 0.1, h: 0.16, y: 1.56 },
+    maxSteer: deg(30), steerRate: deg(130),
+    accel: 2.5, brakeAccel: 5.2, rollDrag: 1.9,
+    maxSpeed: 2.7, maxReverse: 2.1, crawlSpeed: 0.9,
+    bodyColor: 0x8c3b2e,
+    body: {
+      sill: 0.26, arch: 1.20, taper: [0.62, 0.90],
+      top: [[1.000, 0.44], [0.930, 0.56], [0.680, 0.60], [0.560, 0.965],
+        [0.420, 1.000], [0.418, 0.600], [0.000, 0.600]],
+      glass: [2, 4],
+      sides: [[0.44, 0.55, 0.62, 0.94]],
+      eye: [0.560, 0.870], look: [0.650, 0.930],
+    },
+  },
+  // The tail-swing vehicle, and the near-twin of the step van below. They are
+  // the same box to within 30 cm and they turn on the same radius; what differs
+  // is where the axle sits under it, which is the whole point of having both.
+  lorry: {
+    id: 'lorry',
+    name: 'Box Lorry',
+    length: 7.60, width: 2.35, height: 3.20,
+    wheelbase: 4.20, rearOverhang: 2.35, trackWidth: 2.00,
+    wheelRadius: 0.46, wheelWidth: 0.28,
+    mirrors: { z: 3.30, out: 0.20, d: 0.1, h: 0.30, y: 2.30 },
+    maxSteer: deg(40), steerRate: deg(110),
+    accel: 2.2, brakeAccel: 4.8, rollDrag: 1.8,
+    maxSpeed: 2.5, maxReverse: 1.95, crawlSpeed: 0.85,
+    bodyColor: 0xb4632a,
+    body: {
+      sill: 0.185, arch: 1.22, taper: [0.50, 0.98], dash: true,
+      top: [[1.000, 0.30], [0.985, 0.42], [0.958, 0.80], [0.930, 0.855],
+        [0.800, 0.855], [0.800, 1.000], [0.010, 1.000], [0.000, 0.94]],
+      glass: [1],
+      sides: [[0.81, 0.95, 0.46, 0.78]],
+      eye: [0.880, 0.560], look: [0.965, 0.820],
+    },
+  },
+  // Wheels near the ends of the same box: 1.20 m of rear overhang against the
+  // lorry's 2.35 m. It sweeps a corner the lorry cannot, on the same circle.
+  stepvan: {
+    id: 'stepvan',
+    name: 'Step Van',
+    length: 7.30, width: 2.40, height: 3.00,
+    wheelbase: 4.75, rearOverhang: 1.20, trackWidth: 2.02,
+    wheelRadius: 0.42, wheelWidth: 0.26,
+    mirrors: { z: 3.75, out: 0.20, d: 0.1, h: 0.28, y: 2.10 },
+    maxSteer: deg(44), steerRate: deg(115),
+    accel: 2.3, brakeAccel: 4.9, rollDrag: 1.8,
+    maxSpeed: 2.55, maxReverse: 2.0, crawlSpeed: 0.85,
+    bodyColor: 0x6f7a86,
+    body: {
+      sill: 0.16, arch: 1.22, taper: [0.50, 0.98], dash: true,
+      top: [[1.000, 0.36], [0.988, 0.52], [0.960, 0.94], [0.945, 1.00],
+        [0.015, 1.00], [0.000, 0.93]],
+      glass: [1],
+      sides: [[0.86, 0.95, 0.50, 0.88]],
+      eye: [0.880, 0.560], look: [0.960, 0.880],
+    },
+  },
+  // The user's own example, and the reason the roster is not a size ladder: it
+  // is the city bus's length and width to within 10 cm, and it needs half again
+  // as much room to turn, because the engine in front of the windscreen pushes
+  // its front axle a metre back down the body.
+  schoolbus: {
+    id: 'schoolbus',
+    name: 'School Bus',
+    length: 10.90, width: 2.44, height: 3.05,
+    wheelbase: 6.55, rearOverhang: 2.85, trackWidth: 2.06,
+    wheelRadius: 0.52, wheelWidth: 0.30,
+    mirrors: { z: 7.60, out: 0.22, d: 0.1, h: 0.30, y: 2.20 },
+    maxSteer: deg(42), steerRate: deg(100),
+    accel: 2.1, brakeAccel: 4.5, rollDrag: 1.8,
+    maxSpeed: 2.45, maxReverse: 1.9, crawlSpeed: 0.85,
+    bodyColor: 0xe8a319,
+    body: {
+      sill: 0.185, arch: 1.24, taper: [0.52, 0.97],
+      top: [[1.000, 0.36], [0.968, 0.44], [0.853, 0.46], [0.818, 0.93],
+        [0.800, 1.000], [0.015, 1.000], [0.000, 0.90]],
+      glass: [3],
+      sides: [[0.05, 0.79, 0.52, 0.86]],
+      eye: [0.795, 0.640], look: [0.855, 0.900],
     },
   },
   bus: {
