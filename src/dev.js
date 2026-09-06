@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { VEHICLES, Vehicle } from './vehicle.js';
-import { createVehicleMesh } from './carMesh.js';
+import { createVehicleMesh, updateVehicleMesh } from './carMesh.js';
 import { LEVELS } from './levels.js';
 import { World } from './world.js';
 import * as OBJECTS from './objects.js';
 import { SCHEMA } from './objects.js';
 import { TurnCircles } from './turnCircles.js';
+import { Ghosts } from './ghosts.js';
 
 // An inspection sheet. Not part of the game: `dev.html`, dev server only.
 //
@@ -27,6 +28,7 @@ import { TurnCircles } from './turnCircles.js';
 //   #levels              every level from above, vehicle at its start
 //   #level=alcove        one level, large
 //   #circles=hatch       the turning circles at six steering angles, from above
+//   #ghosts              every vehicle with two ghosts of itself behind it
 // and `?spin=1` turns the vehicles, because a seam that flickers is a seam that
 // a still frame can miss.
 
@@ -82,21 +84,22 @@ const VIEWS = {
   inl: { name: 'seat, left', eye: [1.15, 0.12, 88] },
 };
 
-function frameVehicle(cam, spec, mesh, view, spin) {
-  // The whole combination, front bumper to trailer tail, measured from the
-  // rear axle the vehicle is referenced at.
-  // The rear axle is the origin, so the nose is everything ahead of it: the
-  // length less the rear overhang. There is no `frontOverhang` on a spec.
+// The whole combination, front bumper to trailer tail, measured from the rear
+// axle the vehicle is referenced at. The rear axle is the origin, so the nose
+// is everything ahead of it: the length less the rear overhang. There is no
+// `frontOverhang` on a spec.
+function extent(spec) {
   const t = spec.trailer;
   const nose = spec.length - spec.rearOverhang;
   const tail = t ? t.hitch - t.axleFromHitch - t.axleToRear : -spec.rearOverhang;
-  const reach = nose - tail;
-  const size = Math.max(reach, spec.width) * 0.9;
-  const mid = new THREE.Vector3(0, spec.height * 0.45, (nose + tail) / 2);
+  return { nose, tail, reach: nose - tail };
+}
+
+// A trailer has a place of its own, and the vehicle is the thing that knows
+// it. Asking a real Vehicle where its axle is beats a subtraction here that
+// could be wrong in a way the picture would not show.
+function placeVehicle(spec, mesh, spin) {
   mesh.group.rotation.y = spin;
-  // A trailer has a place of its own, and the vehicle is the thing that knows
-  // it. Asking a real Vehicle where its axle is beats a subtraction here that
-  // could be wrong in a way the picture would not show.
   if (mesh.trailerGroup) {
     const v = new Vehicle(spec);
     v.reset(0, 0, spin);
@@ -104,6 +107,13 @@ function frameVehicle(cam, spec, mesh, view, spin) {
     mesh.trailerGroup.position.set(axle.x, 0, axle.z);
     mesh.trailerGroup.rotation.y = spin;
   }
+}
+
+function frameVehicle(cam, spec, mesh, view, spin) {
+  const { nose, tail, reach } = extent(spec);
+  const size = Math.max(reach, spec.width) * 0.9;
+  const mid = new THREE.Vector3(0, spec.height * 0.45, (nose + tail) / 2);
+  placeVehicle(spec, mesh, spin);
   cam.up.set(0, 1, 0);
   if (view.eye) {
     // The same placement src/camera.js uses for the inside view, with the head
@@ -130,23 +140,23 @@ function frameVehicle(cam, spec, mesh, view, spin) {
 
 const levelScene = new THREE.Scene();
 const world = new World(levelScene);
-let levelGhost = null;
+let levelCar = null;
 
 function buildLevel(level) {
   world.build(level);
-  if (levelGhost) {
-    levelScene.remove(levelGhost.group);
-    if (levelGhost.trailerGroup) levelScene.remove(levelGhost.trailerGroup);
+  if (levelCar) {
+    levelScene.remove(levelCar.group);
+    if (levelCar.trailerGroup) levelScene.remove(levelCar.trailerGroup);
   }
   const spec = VEHICLES[level.vehicle];
-  levelGhost = createVehicleMesh(spec);
-  levelGhost.group.position.set(level.start.x, 0, level.start.z);
-  levelGhost.group.rotation.y = level.start.yaw;
-  levelScene.add(levelGhost.group);
-  if (levelGhost.trailerGroup) {
-    levelGhost.trailerGroup.position.set(level.start.x, 0, level.start.z);
-    levelGhost.trailerGroup.rotation.y = level.start.yaw;
-    levelScene.add(levelGhost.trailerGroup);
+  levelCar = createVehicleMesh(spec);
+  levelCar.group.position.set(level.start.x, 0, level.start.z);
+  levelCar.group.rotation.y = level.start.yaw;
+  levelScene.add(levelCar.group);
+  if (levelCar.trailerGroup) {
+    levelCar.trailerGroup.position.set(level.start.x, 0, level.start.z);
+    levelCar.trailerGroup.rotation.y = level.start.yaw;
+    levelScene.add(levelCar.trailerGroup);
   }
 }
 
@@ -182,20 +192,69 @@ circleScene.environment = ENV;
 }
 const circles = new TurnCircles();
 circleScene.add(circles.group);
-let circleGhost = null;
+let circleCar = null;
 
 const LOCKS = [1, 0.6, 0.3, -0.3, -0.6, -1];
 
 function drawCircles(spec, frac, span) {
-  if (circleGhost) {
-    circleScene.remove(circleGhost.group);
-    if (circleGhost.trailerGroup) circleScene.remove(circleGhost.trailerGroup);
+  if (circleCar) {
+    circleScene.remove(circleCar.group);
+    if (circleCar.trailerGroup) circleScene.remove(circleCar.trailerGroup);
   }
-  circleGhost = createVehicleMesh(spec);
-  circleScene.add(circleGhost.group);
-  if (circleGhost.trailerGroup) circleScene.add(circleGhost.trailerGroup);
+  circleCar = createVehicleMesh(spec);
+  circleScene.add(circleCar.group);
+  if (circleCar.trailerGroup) circleScene.add(circleCar.trailerGroup);
   const bounds = { minX: -span, maxX: span, minZ: -span, maxZ: span };
   circles.update(spec, { x: 0, z: 0, yaw: 0, steer: spec.maxSteer * frac }, bounds);
+}
+
+// --- the ghost sheet ----------------------------------------------------
+
+// Every vehicle standing where it is, with two ghosts of itself behind it —
+// the shape a pair of shunts leaves. What the picture has to answer is whether
+// a ghost still reads as *that* vehicle once it is one flat translucent grey:
+// whether the silhouette survives, whether an articulated one brings its
+// trailer and bends it, and whether two of them overlapping are still two.
+const GHOST_STEPS = [
+  { ax: 0.30, az: -0.62, yaw: -0.30 },
+  { ax: 0.14, az: -0.30, yaw: -0.15 },
+];
+
+const ghostSets = new Map();
+function ghostsFor(id) {
+  if (!ghostSets.has(id)) {
+    const spec = VEHICLES[id];
+    const mesh = meshFor(id);
+    const { reach } = extent(spec);
+    // At full lock, because that is the pose a shunt is captured in, and a
+    // copy that dropped the steering angle would show up nowhere else.
+    updateVehicleMesh(mesh, spec, { steer: spec.maxSteer });
+    const set = new Ghosts(spec, mesh, null);
+    for (const st of GHOST_STEPS) {
+      set.capture({
+        x: st.ax * reach, z: st.az * reach, yaw: st.yaw,
+        trailerYaw: st.yaw + (spec.trailer ? 0.22 : 0), steer: spec.maxSteer,
+      });
+    }
+    updateVehicleMesh(mesh, spec, {});
+    studio.add(set.group);
+    ghostSets.set(id, set);
+  }
+  return ghostSets.get(id);
+}
+
+// Far enough back to hold the whole trail, and centred on it rather than on
+// the vehicle, or the oldest ghost falls off the tile.
+function frameGhosts(cam, spec) {
+  const { nose, tail, reach } = extent(spec);
+  const mid = new THREE.Vector3(
+    reach * 0.15, spec.height * 0.4, (nose + tail) / 2 - reach * 0.31,
+  );
+  cam.up.set(0, 1, 0);
+  cam.fov = 40;
+  cam.position.set(1.15, 0.78, 1.3).multiplyScalar(reach * 0.92).add(mid);
+  cam.lookAt(mid);
+  cam.updateProjectionMatrix();
 }
 
 // --- the sheet ---------------------------------------------------------
@@ -218,6 +277,14 @@ function route() {
   }
   if (key === 'levels') {
     return { cols: 4, tiles: LEVELS.map((l) => ({ kind: 'level', level: l, label: `${l.id} · ${VEHICLES[l.vehicle].name}` })) };
+  }
+  if (key === 'ghosts') {
+    return {
+      cols: 4,
+      tiles: Object.keys(VEHICLES).map((id) => ({
+        kind: 'ghosts', spec: id, label: `${id} · two ghosts`,
+      })),
+    };
   }
   if (key === 'circles') {
     const id = value in VEHICLES ? value : 'hatch';
@@ -270,7 +337,7 @@ function frame(now) {
     renderer.setViewport(x, y, w, h);
     renderer.setScissor(x, y, w, h);
     cam.aspect = w / h;
-    if (t.kind === 'car') {
+    if (t.kind === 'car' || t.kind === 'ghosts') {
       const spec = VEHICLES[t.spec];
       const mesh = meshFor(t.spec);
       for (const m of meshes.values()) {
@@ -279,7 +346,15 @@ function frame(now) {
       }
       studio.add(mesh.group);
       if (mesh.trailerGroup) studio.add(mesh.trailerGroup);
-      frameVehicle(cam, spec, mesh, t.view, spin);
+      if (t.kind === 'ghosts') {
+        ghostsFor(t.spec);
+        for (const [id, set] of ghostSets) set.group.visible = id === t.spec;
+        placeVehicle(spec, mesh, 0);
+        frameGhosts(cam, spec);
+      } else {
+        for (const set of ghostSets.values()) set.group.visible = false;
+        frameVehicle(cam, spec, mesh, t.view, spin);
+      }
       renderer.render(studio, cam);
     } else if (t.kind === 'circles') {
       const spec = VEHICLES[t.spec];

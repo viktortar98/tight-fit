@@ -996,6 +996,89 @@ it is a way of seeing, and the check is still a person looking at the picture.
 *Held by:* `dev.html`, `src/dev.js`, and `src/dev.js` being knip's second entry
 point rather than something the game imports.
 
+## 23. The player can leave the vehicle where it was
+
+A key on the pad and on the keyboard leaves a copy of the vehicle's current
+pose standing in the world: same model, same place, same steering angle. Press
+it again and there are two. They stay until the run restarts or the player
+clears them.
+
+**It answers a question the game could not otherwise be asked.** The user's
+statement of it, which is the specification:
+
+> "it would be a great demonstration of showing and capturing the position, the
+> pose of the vehicle at specific moments during the execution of a series of
+> steps... it's hard to understand visually why this is happening, why the
+> manoeuvre is happening... Not just how is it working, but why is it working."
+
+A parallel-parking shuffle translates a vehicle sideways by alternating two
+arcs about two centres on opposite sides of it. Why that works is a fact about
+*two poses at once* — where the vehicle was at the end of the last stroke
+against where it is now — and a moving vehicle can only ever show one of them.
+The tyre marks (constraint 19) do not close the gap: they record where the
+wheels rolled, not how the body was turned when they rolled there, and a
+shuffle gains centimetres per cycle, so its whole content is an orientation and
+a displacement too small to remember. Nothing else in the game records a pose.
+
+**It is a record, so constraint 10 is untouched.** Every ghost is a place the
+vehicle has already been, put there by the player at a moment the player chose.
+Nothing is computed about where to go next, and no ghost says anything about
+the bay. It is the first thing in this game the player *places*, which is also
+why constraint 12 has nothing to say against it: a mark you leave on your
+eighth attempt is not something the screen is carrying on your first.
+
+**A ghost is desaturated, and that is constraint 8 rather than taste.** The
+player's vehicle is the only saturated colour on screen, which is what makes it
+findable at a glance; six translucent copies of it in its own paint spends
+exactly that. One flat pale grey for the whole ghost — no paint, no glazing, no
+lamps — also makes it read as an annotation rather than as another vehicle
+parked in the level.
+
+**The ghost material writes depth, and that was measured.** A vehicle is a
+dozen surfaces deep along any sight line, so with depth writes off a single
+ghost blends a dozen times and reads nearly solid, and six stacked — which is
+what a shuffle produces, because the poses are centimetres apart — painted the
+player's own car out of the picture and left a white slab where the level was.
+That is constraint 8 broken outright by an aid meant to explain the manoeuvre.
+Writing depth makes a stack cost about what one ghost costs.
+
+**Nothing is drawn from the driver's seat.** From the seat the eye is *inside*
+the ghost, and a translucent shell around the head fogs the windscreen and all
+three mirrors together — measured on Kerbside, and the whole view went milky.
+The rule costs nothing, because every view is one button away (constraint 9)
+and the ghost is a thing you read by looking at the vehicle from outside it.
+
+**A ghost carries the turning circles of the pose it was captured at**, when
+the player has that setting on. Requested as such, and it follows from what
+constraint 10 already says about that figure: hold the wheel and the circles do
+not move, so the circles are a property of the pose and outlive it. Two things
+about it were decided here rather than asked for:
+
+- **Only the rear circles and the shared centre.** For a *past* pose the front
+  circles are the ones the ground already has — the tyre marks are the arcs the
+  wheels actually ran, front pair included, drawn where they ran. What a past
+  pose adds that nothing else records is the centre it was turning about and
+  the circle the end that decides where the vehicle lands was on. Six ghosts of
+  the full figure is thirty-six rings over one manoeuvre, and a picture nobody
+  can read records nothing.
+- **They are fainter than the live figure**, which has to stay the one the
+  wheel in your hands is moving.
+
+**Rewind does not take them with it, and restart does.** This is the line
+between run state and annotation. Everything on the tape is the run — pose,
+motion, score, the tyre marks (constraints 18, 19) — and rewinding a stretch
+un-drives it. A ghost is not something the vehicle did; it is something the
+player wrote down about it, and the use it was asked for is to wind back and
+drive the same manoeuvre again against the poses the last attempt left. A
+restart is a different run, so the marks of the last one go.
+
+**Twelve, then the oldest goes.** Ghosts are placed by hand, so the count is
+small by nature and the cap is for the case where it is not. The oldest is the
+one dropped because the newest is the one being compared against.
+
+*Held by:* `src/ghosts.js`, and `Game.frame` for the seat rule. Nothing checks
+any of it; `dev.html#ghosts` is where it is looked at (constraint 22).
+
 ## Where the rules are enforced
 
 | Constraint | Enforced by | Fails how |
@@ -1005,10 +1088,10 @@ point rather than something the game imports.
 | 17 — nothing drawn outside a rectangle | a script, run by hand | silent between runs |
 | 21 — the editor writes calls the builders accept | `window.dev.builders()` on `dev.html` | prints `BAD <type>` |
 | 22 — no two surfaces at one depth | `window.dev.coplanar(id)` on `dev.html` | names the shared plane |
-| 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 19, 20 | nothing | silent |
+| 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 19, 20, 23 | nothing | silent |
 | 3, 4 | withdrawn | — |
 
-**Three of twenty live constraints are machine-checked**, and two of the three
+**Three of twenty-one live constraints are machine-checked**, and two of the three
 have to be asked rather than run. That is the honest
 state of it, and it got worse on purpose: constraints 3, 4, 7, 16 and 1's probe
 were all held by `tools/validate.js`, and the tool was removed. What it bought
@@ -1034,6 +1117,30 @@ Not constraints — questions that are known, deliberately unanswered, and would
 otherwise be lost. Each says who it belongs to.
 
 ### Core, and the user's
+
+**Whether a ghost should also be left automatically, at every direction
+change.** The user's is a key they press. The moments they described wanting —
+"specific moments during the execution of a series of steps" — are the
+reversals, and the game already detects those exactly: a shunt is a sign change
+in the direction of travel above 0.2 m/s (constraint 2), which is the score
+itself. So the game knows the interesting instants and could mark them without
+being asked.
+
+Two things argue against doing it unasked, and one for. Against: it fires on
+every shunt of every attempt, in a game whose score *is* shunts, so ordinary
+play would fill the level with ghosts nobody asked for — which means it has to
+be a setting, and a setting is a decision about the default game. And the
+manual key turns out not to need the reflexes it looked like it would: at a
+reversal the vehicle is stopped, so the window is seconds rather than frames,
+and if the moment is missed the tape is right there — rewind to it and press
+the key, because rewinding is still play (constraint 18) and a ghost can be
+left from anywhere on it. For: in Direct steering, letting go of the stick
+straightens the wheels, so a player who releases before pressing the key
+captures a pose with no lock in it and therefore no circles; an automatic
+capture on the shunt event catches the lock the stroke was actually driven at.
+Measured while building this: capturing 220 ms after release gave 0.27 rad
+against the 0.36 rad held through the stroke, and one capture came out at 0.00
+and drew no figure at all. Not decided; it belongs to the user.
 
 **The vehicle roster is a content axis.** Decided by the user, and it overrides
 the repetition charge that the audit above was built on: "same level with

@@ -13,6 +13,7 @@ import { Panels } from './panels.js';
 import { Tape } from './rewind.js';
 import { Traces } from './traces.js';
 import { TurnCircles } from './turnCircles.js';
+import { Ghosts } from './ghosts.js';
 import { load as loadSettings, save as saveSettings, gains } from './settings.js';
 import { Editor } from './editor.js';
 import {
@@ -110,6 +111,9 @@ class Game {
         // The aids are display state held in three different places, so the
         // one that changed is pushed out here rather than read every frame.
         if (this.traces) this.traces.group.visible = this.settings.traces === 'on';
+        // A ghost carries the circles of the pose it was captured at, so the
+        // setting reaches the ones already standing, not just the next one.
+        if (this.ghosts) this.ghosts.setCircles(this.settings.turnCircles === 'on');
         this.hud.renderSettings(this.settings);
         this.hud.setSteerMode(this.settings.steering);
       },
@@ -124,6 +128,7 @@ class Game {
     this.carMesh = null;
     this.circles = null;
     this.traces = null;
+    this.ghosts = null;
     this.vehicle = null;
     this.clock = new THREE.Clock();
     this.accum = 0;
@@ -188,6 +193,12 @@ class Game {
     this.carMesh = createVehicleMesh(this.spec);
     this.scene.add(this.carMesh.group);
     if (this.carMesh.trailerGroup) this.scene.add(this.carMesh.trailerGroup);
+    // A ghost is a copy of the mesh above, so it is built after it and thrown
+    // away with it: a pose of a hatchback means nothing in a level driven by a
+    // bus (DESIGN.md 23).
+    this.ghosts = new Ghosts(this.spec, this.carMesh, this.level.bounds);
+    this.ghosts.setCircles(this.settings.turnCircles === 'on');
+    this.scene.add(this.ghosts.group);
     this.vehicle = new Vehicle(this.spec);
 
     this.hud.setLevel(this.index, this.level, this.bestOf(this.level));
@@ -210,6 +221,11 @@ class Game {
       this.traces.dispose();
       this.traces = null;
     }
+    if (this.ghosts) {
+      this.scene.remove(this.ghosts.group);
+      this.ghosts.dispose();
+      this.ghosts = null;
+    }
     if (this.circles) this.circles.group.visible = false;
     this.panels.show({ cockpit: false, reversing: false, mirrors: false, camera: false });
     this.anyPanel = false;
@@ -228,6 +244,9 @@ class Game {
     this.foldAt = null;
     this.tape.clear();
     this.traces.clear();
+    // A restart is a new run, and the poses of the last one are not part of it.
+    // Rewind is the other way round — see DESIGN.md 23.
+    this.ghosts.clear();
     this.rewinding = false;
     this.rig.reset(this.level.theme, this.spec);
     this.hud.update(this.telemetry(this.nearestGap()));
@@ -740,12 +759,33 @@ class Game {
       // the same place every frame the steering is unchanged.
       if (this.settings.turnCircles === 'on') this.circles.update(this.spec, car, this.level.bounds);
       else this.circles.group.visible = false;
+      // Ghosts are not drawn from the driver's seat. A ghost of your own
+      // vehicle is a thing you read from outside it; from the seat the eye is
+      // *inside* the ghost, and a translucent shell around the head fogs the
+      // whole windscreen and all three mirrors with it — measured, and it is
+      // as bad as it sounds. Nothing is lost by the rule, because every view
+      // is one button away (DESIGN.md 9).
+      this.ghosts.group.visible = this.rig.mode !== 'cockpit';
       updateVehicleMesh(this.carMesh, this.spec, {
         steer: car.steer,
         spin: car.wheelSpin,
         braking: car.braking,
         reversing: car.speed < -0.05,
       });
+      // Read here rather than with the other keys above, because a ghost is a
+      // copy of the mesh and the mesh has only just been given this frame's
+      // steering angle. Rewinding is still `playing`, so a moment you drove
+      // past can be wound back to and marked.
+      if (this.state === 'playing') {
+        if (input.pressed('KeyG') || this.pad.tapped(BTN.RIGHT)) {
+          const n = this.ghosts.capture(car);
+          this.hud.toast(`ghost left · ${n} on the level`);
+        }
+        if ((input.pressed('KeyH') || this.pad.tapped(BTN.LEFT)) && this.ghosts.count) {
+          this.ghosts.clear();
+          this.hud.toast('ghosts cleared');
+        }
+      }
       this.rig.update(dt, car, this.spec, this.carMesh.view);
       this.anyPanel = this.panels.show({
         cockpit: this.rig.mode === 'cockpit',

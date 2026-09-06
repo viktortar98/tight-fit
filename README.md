@@ -71,6 +71,8 @@ card are all pad-navigable.
 | `D-pad ↑↓` | scroll | zoom |
 | `RS` click | `Z` | recentre the view where the level handed it to you |
 | `RB` | `C` | view: chase → inside → overhead |
+| `D-pad →` | `G` | leave a ghost of the vehicle where it is |
+| `D-pad ←` | `H` | clear the ghosts |
 | `X` | `Backspace` | hold to rewind |
 | `B` | `Enter` | finish the level — only offered once you are in the bay and stopped |
 | `Y` | `R` | restart level |
@@ -156,6 +158,26 @@ recorded step by step alongside the vehicle's position rather than tallied
 beside it — so a rewind past a crash also puts you back before the crash, and
 you have to drive that stretch again. What it removes is the half minute of
 driving back to the interesting part, which was never the difficulty.
+
+**Press ghost and the vehicle stays where it is** — a translucent copy of it,
+same model, same pose, same steering angle, standing there while you drive on.
+Leave as many as you like. It is there for the manoeuvre that is hard to see
+yourself doing: a parallel-parking shuffle moves the car sideways by
+alternating two arcs about two centres, it gains a few centimetres a cycle, and
+what makes it work is where the car *was* at the end of the last stroke against
+where it is now. Nothing else in the game records that — the tyre marks say
+where the wheels rolled, not which way the body was pointing when they did.
+Mark the reversals and the whole manoeuvre is on the ground at once.
+
+Ghosts are grey rather than your car's colour, so the saturated shape on screen
+is still the one you are driving. With turning circles switched on, each ghost
+brings the circles of the lock it was captured at — the rear ones and the
+centre they turn about, which is the part the tyre marks do not already draw.
+They are not drawn from the driver's seat, where the eye would be inside them.
+Rewind leaves them standing, because a ghost is something you wrote down rather
+than something you did: wind back and drive the manoeuvre again against the
+poses the last attempt left. Restarting the level clears them, and so does the
+clear key.
 
 **The tyres leave marks, and they stay for the level.** Faint, but enough to
 see afterwards whether the swing into the bay was one arc or three
@@ -280,11 +302,12 @@ is not a key to the next level.
 
 `dev.html`, on the dev server only, is an inspection sheet: every vehicle from
 six angles, or all fourteen levels from above, or the turning circles at six
-locks — one frame each, so looking at the whole matrix costs one look.
+locks, or every vehicle standing in front of two ghosts of itself — one frame
+each, so looking at the whole matrix costs one look.
 
 ```
 pnpm dev
-# then: /dev.html#cars  #car=hatch  #levels  #level=alcove  #circles=van
+# then: /dev.html#cars  #car=hatch  #levels  #level=alcove  #circles=van  #ghosts
 ```
 
 `window.dev` on that page has `report()` (every vehicle and level as one text
@@ -307,6 +330,7 @@ check that would have caught the shell/lining z-fighting), and `builders()`
 | `src/panels.js` | the three mirrors and the reverse camera, as screen panels |
 | `src/rewind.js` | the tape the run plays backwards through |
 | `src/traces.js` | the marks the tyres leave, one ribbon per wheel |
+| `src/ghosts.js` | the poses the player leaves standing in the world |
 | `src/turnCircles.js` | the circle each wheel is on, drawn on the ground when asked |
 | `src/gamepad.js` | Xbox mapping, analog triggers, rumble |
 | `src/editor.js` | the level editor: a plan view and a number panel |

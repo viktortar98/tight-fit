@@ -37,7 +37,7 @@ const REAR_COLOUR = 0x4a9fd8;
 const FRONT_COLOUR = 0xb07ee8;
 const CENTRE_COLOUR = 0xe8b33c;
 
-function ribbon(count, colour) {
+function ribbon(count, colour, opacity) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(count * 2 * 3), 3));
   const idx = [];
@@ -51,7 +51,7 @@ function ribbon(count, colour) {
   // fitted to an empty buffer culls the ring that is on it.
   g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e5);
   const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({
-    color: colour, transparent: true, opacity: 0.5, depthWrite: false,
+    color: colour, transparent: true, opacity, depthWrite: false,
     side: THREE.DoubleSide, toneMapped: false,
     polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
   }));
@@ -59,12 +59,28 @@ function ribbon(count, colour) {
 }
 
 export class TurnCircles {
-  constructor() {
+  // Two things a caller gets to say about how this is drawn, and both exist
+  // for the frozen copy a ghost carries (src/ghosts.js).
+  //
+  // `opacity` keeps a ghost's figure under the live one, so there is never a
+  // question about which figure the wheel in your hands is moving.
+  //
+  // `rings` is the more interesting one. `rear` drops the front-wheel circles,
+  // which for a *past* pose are the ones the ground already has: the tyre
+  // marks (DESIGN.md 19) are the arcs the wheels actually ran, front pair
+  // included, drawn where they ran. What a past pose adds that nothing else
+  // records is the centre it was turning about, and the circle its rear axle —
+  // the end that decides where the vehicle ends up — was on. Six ghosts of the
+  // full figure is thirty-six rings over one manoeuvre, and a picture nobody
+  // can read is not a record of anything.
+  constructor({ opacity = 0.5, rings = 'all' } = {}) {
     this.group = new THREE.Group();
     this.group.visible = false;
     this.rings = [];
     this.spec = null;
-    this.centre = ribbon(64, CENTRE_COLOUR);
+    this.opacity = opacity;
+    this.wheelSet = rings;
+    this.centre = ribbon(64, CENTRE_COLOUR, opacity);
     this.group.add(this.centre.mesh);
   }
 
@@ -82,10 +98,12 @@ export class TurnCircles {
     for (const z of rows.rear) {
       for (const sx of [-1, 1]) this.wheels.push([(sx * spec.trackWidth) / 2, z, REAR_COLOUR]);
     }
-    for (const z of rows.front) {
-      for (const sx of [-1, 1]) this.wheels.push([(sx * spec.trackWidth) / 2, z, FRONT_COLOUR]);
+    if (this.wheelSet === 'all') {
+      for (const z of rows.front) {
+        for (const sx of [-1, 1]) this.wheels.push([(sx * spec.trackWidth) / 2, z, FRONT_COLOUR]);
+      }
     }
-    this.rings = this.wheels.map(([, , colour]) => ribbon(MAX_STEPS + 1, colour));
+    this.rings = this.wheels.map(([, , colour]) => ribbon(MAX_STEPS + 1, colour, this.opacity));
     for (const r of this.rings) this.group.add(r.mesh);
   }
 
