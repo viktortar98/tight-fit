@@ -434,70 +434,141 @@ Open decisions rather than assumed here.
 *Held by:* the reader, `src/camera.js` for the three modes, and
 `src/mirrors.js` for the panels.
 
-## 10. No path-prediction aids in the world
+## 10. An aid may describe the vehicle; it may not describe the solution
 
-The floor shows no predicted arcs, no ghost of where the vehicle will end up,
-no steering guide lines. Judging where the vehicle will go is the skill the
-game is about; drawing the answer on the ground removes it.
+The floor may draw what the vehicle is doing and where that runs out. It may
+not draw where the bay is, which way to go, or what to do next. Judging the
+route is the skill the game is about; the geometry of your own steering is not
+the route, and refusing to show it does not make the route harder to find, only
+harder to see.
 
-This was built once and deliberately removed. **Do not add it back** as a
-"helpful" overlay, an accessibility option, or a beginner mode.
+**The mechanical form of the line, and the one to check a new aid against: an
+aid may not read the target.** Every drawing in this game is derived from the
+vehicle's own state by the game's own code — `world.target` is not reachable
+from `TurnCircles.update`, `Guides.update`, `Game.contactPose` or `Traces`, and
+that is not an accident of layering. A route to the bay cannot be computed
+without knowing where the bay is, so an aid that never reads it cannot become
+one, whatever else is done to it. Anything that would need the target is the
+thing this constraint exists to keep out.
 
-**The reverse camera is the one exception, and it is bounded by what a real car
-draws.** Requested as such: "the reverse camera should show the current
-trajectory of the car for about a meter distance". Four limits keep it from
-being the removed feature under another name, and all four are load-bearing:
+**This used to be a flat prohibition on drawing the vehicle's future, and it
+was withdrawn by its author.** It read "no ghost of where the vehicle will end
+up... This was built once and deliberately removed. **Do not add it back**",
+and the record of the removal is still worth having: the first version of that
+feature was a painted arc that was not good and did not survive. What the
+sentence did not record is that it was written while the user did not yet know
+whether they wanted such a thing at all. They now do, and said so:
+
+> "at that point I wasn't even sure whether I want a feature like this. But now
+> I know that I'm missing something, and I have better ideas, but I know better
+> what I would need... So at this point, that node that you found in design.md
+> becomes stale and should not be preserved, but should be removed."
+
+So the prohibition is gone and the line above replaces it. A constraint that
+records an unmade decision as a settled one is worse than no constraint,
+because it is obeyed by whoever comes next without the decision ever being
+looked at again.
+
+**What is still removed, and stays removed**, is on the other side of the line:
+the screen-edge chevron pointing at the bay, the bobbing cone over it, the
+corner posts, and the level hint that stated the solution in words. Those are
+listed under constraint 12 with the reason they went. Every one of them had to
+read the target to exist.
+
+**The reverse camera rails.** Requested as such: "the reverse camera should
+show the current trajectory of the car for about a meter distance". Four limits
+keep them to what a real car draws:
 
 - **Only in the reverse camera panel.** The rails are a `Group` added to the
   scene with `visible = false`, switched on for that one render pass and off
-  again. No other view can show them, including the overhead one, which is the
-  view that would turn them into a plan-view solution.
-- **Only from the driver's seat.** The panel itself is inside-view only, along
-  with the mirrors. It was not, once, and that was a bug: from a chase or
-  overhead camera the player is already looking at the space behind the vehicle,
-  so a reversing panel there is a second, worse answer to a question the view
-  has already answered — and it carried the rails into the overhead view, which
-  is exactly the plan-view solution the bullet above forbids.
-- **Only while reversing.** Forwards, where the interesting judgement is,
-  there is nothing.
-- **Only one metre.** Long enough to know whether the bumper clears; far too
+  again, so no other view can show them. *The reason for this bullet has
+  changed and the bullet has not.* It used to be that the overhead view would
+  turn them into a plan-view solution — which cannot be the reason any more,
+  because the turning circles now draw a longer version of the same thing in
+  exactly that view, with permission. What keeps the rails in the panel is that
+  they are the panel's own furniture: a real reverse camera paints them on its
+  own screen, and a second copy of them lying in the world would say less than
+  the circles already say, in a second visual language.
+- **Only from the driver's seat.** The panel is inside-view only, along with
+  the mirrors. It was not, once, and that was a bug: from a chase or overhead
+  camera the player is already looking at the space behind the vehicle, so a
+  reversing panel there is a second, worse answer to a question the view has
+  already answered.
+- **Only while reversing.** Forwards, the panel is not up.
+- **Only one metre.** Long enough to know whether the bumper clears, far too
   short to plan a shunt with. A real car's rails stop at about the same place
   and for the same reason.
-- **Only what the vehicle would do now.** They are drawn by running the game's
-  own `integrate()` at the steering angle actually held, so they are the path
-  and not an artist's idea of it — and they say nothing about where the bay is
-  or how to get into it, which is what constraint 12 forbids.
 
-**The turning circles are the second exception, and they are off.** Requested
-as such: a projection on the ground of "the circle that wheel would drive along
-if the steering wheel would stay in the current position", for every wheel, with
-the shared centre marked. Four things keep this one honest too:
+**The turning circles.** Requested as such: a projection on the ground of "the
+circle that wheel would drive along if the steering wheel would stay in the
+current position", for every wheel, with the shared centre marked.
 
 - **It is a setting, and it starts off.** The game a player is given is still
-  the game the first paragraph describes. Turning it on is a decision the
-  player makes about their own game.
+  the plainest one. Turning it on is a decision the player makes about their
+  own game (constraint 12).
 - **It is the present, not a plan.** The figure is the geometry the vehicle is
   in at the lock it is holding — hold the wheel and drive, and the circles do
   not move, because they were never a path the vehicle was going to take. Turn
-  the wheel and the whole figure jumps. This is the difference between showing
-  the player what their steering *is* and showing them what to do with it.
-- **It says nothing about the bay.** Same as the rails: no ghost, no target, no
-  route. Constraint 12 is untouched.
+  the wheel and the whole figure jumps.
 - **It is clipped to the level.** A gentle lock puts the circle hundreds of
   metres away; what is off the level is not drawn, and the level is not made
-  bigger to hold it. A circle scaled to fit would be a circle the vehicle is not
-  on.
+  bigger to hold it. A circle scaled to fit would be a circle the vehicle is
+  not on.
 
 *Held by:* `src/turnCircles.js`, and the `turnCircles` setting defaulting to
 `off` in `src/settings.js`.
 
-**The tyre traces are not an exception, because they are not a prediction.**
-They record where the vehicle has already been (constraint 19). A player can
-read a bad line off them afterwards, which is the point; nothing on the ground
-says where to go next.
+**First contact: where this lock runs out.** The one aid that is about the
+future, and the newest. The user's statement of what it is for:
 
-*Held by:* this paragraph, and `Panels.draw` in `src/panels.js` for the
-visibility flip.
+> "although the projections are helpful to understand how the car would get
+> there, it's not clear where the car could get without crashing into anything"
+
+A circle says where the vehicle *can* go and says nothing about how much of it
+is left, which on these levels is usually a metre or two. So: one copy of the
+vehicle, standing at the pose it would first touch something at, driving on at
+the steering it is holding, in the direction it is going.
+
+- **It is the vehicle's own answer, not a drawing of one.** `Game.contactPose`
+  walks the game's own `integrate` forward and stops on the game's own
+  `isFree`, creeping up with the same bisection `stepPhysics` uses. A predicted
+  contact that disagreed with the real one would be worse than showing nothing,
+  because a player would learn to distrust it exactly where it matters. It is
+  the same argument as the rails being driven by `integrate` rather than by an
+  artist.
+- **It rides on the turning circles and is inert without them.** It is the end
+  of an arc, and a vehicle standing by itself in the middle of a level says
+  nothing about how it got there. Its own setting, off by default, greyed out
+  in the menu while the circles are off.
+- **It is one point, not a plan.** It says where this lock stops. It does not
+  say which lock to hold, does not search over locks, and does not know the bay
+  exists — the rule at the top of this constraint, in the one place it was
+  most tempting to break.
+- **Bounded by one lap.** Hold a lock and the vehicle comes round to where it
+  started, so a lap that touches nothing means there is nothing to touch and
+  nothing is drawn. Straight ahead, the arena runs out inside its own diagonal.
+- **Nothing when the answer is "here".** A vehicle already resting against a
+  wall is not told where it would first touch one, and the ghost is not drawn
+  over the car the player steers by (constraint 8).
+
+*Held by:* `Game.contactPose`, `ContactGhost` in `src/ghosts.js`, and the
+`firstContact` setting.
+
+**The tyre traces and the direction-change ghosts are records, and the line
+above is what they are on the right side of.** "Record, not prediction" used to
+be the whole argument, and it is no longer available on its own: two of the
+aids above *are* predictions and are allowed. What all four have in common is
+the rule at the top. The traces draw where the wheels have been; the ghosts
+draw where the body has been (constraints 19, 23). A player can read a bad line
+off either afterwards, which is the point. Neither has been told where the bay
+is, and neither could say.
+
+**Why this is not folded into constraint 12.** They overlap on the chevron and
+the hint, which fail both, but they ask different questions. 12 asks whether a
+thing on screen pays on the tenth attempt; 10 asks whether it knows the answer.
+An aid can pass 12 handsomely and still be forbidden here — a route to the bay
+would be read on every attempt, and that is exactly what makes it worth
+forbidding.
 
 ## 11. The gamepad is the primary input
 
@@ -855,14 +926,20 @@ inside a rectangle would misplace the hitch; giving it a rectangle of its own
 would change what fits, and so needs the levels re-checked by hand. It is in
 Open decisions rather than closed by default.
 
-*Enforced by:* construction for the body, and by a script for the rest. The
-script builds every vehicle's mesh in node, walks each part's bounding box, and
-reports the furthest any corner sits outside all of the vehicle's rectangles;
-run last against the silhouette shells, it reported 0.000 m for all six
-vehicles and 0.230 m for the tow ball, which is the exception above. It is not
-wired into `pnpm lint`. The mirrors are the one part it cannot catch by
-construction, and they do not need it: `mirror()` in `src/carMesh.js` builds
-the housing from the same `spec.mirrors` that `mirrorRect()` collides with.
+*Enforced by:* construction for the body, and by nothing for the rest. Body
+parts are placed as fractions of `spec.body`, which are in [0,1] of the
+rectangle, so those cannot leave it. The mirrors need no check either:
+`mirror()` in `src/carMesh.js` builds the housing from the same `spec.mirrors`
+that `mirrorRect()` collides with. Everything else — lamps, bumpers, wheel
+arches, the tow ball — is checked by eye on `dev.html` (constraint 22).
+
+There was a script. It built every vehicle's mesh in node, walked each part's
+bounding box and reported the furthest any corner sat outside all of the
+vehicle's rectangles; the last run before it went reported 0.000 m for every
+vehicle then in the roster and 0.230 m for the tow ball, which is the exception
+above. It lived in `tools/validate.js` and went with the solver (constraint 4),
+and the numbers above are a record of what it once said rather than something
+anything now re-establishes. That is the honest state of it.
 
 ## 18. Rewind is free, and it does not launder the score
 
@@ -904,7 +981,8 @@ Every wheel lays a faint mark where it rolled, and the marks stay for the
 level. Requested as "a light trace of all the wheels that they traveled...
 not forever, but for the level duration".
 
-**It is a record of the past, so it does not touch constraint 10.** The line
+**It is a record of the past, and it never reads the bay** — both halves of
+constraint 10's test, and it needs only the second. The line
 into a bay only becomes visible after it has been driven; nothing about the
 next metre is drawn. What it gives the player is the thing that is otherwise
 impossible to see from inside a car — whether the swing was one continuous arc
@@ -1155,10 +1233,11 @@ standing-in-it rule. Nothing checks any of it;
 |---|---|---|
 | 13 — no dead code | `pnpm knip`, `pnpm lint` | exit 1, names the export |
 | 15 — settings are timing, not geometry | review; `gains()` scales only rates, and `maxSteer` / dimensions are not in it | silent |
-| 17 — nothing drawn outside a rectangle | a script, run by hand | silent between runs |
+| 17 — nothing drawn outside a rectangle | construction, for body parts and mirrors only | silent |
 | 21 — the editor writes calls the builders accept | `window.dev.builders()` on `dev.html` | prints `BAD <type>` |
 | 22 — no two surfaces at one depth | `window.dev.coplanar(id)` on `dev.html` | names the shared plane |
 | 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 19, 20, 23 | nothing | silent |
+| 17, for everything else | nothing; the script that did it went with the solver | silent |
 | 3, 4 | withdrawn | — |
 
 **Three of twenty-one live constraints are machine-checked**, and two of the three

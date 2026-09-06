@@ -61,11 +61,12 @@ function frame(rect, colour, grow) {
 // Two painted rails on the ground, one under each rear corner, following the
 // path the vehicle would take at the steering angle it is holding.
 //
-// These are the exception to "no path-prediction aids" (DESIGN.md 10) and they
-// are kept to what a real car draws: only in the reverse camera panel, only
-// while reversing, only the length a bumper can reach. They are added to the
-// scene invisible and switched on for that one render pass, so no other view
-// can show them.
+// They are kept to what a real car draws (DESIGN.md 10): only in the reverse
+// camera panel, only while reversing, only the length a bumper can reach. They
+// are added to the scene invisible and switched on for that one render pass,
+// so no other view can show them — not because a plan view of the path is
+// forbidden, which it no longer is, but because these are the panel's own
+// furniture and the turning circles already draw the world's version.
 class Guides {
   constructor() {
     this.group = new THREE.Group();

@@ -3,7 +3,17 @@ import { TurnCircles } from './turnCircles.js';
 import { bodyRect, trailerAxle } from './vehicle.js';
 import { overlaps } from './geom.js';
 
-// Where the vehicle was at every direction change.
+// The vehicle drawn where it is not: a copy of the built mesh, posed somewhere
+// the vehicle is not standing. Two of those, and the difference between them
+// is the whole of DESIGN.md 10.
+//
+// `Ghosts` is a record — where the vehicle was at every direction change.
+// `ContactGhost` is a prediction — where it would first touch something if the
+// present lock were held. They share this file because they share the one
+// thing that is hard: making a copy of a vehicle that reads as that vehicle
+// without reading as another car parked in the level.
+//
+// --- Ghosts: where the vehicle was at every direction change ---------------
 //
 // Turn the setting on and each reversal leaves a translucent copy of the
 // vehicle standing where it turned: same model, same place, same steering
@@ -64,10 +74,21 @@ const MAX = 24;
 // picture entirely and left a white slab. That breaks DESIGN.md 8 outright:
 // the saturated shape is supposed to be the one you are driving. Writing depth
 // makes a stack of ghosts cost about what one costs.
-const MATERIAL = new THREE.MeshStandardMaterial({
-  color: 0xdfe6ef, roughness: 0.95, metalness: 0.0,
-  transparent: true, opacity: 0.45, depthWrite: true,
+const material = (color, opacity) => new THREE.MeshStandardMaterial({
+  color, roughness: 0.95, metalness: 0.0,
+  transparent: true, opacity, depthWrite: true,
 });
+
+const MATERIAL = material(0xdfe6ef, 0.45);
+
+// Warm where the record is cool, and firmer: a pose in the vehicle's future
+// has to be tellable at a glance from a pose in its past, and the two are
+// often on screen together. It can afford the extra weight because there is
+// never more than one of it — the 0.45 above is the number that keeps a *pile*
+// of ghosts off the player's car, and a pile is the one thing this cannot be.
+// It stays pale even so, because a saturated vehicle-shaped thing on this
+// screen is the player's own car and nothing else (DESIGN.md 8).
+const CONTACT_MATERIAL = material(0xf0b9a2, 0.55);
 
 // Fainter than the live figure, which has to stay the one you are steering by,
 // and only the rear circles and the centre — see the note on `rings` in
@@ -83,15 +104,15 @@ const CIRCLE_OPACITY = 0.3;
 // two things a ghost needs — the local transform and the geometry — and takes
 // its material from here rather than from the source, so nothing about the
 // live vehicle can be changed by copying it.
-function copyOf(src, map) {
+function copyOf(src, map, mat) {
   if (src.isMesh && src.userData.inner) return null;
-  const out = src.isMesh ? new THREE.Mesh(src.geometry, MATERIAL) : new THREE.Group();
+  const out = src.isMesh ? new THREE.Mesh(src.geometry, mat) : new THREE.Group();
   out.position.copy(src.position);
   out.quaternion.copy(src.quaternion);
   out.scale.copy(src.scale);
   map.set(src, out);
   for (const c of src.children) {
-    const k = copyOf(c, map);
+    const k = copyOf(c, map, mat);
     if (k) out.add(k);
   }
   return out;
@@ -156,12 +177,12 @@ export class Ghosts {
   build(g) {
     if (g.body) return;
     const map = new Map();
-    g.body = copyOf(this.mesh.group, map);
+    g.body = copyOf(this.mesh.group, map, MATERIAL);
     g.body.position.set(g.x, 0, g.z);
     g.body.rotation.y = g.yaw;
     this.group.add(g.body);
     if (this.mesh.trailerGroup) {
-      g.trailer = copyOf(this.mesh.trailerGroup, map);
+      g.trailer = copyOf(this.mesh.trailerGroup, map, MATERIAL);
       const axle = trailerAxle(this.spec, g);
       g.trailer.position.set(axle.x, 0, axle.z);
       g.trailer.rotation.y = g.trailerYaw;
@@ -259,4 +280,61 @@ export class Ghosts {
   }
 
   dispose() { this.clear(); }
+}
+
+// --- ContactGhost: where this lock runs out -------------------------------
+//
+// One copy of the vehicle, standing at the pose it would reach by holding the
+// steering it is holding and driving on in the direction it is going, until
+// some part of it first touches an obstacle or the arena edge.
+//
+// The user's statement of what it is for:
+//
+// > "although the projections are helpful to understand how the car would get
+// > there, it's not clear where the car could get without crashing into
+// > anything"
+//
+// which is exactly the question the turning circles do not answer. A circle
+// says where the vehicle *can* go; it says nothing about how much of that
+// circle is left before the wing hits a pillar. This is that point, and no
+// more than that point (DESIGN.md 10).
+//
+// The pose is found by the game rather than by this class, because the game is
+// what owns the world: `Game.contactPose` walks the vehicle's own `integrate`
+// forward and stops on the same `isFree` the physics stops on. A predicted
+// contact that disagreed with the real one would be worse than no prediction.
+export class ContactGhost {
+  constructor(spec, mesh) {
+    this.spec = spec;
+    this.group = new THREE.Group();
+    this.group.visible = false;
+    const map = new Map();
+    this.body = copyOf(mesh.group, map, CONTACT_MATERIAL);
+    this.group.add(this.body);
+    this.trailer = mesh.trailerGroup
+      ? copyOf(mesh.trailerGroup, map, CONTACT_MATERIAL) : null;
+    if (this.trailer) this.group.add(this.trailer);
+    this.wheels = mesh.wheels.front.map((w) => map.get(w)).filter(Boolean);
+  }
+
+  // `pose` is a vehicle state, `steer` the lock it is being driven at — the
+  // ghost's front wheels are turned to it, because the arc it is standing at
+  // the end of is the arc that lock draws.
+  show(pose, steer) {
+    this.group.visible = true;
+    this.body.position.set(pose.x, 0, pose.z);
+    this.body.rotation.y = pose.yaw;
+    if (this.trailer) {
+      const axle = trailerAxle(this.spec, pose);
+      this.trailer.position.set(axle.x, 0, axle.z);
+      this.trailer.rotation.y = pose.trailerYaw;
+    }
+    for (const w of this.wheels) w.rotation.set(0, steer, 0);
+  }
+
+  hide() { this.group.visible = false; }
+
+  // Shares the live vehicle's geometry, so there is nothing of its own to
+  // release; the method exists so the caller has one way to put a ghost away.
+  dispose() { this.hide(); }
 }

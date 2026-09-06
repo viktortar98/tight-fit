@@ -111,16 +111,30 @@ export const SETTINGS = [
     values: [{ id: 'on', name: 'On' }, { id: 'off', name: 'Off' }],
   },
   {
-    // The one aid that is off unless asked for. The others show the player
-    // something the vehicle itself would show them; this one draws the answer
-    // on the ground, which DESIGN.md 10 is about. It exists as a setting so
-    // that the default game is still the game that constraint describes.
+    // The first of the three aids that draw in the world rather than on the
+    // vehicle. All three are off unless asked for: what DESIGN.md 10 permits
+    // is not the same as what the default game shows, and the game a player is
+    // handed is still the plainest one.
     id: 'turnCircles',
     name: 'Turning circles',
     note: 'The circle each wheel is on at the steering you are holding, and the '
       + 'point they all turn about — rear wheels in blue, front in violet. Hold '
       + 'the wheel and they stay where they are; only turning it moves them. '
       + 'Off by default.',
+    values: [{ id: 'off', name: 'Hidden' }, { id: 'on', name: 'Shown' }],
+  },
+  {
+    // The one aid that is about the future. It rides on the circles rather
+    // than standing alone: it is where one of them runs out, and a vehicle
+    // standing by itself in the middle of a level says nothing about how it
+    // got there. DESIGN.md 10 is what its limits are written against.
+    id: 'firstContact',
+    name: 'First contact',
+    note: 'Where the vehicle would first touch something, driving on at the '
+      + 'steering you are holding, in the direction you are going. It is the '
+      + 'end of the circle it is standing on, so it needs those switched on. '
+      + 'Off by default.',
+    when: (s) => s.turnCircles === 'on',
     values: [{ id: 'off', name: 'Hidden' }, { id: 'on', name: 'Shown' }],
   },
   {

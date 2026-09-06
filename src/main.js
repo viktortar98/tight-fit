@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { LEVELS } from './levels.js';
-import { VEHICLES, Vehicle, trailerRect } from './vehicle.js';
+import { VEHICLES, Vehicle, trailerRect, integrate } from './vehicle.js';
 import { World } from './world.js';
 import { createVehicleMesh, updateVehicleMesh } from './carMesh.js';
 import { CameraRig } from './camera.js';
@@ -13,7 +13,7 @@ import { Panels } from './panels.js';
 import { Tape } from './rewind.js';
 import { Traces } from './traces.js';
 import { TurnCircles } from './turnCircles.js';
-import { Ghosts } from './ghosts.js';
+import { Ghosts, ContactGhost } from './ghosts.js';
 import { load as loadSettings, save as saveSettings, gains } from './settings.js';
 import { Editor } from './editor.js';
 import {
@@ -133,6 +133,7 @@ class Game {
     this.circles = null;
     this.traces = null;
     this.ghosts = null;
+    this.contactGhost = null;
     this.vehicle = null;
     this.clock = new THREE.Clock();
     this.accum = 0;
@@ -204,6 +205,8 @@ class Game {
     this.ghosts.setShown(this.settings.ghosts === 'on');
     this.ghosts.setCircles(this.settings.turnCircles === 'on');
     this.scene.add(this.ghosts.group);
+    this.contactGhost = new ContactGhost(this.spec, this.carMesh);
+    this.scene.add(this.contactGhost.group);
     this.vehicle = new Vehicle(this.spec);
 
     this.hud.setLevel(this.index, this.level, this.bestOf(this.level));
@@ -230,6 +233,11 @@ class Game {
       this.scene.remove(this.ghosts.group);
       this.ghosts.dispose();
       this.ghosts = null;
+    }
+    if (this.contactGhost) {
+      this.scene.remove(this.contactGhost.group);
+      this.contactGhost.dispose();
+      this.contactGhost = null;
     }
     if (this.circles) this.circles.group.visible = false;
     this.panels.show({ cockpit: false, reversing: false, mirrors: false, camera: false });
@@ -394,6 +402,56 @@ class Game {
       }
     }
     return true;
+  }
+
+  // How far this lock gets you: the pose the vehicle would first touch
+  // something at, driving on at the steering it is holding, in the direction
+  // it is going. Null when it would touch nothing.
+  //
+  // It runs the game's own `integrate` and stops on the game's own `isFree`,
+  // creeping up to the obstacle with the same bisection `stepPhysics` uses.
+  // That is not tidiness: a predicted contact that disagreed with the contact
+  // the physics then produces would be worse than showing nothing, because a
+  // player would learn to distrust it exactly where it matters.
+  //
+  // The bound is one lap. Hold a lock and the vehicle comes round to where it
+  // started, so a lap that touches nothing means nothing is there to touch;
+  // going straight, the arena runs out inside its own diagonal. Both are
+  // capped again by twice the level's diagonal, which is the honest limit of
+  // what a drawing on this floor can be about.
+  contactPose() {
+    const car = this.vehicle;
+    const dir = this.reversing ? -1 : 1;
+    const t = Math.tan(car.steer);
+    const R = Math.abs(t) < 1e-4 ? Infinity : this.spec.wheelbase / t;
+    const b = this.level.bounds;
+    const diag = Math.hypot(b.maxX - b.minX, b.maxZ - b.minZ);
+    const limit = Math.min(Number.isFinite(R) ? 2 * Math.PI * Math.abs(R) : diag, diag * 2);
+    // Coarser than the physics steps, and it can be: an obstacle cannot pass
+    // through the whole body between two samples this close, so what the step
+    // costs is the precision of the stopping distance, which the bisection
+    // then buys back.
+    const STEP = 0.12;
+    let s = { x: car.x, z: car.z, yaw: car.yaw, trailerYaw: car.trailerYaw, speed: dir };
+    for (let travelled = 0; travelled < limit; travelled += STEP) {
+      const cand = integrate(this.spec, s, STEP, car.steer);
+      cand.speed = dir;
+      if (this.isFree(cand)) { s = cand; continue; }
+      let lo = 0;
+      let hi = STEP;
+      for (let k = 0; k < 6; k++) {
+        const mid = (lo + hi) / 2;
+        const m = integrate(this.spec, s, mid, car.steer);
+        m.speed = dir;
+        if (this.isFree(m)) lo = mid; else hi = mid;
+      }
+      // Already there. A vehicle resting against a wall does not need to be
+      // told where it would first touch one, and a ghost drawn on top of the
+      // player's own car is the one place it can say nothing (constraint 8).
+      if (travelled + lo < 0.08) return null;
+      return integrate(this.spec, s, lo, car.steer);
+    }
+    return null;
   }
 
   // The rectangle that has to end up in the bay: the trailer, when there is
@@ -797,6 +855,16 @@ class Game {
       // is one button away (DESIGN.md 9).
       this.ghosts.group.visible = this.rig.mode !== 'cockpit';
       this.ghosts.occlude(car);
+      // The reach ghost is under the same seat rule and the same
+      // standing-in-it rule as the recorded ones, and under one more of its
+      // own: it is the end of a drawn arc, so it is not drawn when the arc is
+      // not (DESIGN.md 10).
+      const reach = this.settings.turnCircles === 'on'
+        && this.settings.firstContact === 'on'
+        && this.rig.mode !== 'cockpit'
+        ? this.contactPose() : null;
+      if (reach) this.contactGhost.show(reach, car.steer);
+      else this.contactGhost.hide();
       updateVehicleMesh(this.carMesh, this.spec, {
         steer: car.steer,
         spin: car.wheelSpin,

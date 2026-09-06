@@ -16,8 +16,11 @@ import { axleRows } from './vehicle.js';
 // A player who wants to know whether a bay is reachable at this lock can read
 // it off the floor instead of trying it.
 //
-// It is off by default and it is a setting, because DESIGN.md 10 says the floor
-// shows no predicted arcs.
+// It is off by default and it is a setting, because the game a player is
+// handed is still the plainest one (DESIGN.md 10, 12). What makes it allowed
+// at all is that it never reads the bay: it is derived from the vehicle's own
+// state, so it can say where the vehicle is going and can never say where it
+// should go.
 
 const HEIGHT = 0.022;
 const BAND = 0.055;

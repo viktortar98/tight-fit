@@ -184,6 +184,23 @@ They are not drawn from the driver's seat, where the eye would be inside them.
 Rewind takes them with it: wind back past a reversal and its ghost goes, the
 same way the direction change itself goes off the counter.
 
+**Switch on first contact and one more copy stands where this lock runs out** —
+the pose the vehicle would first touch something at, driving on at the steering
+you are holding, in the direction you are going. The turning circles say where
+the vehicle *can* go; they say nothing about how much of that arc is left
+before a wing meets a pillar, which on these levels is usually a metre or two.
+It rides on the circles and is greyed out without them, because it is the end
+of one of them. It is found by running the game's own physics forward and
+stopping on the game's own collision test, so what it shows is where the
+vehicle will actually stop — not an artist's idea of it. It is warm where the
+recorded ghosts are cool, so a pose in the future never reads as a pose in the
+past.
+
+Nothing on the floor knows where the bay is. Every drawing in this game is
+worked out from the vehicle's own state — the circles, the reversing rails,
+first contact, the tyre marks, the ghosts — and none of them can see the
+target, so none of them can turn into a route.
+
 **The tyres leave marks, and they stay for the level.** Faint, but enough to
 see afterwards whether the swing into the bay was one arc or three
 corrections, and how much wider the front wheels ran than the rear ones — the
@@ -325,7 +342,7 @@ check that would have caught the shell/lining z-fighting), and `builders()`
 | File | |
 |---|---|
 | `src/geom.js` | oriented-rectangle maths: SAT overlap, containment, distance |
-| `src/vehicle.js` | kinematic bicycle model, articulation, the five vehicle specs |
+| `src/vehicle.js` | kinematic bicycle model, articulation, the thirteen vehicle specs |
 | `src/colliders.js` | obstacles as flat rectangles, shared by renderer and physics |
 | `src/objects.js` | the palette a level is built from, and what expands it |
 | `src/levels.js` | all fourteen levels, in metres |
@@ -335,7 +352,7 @@ check that would have caught the shell/lining z-fighting), and `builders()`
 | `src/panels.js` | the three mirrors and the reverse camera, as screen panels |
 | `src/rewind.js` | the tape the run plays backwards through |
 | `src/traces.js` | the marks the tyres leave, one ribbon per wheel |
-| `src/ghosts.js` | the pose the vehicle was in at each direction change |
+| `src/ghosts.js` | the pose at each direction change, and the pose this lock runs out at |
 | `src/turnCircles.js` | the circle each wheel is on, drawn on the ground when asked |
 | `src/gamepad.js` | Xbox mapping, analog triggers, rumble |
 | `src/editor.js` | the level editor: a plan view and a number panel |
