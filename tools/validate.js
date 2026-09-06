@@ -106,9 +106,15 @@ export function solve(level, opts = {}) {
   const combo = combinationLength(spec);
 
   const STEP = combo > 8 ? 0.6 : 0.45;
-  const XY = artic ? 0.45 : 0.3;
-  const YAWBINS = artic ? 32 : 36;
-  const TBINS = 32;
+  // CELL scales the whole lattice: 0.5 halves the cell and doubles every bin
+  // count. It exists because the lattice is not a neutral observer — `seen` is
+  // first-come-wins per cell, so a coarse cell discards real routes and the
+  // count comes back too high. Every number this tool prints is an upper bound
+  // on the true optimum, and refining can only lower it.
+  const CELL = Number(process.env.CELL || 1);
+  const XY = (artic ? 0.45 : 0.3) * CELL;
+  const YAWBINS = Math.round((artic ? 32 : 36) / CELL);
+  const TBINS = Math.round(32 / CELL);
   const steers = [-1, -0.45, 0, 0.45, 1].map((f) => f * spec.maxSteer);
   const maxNodes = opts.maxNodes ?? 1200000;
   // Two orderings over one search. `exact` tiers by direction changes, which is

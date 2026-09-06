@@ -195,6 +195,13 @@ something to a designer, but it is a record rather than an optimum, and the
 validator only fails a level when the search beats the number the level
 claims.
 
+That record is an **upper bound**, and by more than we thought. The search
+dedups on a lattice, and a cell too coarse to represent a long smooth arc pays
+for the arc in direction changes it never needed. `CELL=0.5` halves the cell;
+refining can only lower a count, never raise one. Run a level at two cell sizes
+and check the count and the distance have both stopped moving — if they have,
+the number is the level's; if the count is still falling, it is the lattice's.
+
 ## Layout
 
 | File | |

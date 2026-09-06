@@ -142,6 +142,36 @@ grind the limit to get round a corner.
 question it was built to ask. **Nothing it produces reaches the player**
 (constraint 2). That is the decision the rest of this follows from.
 
+### The number is an upper bound, and the lattice is why
+
+**Every count this tool has ever printed is an upper bound on the true
+optimum, and several are known to be well above it.** The search dedups on a
+lattice cell — `seen` is first-come-wins per `(x, z, yaw[, trailerYaw])` cell —
+so a cell that is too coarse discards genuine routes and the search pays for a
+long smooth arc in direction changes it did not need. Refining the cell can
+only *lower* a reported cost, because `seen` discards nodes and never creates a
+transition, and every route returned is a real sequence of `integrate()` steps
+from the start pose. So a finer answer is always the more correct one.
+
+`CELL` scales the whole lattice: `CELL=0.5` halves the cell and doubles every
+bin count. It belongs with `SHRINK`/`WB`/`LOCK`/`OVH`/`TRL` as a probe, but it
+differs from all of them in kind — those perturb the *level or the vehicle* to
+ask a question about the design, and this one perturbs *the instrument* to ask
+whether the design question was answered at all.
+
+**The convergence test, which is cheap and does not need the true optimum:**
+run a level at two cell sizes and check that the count *and* the distance are
+both stationary. A level whose pair has settled is being measured; a level
+whose count is still falling is a lattice reading, not a level property. This
+is due to `level-research`, and is the criterion that separates the two.
+
+Until a level has passed that test, treat its record as a claim about the
+search rather than about the level, and do not reason from it — the swept-ring
+and aisle-depth constants in constraint 7 are measured against the physics
+directly and are unaffected, but any argument of the form "this level costs N
+direction changes, therefore..." is only as good as the cell it was measured
+at.
+
 **Its objective is the game's score.** A route is ordered first by direction
 changes and only then by distance, as a pair compared lexicographically — not
 as one number with an exchange rate between the two. The search used to cost a
@@ -820,6 +850,7 @@ mode branches in `Vehicle.control`, `src/vehicle.js`.
 | 4 — record not stale | stale-record check in the validator | exit 1, prints the shorter answer |
 | 13 — no dead code | `pnpm knip`, `pnpm lint` | exit 1, names the export |
 | 1 — route, not measurement | `SHRINK`/`WB`/`LOCK`/`OVH`/`TRL` probes | count collapses, or never moves |
+| 4 — count is a level property | `CELL` probe, run at two sizes | count still falling means the lattice, not the level |
 | 7 — swept ring | printed per level by the validator | visible drift |
 | 15 — settings are timing, not geometry | review; `gains()` scales only rates, and `maxSteer` / dimensions are not in it | silent |
 | 2, 5, 6, 8, 9, 10, 11, 12, 14 | nothing | silent |
