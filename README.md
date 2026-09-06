@@ -1,14 +1,14 @@
 # Tight Fit
 
 A 3D parking game about threading a vehicle through spaces that look too small
-for it. Fourteen levels, five vehicles, no lap times and no "you were 4 cm off
+for it. Thirteen levels, five vehicles, no lap times and no "you were 4 cm off
 centre" scoring — a level is passed the moment the vehicle is inside the bay
 and stopped.
 
 What is scored is **direction changes**: every time you swap between forward
 and reverse. Parking anything is easy given unlimited shunts, so the shunts are
-the game. Each level ships with the record — the fewest direction changes the
-solver has ever proved possible on it — and your own best sits next to it.
+the game. There is no par and no published best — the only number to beat is
+your own on that level, and it sits next to your current one.
 Crashes are counted per attempt too, however gentle: a crash is the moment you
 touch something, so grinding along a wall is one crash, and letting go before
 you hit it again is what makes it two.
@@ -90,27 +90,24 @@ know which shape you are.
 
 ## Levels
 
-| # | Level | Vehicle | The problem |
-|---|---|---|---|
 The hatchback series is built so each level asks something the one before it
 did not — a new kind of problem rather than a tighter version of the last one.
 
 | # | Level | Vehicle | What it asks |
 |---|---|---|---|
 | 1 | First Bay | Hatchback | Where the bay is, and what counts as parked. |
-| 2 | Back In | Hatchback | How do you aim an entry, with 0.64 m of slack? |
+| 2 | Tight Lane | Hatchback | How do you aim an entry, with 0.64 m of slack? |
 | 3 | The Short Side | Hatchback | The room is 1.45 m past the bay and 15 m behind it. |
 | 4 | Kerbside | Hatchback | The bay is beside the aisle, not across it. |
-| 5 | Pillar Problem | Hatchback | The obstruction is a point, so it is gone round. |
-| 6 | The Alcove | Hatchback | 5.8 m each side. Reversing in wants 6.5. |
-| 7 | Dead End | Hatchback | The room you need is behind you, going nowhere. |
-| 8 | The Impossible Gap | Hatchback | Can you tell it fits before you commit? |
-| 9 | Van Life | Van | Same puzzle, half a metre more vehicle. |
-| 10 | Loading Dock | Van | Reverse blind around a corner between two vans. |
-| 11 | Bus Stop | Bus | Parallel park 11 m of bus into a 13.5 m gap. |
-| 12 | Trailer Trouble | Car + trailer | Reverse a drawbar trailer into a bay row. |
-| 13 | Artic Dock | Semi | 16.6 m, hinged, into a dock between two others. |
-| 14 | Blind Side | Semi | The same dock, on the side the mirrors don't cover. |
+| 5 | The Alcove | Hatchback | 5.8 m each side. Reversing in wants 6.5. |
+| 6 | Dead End | Hatchback | The room you need is behind you, going nowhere. |
+| 7 | The Impossible Gap | Hatchback | Can you tell it fits before you commit? |
+| 8 | Van Life | Van | Same puzzle, half a metre more vehicle. |
+| 9 | Loading Dock | Van | Reverse blind around a corner between two vans. |
+| 10 | Bus Stop | Bus | Parallel park 11 m of bus into a 13.5 m gap. |
+| 11 | Trailer Trouble | Car + trailer | Reverse a drawbar trailer into a bay row. |
+| 12 | Artic Dock | Semi | 16.6 m, hinged, into a dock between two others. |
+| 13 | Blind Side | Semi | The same dock, on the side the mirrors don't cover. |
 
 ## Why the levels are the size they are
 
@@ -129,7 +126,7 @@ rather than eyeballed:
 
 ```bash
 node tools/validate.js            # all levels
-node tools/validate.js squeeze    # one
+node tools/validate.js alcove     # one
 ```
 
 It confirms the vehicle starts clear and the target is reachable and unblocked,
@@ -148,7 +145,7 @@ record claims, so the target in the HUD is always one that has been proved.
 | `src/geom.js` | oriented-rectangle maths: SAT overlap, containment, distance |
 | `src/vehicle.js` | kinematic bicycle model, articulation, the five vehicle specs |
 | `src/colliders.js` | obstacles as flat rectangles, shared by renderer and prover |
-| `src/levels.js` | all fourteen levels, in metres |
+| `src/levels.js` | all thirteen levels, in metres |
 | `src/world.js` | scene construction, themes, lighting |
 | `src/carMesh.js` | vehicle and trailer models, saturated or pastel |
 | `src/camera.js` | chase / overhead / orbit, body-relative, with occlusion pull-in |

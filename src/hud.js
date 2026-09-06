@@ -11,12 +11,12 @@ export class Hud {
       lvlLabel: $('lvl-label'),
       keysKb: $('keys-kb'), keysPad: $('keys-pad'),
       artic: $('artic'), articDot: $('artic-dot'), articLabel: $('artic-label'),
-      shunts: $('stat-shunts'), bumps: $('stat-bumps'), best: $('stat-best'), record: $('stat-record'),
+      shunts: $('stat-shunts'), bumps: $('stat-bumps'), best: $('stat-best'),
       sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
       hold: $('hold'), holdFill: $('hold-fill'), toast: $('toast'), flash: $('flash'),
       grid: $('level-grid'),
       pTitle: $('pause-title'), pHint: $('pause-hint'),
-      rKicker: $('result-kicker'), rTitle: $('result-title'), rShunts: $('result-shunts'), rRecord: $('result-record'),
+      rKicker: $('result-kicker'), rTitle: $('result-title'), rShunts: $('result-shunts'),
       rBumps: $('result-bumps'), rRank: $('result-rank'), rNote: $('result-note'),
       btnNext: $('btn-next'),
     };
@@ -53,7 +53,7 @@ export class Hud {
         <span class="t">${unlocked ? lvl.name : 'Locked'}</span>
         ${unlocked ? `<span class="h">${lvl.hint}</span>` : ''}
         <span class="m">${unlocked
-          ? `${best ? `you ${best.shunts}` : 'not parked yet'} &middot; record ${lvl.record}`
+          ? (best ? `your best: ${best.shunts}` : 'not parked yet')
           : 'finish the one before'}</span>`;
       b.onclick = () => this.h.play(i);
       this.el.grid.appendChild(b);
@@ -83,7 +83,6 @@ export class Hud {
     this.el.lvlLabel.textContent =
       `${String(index + 1).padStart(2, '0')} / ${LEVELS.length} · ${level.name}`;
     this.el.best.textContent = best ? `${best.shunts}` : '—';
-    this.el.record.textContent = level.record ?? '—';
     this.el.artic.classList.toggle('hidden', !VEHICLES[level.vehicle].trailer);
     // The pause card is the second place the hint is available — the one you
     // can reach mid-attempt without leaving the level.
@@ -99,7 +98,6 @@ export class Hud {
 
   update(s) {
     this.el.shunts.textContent = s.shunts;
-    this.el.shunts.parentElement.classList.toggle('hot', s.par != null && s.shunts > s.par);
     this.el.bumps.textContent = s.bumps;
     this.el.bumps.parentElement.classList.toggle('hot', s.bumps > 0);
 
@@ -141,11 +139,10 @@ export class Hud {
     });
   }
 
-  showResult({ level, index, shunts, bumps, rank, note, isLast }) {
+  showResult({ level, shunts, bumps, rank, note, isLast }) {
     this.el.rKicker.textContent = rank.kicker;
     this.el.rTitle.textContent = level.name;
     this.el.rShunts.textContent = shunts;
-    this.el.rRecord.textContent = level.record;
     this.el.rBumps.textContent = bumps;
     this.el.rRank.textContent = rank.label;
     this.el.rNote.textContent = note;

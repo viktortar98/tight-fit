@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { LEVELS, parOf } from './levels.js';
+import { LEVELS } from './levels.js';
 import { VEHICLES, Vehicle, trailerRect } from './vehicle.js';
 import { World } from './world.js';
 import { createVehicleMesh, updateVehicleMesh } from './carMesh.js';
@@ -250,7 +250,6 @@ class Game {
     const car = this.vehicle;
     return {
       shunts: this.shunts,
-      par: parOf(this.level),
       bumps: this.bumps,
       gap,
       hold: this.hold / 0.6,
@@ -278,27 +277,22 @@ class Game {
     if (this.index === this.progress.unlocked) this.progress.unlocked = Math.min(LEVELS.length - 1, this.index + 1);
     this.save();
 
-    const par = parOf(this.level);
-    const underPar = this.shunts <= par;
-    const rank = this.bumps === 0 && underPar
+    // Rank is bumps, and only bumps. It used to have a fourth grade that
+    // asked whether you beat par; with no target number on the surface at all
+    // (DESIGN.md 2) there is nothing left for that grade to mean.
+    const rank = this.bumps === 0
       ? { label: 'flawless', kicker: 'not a mark on it' }
-      : this.bumps === 0
-        ? { label: 'clean', kicker: 'parked' }
-        : this.bumps <= 2
-          ? { label: 'scuffed', kicker: 'parked' }
-          : { label: 'rough', kicker: 'parked, eventually' };
+      : this.bumps <= 2
+        ? { label: 'scuffed', kicker: 'parked' }
+        : { label: 'rough', kicker: 'parked, eventually' };
 
     const notes = [];
-    if (this.shunts === this.level.record) notes.push('You matched the record.');
-    else if (this.shunts < this.level.record) notes.push('You beat the record.');
-    if (!underPar) notes.push(`Par is ${par} direction change${par === 1 ? '' : 's'}.`);
     if (this.bumps > 0) notes.push(`${this.bumps} crash${this.bumps === 1 ? '' : 'es'} on this run.`);
     if (better && prev) notes.push('New best.');
+    else if (prev) notes.push(`Your best is ${prev.shunts}.`);
     this.hud.showResult({
       level: this.level,
-      index: this.index,
       shunts: this.shunts,
-      par: parOf(this.level),
       bumps: this.bumps,
       rank,
       note: notes.join(' ') || 'Textbook.',

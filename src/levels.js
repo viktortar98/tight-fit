@@ -26,21 +26,10 @@ const wall = (x, z, w, d, opt = {}) => ({
 });
 const kerb = (x, z, w, d, rot = 0) => ({ kind: 'kerb', x, z, w, d, rot, h: 0.15 });
 const pillar = (x, z, s = 0.7, h = 3.2) => ({ kind: 'pillar', x, z, w: s, d: s, rot: 0, h });
-const barrier = (x, z, w, d, rot = 0) => ({ kind: 'barrier', x, z, w, d, rot, h: 1.05 });
 const cone = (x, z) => ({ kind: 'cone', x, z, w: 0.42, d: 0.42, rot: 0, h: 0.7 });
 const parked = (x, z, rot = 0, spec = 'hatch', color) => ({ kind: 'parked', x, z, rot, spec, color });
 // A dropped semitrailer: box on landing legs, no tractor.
 const dropped = (x, z, rot = 0, color) => ({ kind: 'dropped', x, z, rot, w: 2.55, d: 13.0, h: 4.0, color });
-
-// Two blocks spanning [x0,x1] at depth z, leaving `gapW` centred on `gapX`.
-function gate(z, gapX, gapW, x0, x1, depth = 0.5) {
-  const leftEnd = gapX - gapW / 2;
-  const rightStart = gapX + gapW / 2;
-  return [
-    barrier((x0 + leftEnd) / 2, z, leftEnd - x0, depth),
-    barrier((rightStart + x1) / 2, z, x1 - rightStart, depth),
-  ];
-}
 
 // Painted bay outline: two flanks and a stop line. Decoration only.
 function bayPaint(x, z, w, d, rot = 0) {
@@ -94,10 +83,12 @@ export const LEVELS = [
 
   // Asks: how do you aim an entry the bay is barely wider than? First level
   // with a lane instead of a lot, and with 0.64 m of slack rather than a bay
-  // you can miss the middle of.
+  // you can miss the middle of. Named for the question it asks and not for a
+  // manoeuvre: the bay is 5 m deep, so a nose-first entry fits, and nothing
+  // here requires reversing in. The Short Side is where that starts.
   {
-    id: 'back-in',
-    name: 'Back In',
+    id: 'tight-lane',
+    name: 'Tight Lane',
     hint: 'A 4.4 m lane between the wall and the row, and 0.64 m of slack in the bay. Aim it, do not swing it.',
     vehicle: 'hatch',
     theme: 'lot',
@@ -186,39 +177,11 @@ export const LEVELS = [
     paint: [{ x: 0.2, z: -5, w: 0.14, d: 32, rot: 0 }],
   },
 
-  // Asks: what happens when the thing in the way is a point rather than a
-  // wall? A pillar on the bay corner has to be gone round, not squeezed past,
-  // so the entry has to start from somewhere specific.
-  {
-    id: 'pillars',
-    name: 'Pillar Problem',
-    hint: 'Concrete does not move. Past the lane pillar, then reverse around the one on the bay corner.',
-    vehicle: 'hatch',
-    theme: 'garage',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 3,
-    bounds: { minX: -14, maxX: 17, minZ: -14, maxZ: 4 },
-    start: { x: 10.5, z: -6.6, yaw: -P2 },
-    target: { x: 0, z: -11, w: 2.5, d: 5, rot: 0 },
-    obstacles: [
-      wall(1.5, -3, 31, 0.6, { h: 2.4, color: 0xd0d2d6 }),
-      pillar(-1.75, -8.95),
-      pillar(4.6, -4.6, 0.6),
-      pillar(-7.5, -8.95),
-      pillar(9.4, -8.95),
-      parked(2.5, -9.675, Math.PI, 'hatch', pick(2)),
-      parked(5, -12.125, 0, 'hatch', pick(6)),
-      parked(-5, -12.6, 0, 'van', pick(1)),
-      parked(-10, -9.675, Math.PI, 'hatch', pick(4)),
-    ],
-    paint: bayRow(0, -11, 10, 2.5, 5),
-  },
-
   // Asks: what do you do when there is no room to pull past on either side?
   // The yard is 11.6 m long, and a reverse-in needs 6.5 m of it on one side of
   // the bay; a nose-first entry needs 4.1 m of run-up and 1.95 m beyond, and
-  // 3.04 m of depth. The yard is 5.2 m deep. The answer the series has taught
-  // for five levels is the one that does not fit here.
+  // 3.04 m of depth. The yard is 5.2 m deep. The answer The Short Side and
+  // Kerbside have taught is the one that does not fit here.
   {
     id: 'alcove',
     name: 'The Alcove',
@@ -466,8 +429,3 @@ export const LEVELS = [
   // ---- CANDIDATES (under test) ----------------------------------------
 ];
 
-// Par is the record plus a working allowance. Matching a solver that can try
-// every line is not the bar; getting near it is. It lives here, once, so that
-// changing the bar changes every level at the same time.
-const PAR_ALLOWANCE = 2;
-export const parOf = (level) => level.record + PAR_ALLOWANCE;

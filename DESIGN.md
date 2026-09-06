@@ -41,6 +41,19 @@ every physics step, read by nothing — left behind when scoring moved off time.
 A stopwatch nobody reads is still a stopwatch, and the next reader reasonably
 concludes timing is coming back. It is gone.
 
+**No target number reaches the player.** There is no par and no published
+record on the HUD, the level tile, or the result card. The only number a score
+is measured against is the player's own best on that level, and a level with no
+best yet says so. A published optimum tells a player what the designer thinks
+the level is worth, which is a claim about difficulty of *execution* — the
+thing constraint 1 says this game is not about. It also cannot be honest: the
+number would come from the solver, and what the solver finds is one route, not
+the best one (constraint 4).
+
+The rating on the result card follows from that. It used to have four grades,
+the top one gated on beating par; with no par it has three, and all three are
+about crashes, which is the other thing the game measures.
+
 **The save key carries the scoring unit** (`STORE = 'tight-fit.v2'`). A best
 recorded in a unit the game no longer uses is not data, it is a memory of an
 abandoned decision, so when the unit changes the key changes and there is
