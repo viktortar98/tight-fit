@@ -1005,15 +1005,16 @@ it is a way of seeing, and the check is still a person looking at the picture.
 *Held by:* `dev.html`, `src/dev.js`, and `src/dev.js` being knip's second entry
 point rather than something the game imports.
 
-## 23. The player can leave the vehicle where it was
+## 23. The vehicle is left standing at every direction change
 
-A key on the pad and on the keyboard leaves a copy of the vehicle's current
-pose standing in the world: same model, same place, same steering angle. Press
-it again and there are two. They stay until the run restarts or the player
-clears them.
+A setting. Turn it on and each time the run swaps between forward and reverse,
+a translucent copy of the vehicle stays where it turned: same model, same
+place, same steering angle, and — with the turning circles on — on the circles
+it was turning about. Eight strokes leave eight of them, and the whole
+manoeuvre is on the floor at once instead of one pose at a time.
 
 **It answers a question the game could not otherwise be asked.** The user's
-statement of it, which is the specification:
+statement of what it is for, which is the specification:
 
 > "it would be a great demonstration of showing and capturing the position, the
 > pose of the vehicle at specific moments during the execution of a series of
@@ -1029,16 +1030,54 @@ wheels rolled, not how the body was turned when they rolled there, and a
 shuffle gains centimetres per cycle, so its whole content is an orientation and
 a displacement too small to remember. Nothing else in the game records a pose.
 
-**It is a record, so constraint 10 is untouched.** Every ghost is a place the
-vehicle has already been, put there by the player at a moment the player chose.
-Nothing is computed about where to go next, and no ghost says anything about
-the bay. It is the first thing in this game the player *places*, which is also
-why constraint 12 has nothing to say against it: a mark you leave on your
-eighth attempt is not something the screen is carrying on your first.
+**The moment is the direction change, and that is the whole design.** This was
+first built as a key the player presses at moments they choose. The user chose
+the automatic form instead, and gave the reason:
+
+> "It's a good idea to create automatic captures because when the direction
+> changes, because that's automatic and accurate and precise, and the game can
+> already remember this... it could be just a toggle to show all the direction
+> change points... And it would eliminate a whole class of problems as well."
+
+The class of problems is real and every item in it was open before this
+decision: when to press, how many pile up, what the cap should be, whether
+there is a clear key, and whether a player who released the stick before
+pressing captures a straightened wheel — measured at 0.27 rad against the 0.36
+rad actually held through the stroke, and once at 0.00, which drew no figure at
+all. An automatic capture has none of them, because it does not depend on a
+player's reaction at all.
+
+It also costs nothing to detect. A direction change is a sign change in the
+direction of travel above 0.2 m/s, and the game already counts them, because
+counting them **is the score** (constraint 2). The interesting instants and the
+scored instants are the same instants. So the aid adds no new notion of what
+matters: it draws the thing the game was already measuring.
+
+**A ghost belongs to the shunt that scored it, and rewind takes it back.**
+This is the opposite of what the manual version did, and the reason is that the
+ghost is no longer the player's annotation — it is a picture of the score.
+Every ghost carries its shunt number; `Game.restore` truncates the list to the
+count on the tape frame, next to the line that truncates the tyre marks.
+Rewinding past a reversal un-scores it (constraint 18), and a ghost left
+standing after that would draw a direction change that no longer happened.
+Restart clears them for the same reason: a new run starts at zero.
+
+**The poses are recorded whether or not they are drawn.** Five numbers per
+direction change, kept regardless of the setting. So a player who finishes a
+shuffle, wonders why it worked, and turns the aid on then is shown the
+manoeuvre rather than whatever is left of it. The same holds for the circles: a
+ghost builds its figure when the circles setting reaches it.
+
+**It is off by default**, and constraint 12 is why rather than constraint 10.
+It is a record and not a prediction, so 10 has nothing against it — but it puts
+a copy of the vehicle on the floor for every point the player scores, and the
+score of a hard level is a dozen. That is a lot of world for a player who never
+asked, and nothing about it pays on the first attempt. It pays on the eighth,
+which is when a player turns it on.
 
 **A ghost is desaturated, and that is constraint 8 rather than taste.** The
 player's vehicle is the only saturated colour on screen, which is what makes it
-findable at a glance; six translucent copies of it in its own paint spends
+findable at a glance; a dozen translucent copies of it in its own paint spends
 exactly that. One flat pale grey for the whole ghost — no paint, no glazing, no
 lamps — also makes it read as an annotation rather than as another vehicle
 parked in the level.
@@ -1050,6 +1089,19 @@ what a shuffle produces, because the poses are centimetres apart — painted the
 player's own car out of the picture and left a white slab where the level was.
 That is constraint 8 broken outright by an aid meant to explain the manoeuvre.
 Writing depth makes a stack cost about what one ghost costs.
+
+**A ghost the vehicle is standing in is not drawn**, and this is constraint 8
+again rather than tidiness. Writing depth makes one ghost cost one blend along
+a sight line, but a *stack* costs one each, and the automatic form stacks them
+where the manual one did not: a player rocking on the spot leaves every ghost
+of the sequence in the same place. Five at 0.45 left five per cent of the car
+showing — measured on First Bay, and the saturated shape the player steers by
+had gone. Hiding them costs nothing, because a ghost of where you are standing
+is the one place you can already see the vehicle, and driving off it brings it
+back. The test is the game's own rectangle overlap, so "standing in it" means
+what it means everywhere else. The circles stay behind: they lie on the ground,
+they veil nothing, and the centre a stroke turned about is the half of the
+record the tyre marks do not draw.
 
 **Nothing is drawn from the driver's seat.** From the seat the eye is *inside*
 the ghost, and a translucent shell around the head fogs the windscreen and all
@@ -1073,20 +1125,29 @@ about it were decided here rather than asked for:
 - **They are fainter than the live figure**, which has to stay the one the
   wheel in your hands is moving.
 
-**Rewind does not take them with it, and restart does.** This is the line
-between run state and annotation. Everything on the tape is the run — pose,
-motion, score, the tyre marks (constraints 18, 19) — and rewinding a stretch
-un-drives it. A ghost is not something the vehicle did; it is something the
-player wrote down about it, and the use it was asked for is to wind back and
-drive the same manoeuvre again against the poses the last attempt left. A
-restart is a different run, so the marks of the last one go.
+**Twenty-four, then the oldest goes.** A run needing more than two dozen
+strokes has stopped being a manoeuvre anyone reads off the floor. The oldest is
+dropped because the newest is the one being compared against. The cap is the
+one place the ghosts and the score disagree, which is why a ghost stores its
+shunt number rather than its index: a truncation after a rewind still lands on
+the right ones when the front of the list has fallen off.
 
-**Twelve, then the oldest goes.** Ghosts are placed by hand, so the count is
-small by nature and the cap is for the case where it is not. The oldest is the
-one dropped because the newest is the one being compared against.
+**The lock is the one the finished stroke was driven at, not the one held at
+the instant of the reversal.** By the time the game detects a direction change
+the wheel is already on its way to the next stroke's lock and is at neither:
+measured on The Short Side at −0.203 rad, between a stroke held at +0.203 and
+one about to be driven at −0.55. So the step remembers the steering angle from
+the last step the vehicle was still moving the old way, and that is what the
+ghost carries. It makes the ghost the stroke that just ended, whole — the pose
+it finished in and the circle it ran on — and the alternating centres of a
+shuffle are then a row of marks on the floor, which is the picture the feature
+exists to draw. The remembered angle is on the rewind tape with everything else
+(constraint 18).
 
-*Held by:* `src/ghosts.js`, and `Game.frame` for the seat rule. Nothing checks
-any of it; `dev.html#ghosts` is where it is looked at (constraint 22).
+*Held by:* `src/ghosts.js`, `Game.stepPhysics` for the instant and the lock,
+`Game.restore` for the rewind, and `Game.frame` for the seat rule and the
+standing-in-it rule. Nothing checks any of it;
+`dev.html#ghosts` is where it is looked at (constraint 22).
 
 ## Where the rules are enforced
 
@@ -1126,30 +1187,6 @@ Not constraints — questions that are known, deliberately unanswered, and would
 otherwise be lost. Each says who it belongs to.
 
 ### Core, and the user's
-
-**Whether a ghost should also be left automatically, at every direction
-change.** The user's is a key they press. The moments they described wanting —
-"specific moments during the execution of a series of steps" — are the
-reversals, and the game already detects those exactly: a shunt is a sign change
-in the direction of travel above 0.2 m/s (constraint 2), which is the score
-itself. So the game knows the interesting instants and could mark them without
-being asked.
-
-Two things argue against doing it unasked, and one for. Against: it fires on
-every shunt of every attempt, in a game whose score *is* shunts, so ordinary
-play would fill the level with ghosts nobody asked for — which means it has to
-be a setting, and a setting is a decision about the default game. And the
-manual key turns out not to need the reflexes it looked like it would: at a
-reversal the vehicle is stopped, so the window is seconds rather than frames,
-and if the moment is missed the tape is right there — rewind to it and press
-the key, because rewinding is still play (constraint 18) and a ghost can be
-left from anywhere on it. For: in Direct steering, letting go of the stick
-straightens the wheels, so a player who releases before pressing the key
-captures a pose with no lock in it and therefore no circles; an automatic
-capture on the shunt event catches the lock the stroke was actually driven at.
-Measured while building this: capturing 220 ms after release gave 0.27 rad
-against the 0.36 rad held through the stroke, and one capture came out at 0.00
-and drew no figure at all. Not decided; it belongs to the user.
 
 **The vehicle roster is a content axis.** Decided by the user, and it overrides
 the repetition charge that the audit above was built on: "same level with

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { VEHICLES, Vehicle } from './vehicle.js';
-import { createVehicleMesh, updateVehicleMesh } from './carMesh.js';
+import { createVehicleMesh } from './carMesh.js';
 import { LEVELS } from './levels.js';
 import { World } from './world.js';
 import * as OBJECTS from './objects.js';
@@ -224,19 +224,15 @@ const ghostSets = new Map();
 function ghostsFor(id) {
   if (!ghostSets.has(id)) {
     const spec = VEHICLES[id];
-    const mesh = meshFor(id);
     const { reach } = extent(spec);
-    // At full lock, because that is the pose a shunt is captured in, and a
-    // copy that dropped the steering angle would show up nowhere else.
-    updateVehicleMesh(mesh, spec, { steer: spec.maxSteer });
-    const set = new Ghosts(spec, mesh, null);
-    for (const st of GHOST_STEPS) {
-      set.capture({
-        x: st.ax * reach, z: st.az * reach, yaw: st.yaw,
-        trailerYaw: st.yaw + (spec.trailer ? 0.22 : 0), steer: spec.maxSteer,
-      });
-    }
-    updateVehicleMesh(mesh, spec, {});
+    const set = new Ghosts(spec, meshFor(id), null);
+    set.setShown(true);
+    // At full lock, because that is where a stroke ends, and a copy that
+    // dropped the steering angle would show up nowhere else.
+    GHOST_STEPS.forEach((st, i) => set.record(i + 1, {
+      x: st.ax * reach, z: st.az * reach, yaw: st.yaw,
+      trailerYaw: st.yaw + (spec.trailer ? 0.22 : 0),
+    }, spec.maxSteer));
     studio.add(set.group);
     ghostSets.set(id, set);
   }

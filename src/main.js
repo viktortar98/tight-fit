@@ -111,9 +111,13 @@ class Game {
         // The aids are display state held in three different places, so the
         // one that changed is pushed out here rather than read every frame.
         if (this.traces) this.traces.group.visible = this.settings.traces === 'on';
-        // A ghost carries the circles of the pose it was captured at, so the
-        // setting reaches the ones already standing, not just the next one.
-        if (this.ghosts) this.ghosts.setCircles(this.settings.turnCircles === 'on');
+        if (this.ghosts) {
+          // Both of these reach the ghosts already standing rather than only
+          // the next one: the poses are recorded whether or not they are being
+          // drawn, so turning either on mid-manoeuvre shows the manoeuvre.
+          this.ghosts.setShown(this.settings.ghosts === 'on');
+          this.ghosts.setCircles(this.settings.turnCircles === 'on');
+        }
         this.hud.renderSettings(this.settings);
         this.hud.setSteerMode(this.settings.steering);
       },
@@ -197,6 +201,7 @@ class Game {
     // away with it: a pose of a hatchback means nothing in a level driven by a
     // bus (DESIGN.md 23).
     this.ghosts = new Ghosts(this.spec, this.carMesh, this.level.bounds);
+    this.ghosts.setShown(this.settings.ghosts === 'on');
     this.ghosts.setCircles(this.settings.turnCircles === 'on');
     this.scene.add(this.ghosts.group);
     this.vehicle = new Vehicle(this.spec);
@@ -238,14 +243,15 @@ class Game {
     this.collisions = 0;
     this.shunts = 0;
     this.lastDir = 0;
+    this.strokeSteer = 0;
     this.canFinish = false;
     this.inside = false;
     this.touching = false;
     this.foldAt = null;
     this.tape.clear();
     this.traces.clear();
-    // A restart is a new run, and the poses of the last one are not part of it.
-    // Rewind is the other way round — see DESIGN.md 23.
+    // A restart is a new run, and its score starts at zero, so the poses that
+    // belonged to the direction changes of the last one go with them.
     this.ghosts.clear();
     this.rewinding = false;
     this.rig.reset(this.level.theme, this.spec);
@@ -405,7 +411,8 @@ class Game {
     this.tape.push({
       x: car.x, z: car.z, yaw: car.yaw, trailerYaw: car.trailerYaw,
       speed: car.speed, steer: car.steer, wheelSpin: car.wheelSpin,
-      shunts: this.shunts, collisions: this.collisions, lastDir: this.lastDir,
+      shunts: this.shunts, collisions: this.collisions,
+      lastDir: this.lastDir, strokeSteer: this.strokeSteer,
       touching: this.touching, canFinish: this.canFinish, inside: this.inside,
       trace: this.traces.count, foldAt: this.foldAt,
     });
@@ -425,11 +432,16 @@ class Game {
     this.shunts = f.shunts;
     this.collisions = f.collisions;
     this.lastDir = f.lastDir;
+    this.strokeSteer = f.strokeSteer;
     this.touching = f.touching;
     this.foldAt = f.foldAt;
     this.canFinish = f.canFinish;
     this.inside = f.inside;
     this.traces.truncate(f.trace);
+    // A ghost belongs to the direction change that scored it, and the tape has
+    // just put the count back below it. Leaving it standing would draw a
+    // reversal that no longer happened (DESIGN.md 23).
+    this.ghosts.truncate(f.shunts);
     return true;
   }
 
@@ -455,8 +467,25 @@ class Game {
     // direction of travel. Rocking on the spot below 0.2 m/s is not one.
     const dir = car.speed > 0.2 ? 1 : car.speed < -0.2 ? -1 : 0;
     if (dir) {
-      if (this.lastDir && dir !== this.lastDir) this.shunts++;
+      if (this.lastDir && dir !== this.lastDir) {
+        this.shunts++;
+        // The pose that belongs to the point just scored, taken here because
+        // here is where the game knows a reversal happened. `car` is still on
+        // the previous step's position — this step has not been integrated
+        // yet — which is the stopped end of the stroke rather than the first
+        // few millimetres of the next one.
+        //
+        // The lock is `strokeSteer` and not `car.steer`, and the difference is
+        // not small. By the instant a reversal is detected the wheel is
+        // already on its way to the *next* stroke's lock and is at neither
+        // one: measured on Kerbside at -0.203 rad between a stroke held at
+        // +0.203 and one about to be driven at -0.55. `strokeSteer` is where
+        // the wheel was on the last step the vehicle was still moving the old
+        // way, so the ghost is the stroke that just ended, whole (DESIGN.md 23).
+        this.ghosts.record(this.shunts, car, this.strokeSteer);
+      }
       this.lastDir = dir;
+      this.strokeSteer = car.steer;
     }
 
     if (car.speed === 0) return;
@@ -767,26 +796,13 @@ class Game {
       // as bad as it sounds. Nothing is lost by the rule, because every view
       // is one button away (DESIGN.md 9).
       this.ghosts.group.visible = this.rig.mode !== 'cockpit';
+      this.ghosts.occlude(car);
       updateVehicleMesh(this.carMesh, this.spec, {
         steer: car.steer,
         spin: car.wheelSpin,
         braking: car.braking,
         reversing: car.speed < -0.05,
       });
-      // Read here rather than with the other keys above, because a ghost is a
-      // copy of the mesh and the mesh has only just been given this frame's
-      // steering angle. Rewinding is still `playing`, so a moment you drove
-      // past can be wound back to and marked.
-      if (this.state === 'playing') {
-        if (input.pressed('KeyG') || this.pad.tapped(BTN.RIGHT)) {
-          const n = this.ghosts.capture(car);
-          this.hud.toast(`ghost left · ${n} on the level`);
-        }
-        if ((input.pressed('KeyH') || this.pad.tapped(BTN.LEFT)) && this.ghosts.count) {
-          this.ghosts.clear();
-          this.hud.toast('ghosts cleared');
-        }
-      }
       this.rig.update(dt, car, this.spec, this.carMesh.view);
       this.anyPanel = this.panels.show({
         cockpit: this.rig.mode === 'cockpit',

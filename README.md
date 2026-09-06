@@ -73,8 +73,6 @@ card are all pad-navigable.
 | `D-pad ↑↓` | scroll | zoom |
 | `RS` click | `Z` | recentre the view where the level handed it to you |
 | `RB` | `C` | view: chase → inside → overhead |
-| `D-pad →` | `G` | leave a ghost of the vehicle where it is |
-| `D-pad ←` | `H` | clear the ghosts |
 | `X` | `Backspace` | hold to rewind |
 | `B` | `Enter` | finish the level — only offered once you are in the bay and stopped |
 | `Y` | `R` | restart level |
@@ -161,25 +159,30 @@ beside it — so a rewind past a collision also puts you back before it, and you
 have to drive that stretch again. What it removes is the half minute of
 driving back to the interesting part, which was never the difficulty.
 
-**Press ghost and the vehicle stays where it is** — a translucent copy of it,
-same model, same pose, same steering angle, standing there while you drive on.
-Leave as many as you like. It is there for the manoeuvre that is hard to see
-yourself doing: a parallel-parking shuffle moves the car sideways by
-alternating two arcs about two centres, it gains a few centimetres a cycle, and
-what makes it work is where the car *was* at the end of the last stroke against
-where it is now. Nothing else in the game records that — the tyre marks say
-where the wheels rolled, not which way the body was pointing when they did.
-Mark the reversals and the whole manoeuvre is on the ground at once.
+**Switch on direction-change ghosts and every reversal leaves the vehicle
+standing there** — a translucent copy, same model, same pose, same steering
+angle, at each point where you swapped between forward and reverse. It is there
+for the manoeuvre that is hard to see yourself doing: a parallel-parking
+shuffle moves the car sideways by alternating two arcs about two centres, it
+gains a few centimetres a cycle, and what makes it work is where the car *was*
+at the end of the last stroke against where it is now. Nothing else in the game
+records that — the tyre marks say where the wheels rolled, not which way the
+body was pointing when they did. With the ghosts on, the whole shuffle is on
+the ground at once.
+
+You do not have to decide in advance. The poses are kept whether or not they
+are being drawn, so finishing a manoeuvre and *then* turning the setting on
+shows you the manoeuvre you just drove. The moment is picked by the game rather
+than by your thumb: a direction change is the thing the game already counts,
+because counting them is the score.
 
 Ghosts are grey rather than your car's colour, so the saturated shape on screen
 is still the one you are driving. With turning circles switched on, each ghost
-brings the circles of the lock it was captured at — the rear ones and the
+brings the circles of the lock it was standing at — the rear ones and the
 centre they turn about, which is the part the tyre marks do not already draw.
 They are not drawn from the driver's seat, where the eye would be inside them.
-Rewind leaves them standing, because a ghost is something you wrote down rather
-than something you did: wind back and drive the manoeuvre again against the
-poses the last attempt left. Restarting the level clears them, and so does the
-clear key.
+Rewind takes them with it: wind back past a reversal and its ghost goes, the
+same way the direction change itself goes off the counter.
 
 **The tyres leave marks, and they stay for the level.** Faint, but enough to
 see afterwards whether the swing into the bay was one arc or three
@@ -332,7 +335,7 @@ check that would have caught the shell/lining z-fighting), and `builders()`
 | `src/panels.js` | the three mirrors and the reverse camera, as screen panels |
 | `src/rewind.js` | the tape the run plays backwards through |
 | `src/traces.js` | the marks the tyres leave, one ribbon per wheel |
-| `src/ghosts.js` | the poses the player leaves standing in the world |
+| `src/ghosts.js` | the pose the vehicle was in at each direction change |
 | `src/turnCircles.js` | the circle each wheel is on, drawn on the ground when asked |
 | `src/gamepad.js` | Xbox mapping, analog triggers, rumble |
 | `src/editor.js` | the level editor: a plan view and a number panel |

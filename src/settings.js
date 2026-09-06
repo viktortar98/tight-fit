@@ -124,6 +124,22 @@ export const SETTINGS = [
     values: [{ id: 'off', name: 'Hidden' }, { id: 'on', name: 'Shown' }],
   },
   {
+    // Also off unless asked for, and for a different reason than the circles.
+    // This one is a record rather than a prediction, so DESIGN.md 10 has
+    // nothing against it — but it draws a copy of the vehicle for every point
+    // the player scores, and a game whose score *is* direction changes would
+    // hand an unasked-for level a dozen of them. DESIGN.md 12 is about what is
+    // on screen for the first attempt, and this is for the eighth.
+    id: 'ghosts',
+    name: 'Direction-change ghosts',
+    note: 'A pale copy of the vehicle left standing wherever you swap between '
+      + 'forward and reverse, so a shuffle shows every pose it went through at '
+      + 'once instead of one at a time. The poses are kept whether or not they '
+      + 'are drawn, so turning this on halfway through a manoeuvre shows the '
+      + 'whole manoeuvre. Off by default.',
+    values: [{ id: 'off', name: 'Hidden' }, { id: 'on', name: 'Shown' }],
+  },
+  {
     id: 'traces',
     name: 'Tyre marks',
     note: 'The line each wheel leaves on the ground. It is the record of what '
