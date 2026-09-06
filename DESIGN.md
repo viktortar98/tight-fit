@@ -802,6 +802,14 @@ dependency is the part worth keeping: the rectangle is in the spec and
 `src/carMesh.js` draws the housing to fill it, so the mirror that the player
 sees hit something is the mirror that hit it, and the two cannot drift apart.
 
+**The silhouette made it structural.** A body is no longer a slab positioned by
+hand: it is `spec.body`, a side outline given in *fractions* of `length` and
+`height` and extruded across `width`, with an arch cut at every axle in
+`axleRows()`. A point outside the rectangle would have to be a fraction outside
+[0, 1], and the greenhouse is narrowed by splitting the shell at the waist,
+which only ever moves geometry inward. So the body cannot leave its rectangle
+by being drawn wrong, only by being written wrong.
+
 Everything else is now zero — except one. The tow car's ball sits 0.230 m behind the car's
 rectangle because that is where the hitch physically is, and the drawbar spans
 1.3 m of open air between the car's rectangle and the trailer's. Drawing that
@@ -809,11 +817,14 @@ inside a rectangle would misplace the hitch; giving it a rectangle of its own
 would change what fits, and so needs the levels re-checked by hand. It is in
 Open decisions rather than closed by default.
 
-*Enforced by:* nothing yet. The check exists as a script and its numbers are
-above; it is not wired into `pnpm lint`. The mirrors are the one part it cannot
-catch by construction, and they do not need it: `mirror()`
-in `src/carMesh.js` builds the housing from the same `spec.mirrors` that
-`mirrorRect()` collides with.
+*Enforced by:* construction for the body, and by a script for the rest. The
+script builds every vehicle's mesh in node, walks each part's bounding box, and
+reports the furthest any corner sits outside all of the vehicle's rectangles;
+run last against the silhouette shells, it reported 0.000 m for all six
+vehicles and 0.230 m for the tow ball, which is the exception above. It is not
+wired into `pnpm lint`. The mirrors are the one part it cannot catch by
+construction, and they do not need it: `mirror()` in `src/carMesh.js` builds
+the housing from the same `spec.mirrors` that `mirrorRect()` collides with.
 
 ## 18. Rewind is free, and it does not launder the score
 

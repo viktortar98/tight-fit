@@ -1,19 +1,28 @@
 import * as THREE from 'three';
-import { axleRows, centerOffset, trailerBogie, trailerCenterOffset, trailerLength } from './vehicle.js';
+import { axleRows, trailerBogie, trailerCenterOffset, trailerLength } from './vehicle.js';
 
 // Vehicle groups have their origin at the physics reference point: the centre
 // of the rear axle for a tractor, the axle for a trailer. Placing one is then
 // just position + rotation.y = yaw.
 //
+// A body is one shape: the side silhouette in `spec.body`, extruded across the
+// width, with an arch cut at every axle. There used to be a builder per vehicle
+// shape and a branch on `spec.id` to pick between them, which meant a wheel was
+// drawn wherever it looked right under a slab and a new vehicle was a new
+// function. Now the silhouette is data and the arches are cut from `axleRows()`,
+// so a wheel sits in a hole the right size for it by construction, and adding a
+// vehicle is a list of points in src/vehicle.js and nothing here.
+//
 // Nothing drawn here may stick out past the rectangle the physics collides
-// with (DESIGN.md 17). Parts that want to read as flush — lights, bumpers,
-// glazing — are inset by half their own depth instead, which is why the
-// offsets below are the sizes of the parts rather than round numbers. The
+// with (DESIGN.md 17). The silhouette is given in fractions of `length` and
+// `height`, so a body cannot leave its rectangle unless a point leaves [0, 1];
+// the taper below only ever moves geometry inward. Parts that want to read as
+// flush — lights, bumpers, glazing — are inset by half their own depth. The
 // mirrors are the exception that proves it: they stick out, so they were given
 // a rectangle of their own, and they are drawn from `spec.mirrors` to exactly
 // fill it.
 //
-// Each builder also records where the driver's head and mirrors are, in the
+// Each build also records where the driver's head and mirrors are, in the
 // group's own frame. Whoever draws the windows is the only code that knows
 // where someone sitting behind them would be.
 
@@ -30,12 +39,11 @@ function wheelGeometry(r, w) {
 
 const RUBBER = new THREE.MeshStandardMaterial({ color: 0x2c2e33, roughness: 0.85, metalness: 0.05 });
 const HUB = new THREE.MeshStandardMaterial({ color: 0xc9ced6, roughness: 0.4, metalness: 0.6 });
-const GLASS = new THREE.MeshStandardMaterial({ color: 0x53667a, roughness: 0.18, metalness: 0.45 });
 const TRIM = new THREE.MeshStandardMaterial({ color: 0x555a63, roughness: 0.7 });
 // Glazing you sit behind, as opposed to glazing you look at. A windscreen is a
-// separate slab in front of the driver rather than a face of the cabin box, so
-// from the inside view it is a front face and reads as a wall. This is the
-// same glass with something on the other side of it.
+// separate slab in front of the driver rather than a face of the body, so from
+// the inside view it is a front face and reads as a wall. This is the same
+// glass with something on the other side of it.
 const GLAZE = new THREE.MeshStandardMaterial({
   color: 0x9fc4dc, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.22,
 });
@@ -74,6 +82,114 @@ function lightMaterials() {
   };
 }
 
+// --- the shell ---------------------------------------------------------
+
+// The outline, in metres, in the (along-from-tail, up) plane, as points. The
+// floor is flat at `sill` except where an axle passes: there the outline
+// follows the part of a disc around the wheel centre that rises above the
+// floor, which is what an arch is. Sizing the disc from the wheel rather than
+// from the floor is what makes one rule work for a hatchback, whose floor is
+// barely above its axle, and for a truck, whose chassis rail is half a metre
+// above its own.
+//
+// Points rather than a THREE.Shape because a body is built in two pieces, and
+// a piece is this polygon cut against a horizontal line.
+function outline(body, length, height, axlesFromTail, wheelR) {
+  const sill = body.sill * height;
+  // Enough radius to clear the tyre, whatever the floor is doing: the disc has
+  // to reach above the wheel's top, or the "arch" is a line across a tyre.
+  const rA = Math.max(body.arch, 1.04) * wheelR;
+  const dy = sill - wheelR;
+  const pts = [[0, sill]];
+  if (Math.abs(dy) < rA) {
+    const dx = Math.sqrt(rA * rA - dy * dy);
+    const phi = Math.atan2(dy, dx);
+    const from = Math.PI - phi;
+    for (const a of [...axlesFromTail].sort((p, q) => p - q)) {
+      if (a - dx <= 0 || a + dx >= length) continue;   // an arch that is not in the body
+      const steps = 12;
+      for (let i = 0; i <= steps; i++) {
+        const th = from + (phi - from) * (i / steps);
+        pts.push([a + rA * Math.cos(th), wheelR + rA * Math.sin(th)]);
+      }
+    }
+  }
+  pts.push([length, sill]);
+  for (const [af, yf] of body.top) pts.push([af * length, yf * height]);
+  return pts;
+}
+
+// Sutherland-Hodgman against one horizontal line. Both halves of a cut are
+// still simple polygons, because every outline here is a silhouette: it has one
+// top edge and one bottom edge over any given `along`.
+function cut(pts, y, above) {
+  const inside = (p) => (above ? p[1] >= y : p[1] <= y);
+  const out = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    if (inside(a)) out.push(a);
+    if (inside(a) !== inside(b)) {
+      const t = (y - a[1]) / (b[1] - a[1]);
+      out.push([a[0] + (b[0] - a[0]) * t, y]);
+    }
+  }
+  return out;
+}
+
+// One extrusion of a closed outline, laid into the vehicle's frame.
+function piece(pts, width, tailZ, material) {
+  if (pts.length < 3) return null;
+  const shape = new THREE.Shape(pts.map(([a, y]) => new THREE.Vector2(a, y)));
+  const g = new THREE.ExtrudeGeometry(shape, { depth: width, bevelEnabled: false });
+  // The shape plane is (along, up) and the extrusion runs along its own +Z, so
+  // rotate that axis onto the vehicle's X and slide the result onto centre.
+  g.rotateY(-Math.PI / 2);
+  g.translate(width / 2, 0, 0);
+  const m = new THREE.Mesh(g, material);
+  m.position.set(0, 0, tailZ);
+  return m;
+}
+
+// The shell: the outline extruded across the vehicle, in two pieces split at
+// the waist so the greenhouse can be narrower than the body. A single
+// extrusion narrowed by moving its vertices would do the same thing, but it
+// warps the flank into a curved surface that the flat shading then shows as a
+// diagonal seam corner to corner. Two planar pieces meet in a shoulder line
+// instead, which is what a car has anyway. Both are inside the full-width
+// rectangle, so DESIGN.md 17 holds by construction.
+function shell(g, pts, width, height, taper, tailZ, material) {
+  if (!taper) {
+    g.add(piece(pts, width, tailZ, material));
+    return;
+  }
+  const waist = taper[0] * height;
+  for (const [half, w] of [[false, width], [true, width * taper[1]]]) {
+    const m = piece(cut(pts, waist, half), w, tailZ, material);
+    if (m) g.add(m);
+  }
+}
+
+// A pane lying on one segment of the silhouette, pushed in by its own thickness
+// so it sits in the opening rather than proud of it. The outline is walked
+// counter-clockwise in (along, up), so an edge running (da, dy) has its outward
+// normal at (dy, -da) and its inward normal is the other one.
+function pane(g, from, to, width, length, height, zOffset) {
+  const a0 = from[0] * length; const y0 = from[1] * height;
+  const a1 = to[0] * length; const y1 = to[1] * height;
+  const da = a1 - a0; const dy = y1 - y0;
+  const span = Math.hypot(da, dy);
+  if (span < 0.08) return;
+  const t = 0.06;
+  const m = new THREE.Mesh(new THREE.BoxGeometry(width, t, span * 0.94), GLAZE);
+  // Turn the pane's length onto the segment: about X, local +Z goes to
+  // (0, -sin, cos), which is the unit segment when the angle is atan2(-dy, da).
+  m.rotation.x = Math.atan2(-dy, da);
+  const k = (t / 2 + 0.006) / span;
+  m.position.set(0, (y0 + y1) / 2 + da * k, zOffset + (a0 + a1) / 2 - dy * k);
+  g.add(m);
+}
+
 // The driver sits on the left, and +X is the driver's left: the group's
 // forward is +Z and its up is +Y, so +X is the side a left-hand-drive seat is
 // on. The mirror points sit a hand's width outside the flank, where the glass
@@ -81,210 +197,152 @@ function lightMaterials() {
 // Exactly the rectangle `mirrorRect()` collides with: it spans the flank to the
 // outer edge and fills the rectangle's depth, so the mirror the player sees hit
 // something is the mirror that hit it.
-function mirror(spec, sx, y) {
+function mirror(spec, sx) {
   const m = spec.mirrors;
   const box = new THREE.Mesh(new THREE.BoxGeometry(m.out, m.h, m.d), TRIM);
-  box.position.set(sx * (spec.width / 2 + m.out / 2), y, m.z);
+  box.position.set(sx * (spec.width / 2 + m.out / 2), m.y, m.z);
   return box;
 }
 
-function view(eye, mirrorY, mirrorZ, halfWidth, centre) {
-  return {
-    eye,
-    left: new THREE.Vector3(halfWidth + 0.05, mirrorY, mirrorZ),
-    right: new THREE.Vector3(-(halfWidth + 0.05), mirrorY, mirrorZ),
-    centre,
+function buildBody(g, spec, paint, lights) {
+  const b = spec.body;
+  const { length, width, height } = spec;
+  // Profile coordinates run from the tail; the group's origin is the rear axle.
+  const tailZ = -spec.rearOverhang;
+  const axles = [...axleRows(spec).rear, ...axleRows(spec).front].map((z) => z - tailZ);
+  shell(g, outline(b, length, height, axles, spec.wheelRadius), width, height, b.taper, tailZ, paint);
+
+  // Glazing. `glass` names segments of the outline by index, so the windscreen
+  // is the raked part of the shape and cannot end up somewhere else than the
+  // hole it fills.
+  const glassW = width * (b.taper ? b.taper[1] : 1) * 0.94;
+  for (const i of b.glass ?? []) {
+    if (i + 1 >= b.top.length) continue;
+    pane(g, b.top[i], b.top[i + 1], glassW, length, height, tailZ);
+  }
+  // Side glass is a band, not a segment: it spans along the cabin rather than
+  // lying on the outline, so it is given as [a0, a1, y0, y1].
+  for (const [a0, a1, y0, y1] of b.sides ?? []) {
+    const sw = 0.07;
+    const bandH = (y1 - y0) * height;
+    const bandL = (a1 - a0) * length;
+    // Which piece of the shell the band lies in decides how wide the vehicle is
+    // there: glass set to the greenhouse's flank on a body that is still full
+    // width at that height disappears inside it.
+    const narrow = b.taper && (y0 + y1) / 2 > b.taper[0];
+    const flank = (width / 2) * (narrow ? b.taper[1] : 1) - sw / 2 + 0.01;
+    for (const sx of [-1, 1]) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(sw, bandH, bandL), GLAZE);
+      m.position.set(sx * flank, (y0 + y1) / 2 * height, tailZ + (a0 + a1) / 2 * length);
+      g.add(m);
+    }
+  }
+
+  const sill = b.sill * height;
+  const noseZ = tailZ + length;
+  const faceTop = b.top[0][1] * height;
+  const rearTop = b.top[b.top.length - 1][1] * height;
+  const lampY = sill + (faceTop - sill) * 0.5;
+  const rearY = sill + (rearTop - sill) * 0.5;
+  const inset = width / 2 - Math.min(0.35, width * 0.18);
+  for (const sx of [-1, 1]) {
+    const hl = new THREE.Mesh(new THREE.BoxGeometry(width * 0.19, 0.17, 0.06), lights.head);
+    hl.position.set(sx * inset, lampY, noseZ - 0.031);
+    const tl = new THREE.Mesh(new THREE.BoxGeometry(width * 0.17, 0.19, 0.06), lights.tail);
+    tl.position.set(sx * inset, rearY, tailZ + 0.031);
+    const rl = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.11, 0.06), lights.reverse);
+    rl.position.set(sx * (inset - width * 0.16), rearY - 0.16, tailZ + 0.031);
+    g.add(hl, tl, rl);
+    g.add(mirror(spec, sx));
+  }
+
+  for (const [zPos, top] of [[noseZ - 0.081, faceTop], [tailZ + 0.081, rearTop]]) {
+    const bump = new THREE.Mesh(new THREE.BoxGeometry(width * 0.99, 0.22, 0.16), TRIM);
+    bump.position.set(0, Math.min(sill + 0.14, top - 0.12), zPos);
+    g.add(bump);
+  }
+
+  // A vehicle with no bonnet in front of the driver gets the thing that does
+  // the same job for the inside view: a dash whose front edge is a fixed
+  // distance from the nose (DESIGN.md 9).
+  if (b.dash) {
+    const dash = new THREE.Mesh(new THREE.BoxGeometry(width * 0.88, 0.52, 0.8), TRIM);
+    dash.position.set(0, b.eye[1] * height - 0.62, noseZ - 0.78);
+    g.add(dash);
+  }
+
+  if (spec.trailer) {
+    const t = spec.trailer;
+    if (t.drawbar) {
+      const ball = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.22, 8), STEEL);
+      ball.position.set(0, sill - 0.05, t.hitch);
+      g.add(ball);
+    } else {
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(width * 0.62, 0.12, 1.1), STEEL);
+      plate.position.set(0, rearTop + 0.06, t.hitch);
+      g.add(plate);
+      for (const sx of [-1, 1]) {
+        const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.5, 10), STEEL);
+        stack.position.set(sx * (width / 2 - 0.16), height * 0.72, tailZ + b.top[3][0] * length - 0.1);
+        g.add(stack);
+      }
+    }
+  }
+
+  g.userData.view = {
+    eye: new THREE.Vector3(width * 0.21, b.eye[1] * height, tailZ + b.eye[0] * length),
+    left: new THREE.Vector3(width / 2 + spec.mirrors.out + 0.05, spec.mirrors.y + 0.04, spec.mirrors.z),
+    right: new THREE.Vector3(-(width / 2 + spec.mirrors.out + 0.05), spec.mirrors.y + 0.04, spec.mirrors.z),
+    centre: new THREE.Vector3(0, b.look[1] * height, tailZ + b.look[0] * length),
   };
 }
 
-function buildCarBody(g, spec, paint, lights) {
-  const off = centerOffset(spec);
-  const r = spec.wheelRadius;
-  const isVan = spec.id === 'van';
-  const sillY = r + 0.06;
-  const bodyH = isVan ? 0.72 : 0.6;
+// A trailer is the same shell with a plain outline: a box on a deck, arched
+// over its own bogie. It has no `body` of its own because there is nothing to
+// say about the shape of a box.
+const TRAILER_BODY = { sill: 0.0, arch: 1.35, top: [[1, 1], [0, 1]], taper: null };
 
-  const body = new THREE.Mesh(new THREE.BoxGeometry(spec.width, bodyH, spec.length), paint);
-  body.position.set(0, sillY + bodyH / 2, off);
-  g.add(body);
+function buildTrailer(t, paint, lights, wheels) {
+  const group = new THREE.Group();
+  const len = trailerLength(t);
+  const off = trailerCenterOffset(t);
+  const deckY = t.wheelRadius + 0.28;
+  const tailZ = off - len / 2;
+  const bogie = trailerBogie(t);
+  const body = { ...TRAILER_BODY, sill: deckY / t.height };
+  const pts = outline(body, len, t.height, bogie.map((z) => z - tailZ), t.wheelRadius);
+  shell(group, pts, t.width, t.height, null, tailZ, paint);
 
-  const skirt = new THREE.Mesh(
-    new THREE.BoxGeometry(spec.width * 0.94, sillY - 0.08, spec.length * 0.96), TRIM,
-  );
-  skirt.position.set(0, (sillY - 0.08) / 2 + 0.08, off);
-  g.add(skirt);
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(t.width * 0.9, 0.2, len * 0.96), TRIM);
+  deck.position.set(0, deckY - 0.06, off);
+  group.add(deck);
 
-  const cabinH = spec.height - (sillY + bodyH);
-  const cabinLen = isVan ? spec.length * 0.72 : spec.length * 0.5;
-  const cabinZ = off - spec.length * 0.06;
-  const cabin = new THREE.Mesh(
-    new THREE.BoxGeometry(spec.width * 0.93, cabinH, cabinLen), isVan ? paint : GLASS,
-  );
-  cabin.position.set(0, sillY + bodyH + cabinH / 2, cabinZ);
-  g.add(cabin);
+  for (const sx of [-1, 1]) {
+    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.16, 0.06), lights.tail);
+    tl.position.set(sx * (t.width / 2 - 0.25), deckY + 0.16, tailZ + 0.031);
+    group.add(tl);
+  }
 
-  if (isVan) {
-    const ws = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.86, cabinH * 0.55, 0.08), GLAZE);
-    ws.position.set(0, sillY + bodyH + cabinH * 0.6, cabinZ + cabinLen / 2 - 0.05);
-    g.add(ws);
+  if (t.drawbar) {
+    const bar = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.12, t.axleFromHitch - t.axleToFront + 0.3), STEEL,
+    );
+    bar.position.set(0, deckY - 0.12, t.axleFromHitch - (t.axleFromHitch - t.axleToFront) / 2);
+    group.add(bar);
   } else {
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.84, 0.09, cabinLen * 0.86), paint);
-    roof.position.set(0, spec.height - 0.04, cabinZ - 0.05);
-    g.add(roof);
+    const pin = new THREE.Mesh(new THREE.BoxGeometry(t.width * 0.6, 0.14, 1.0), STEEL);
+    pin.position.set(0, deckY - 0.16, t.axleFromHitch);
+    group.add(pin);
+    for (const sx of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, deckY - 0.2, 0.14), STEEL);
+      leg.position.set(sx * t.width * 0.34, (deckY - 0.2) / 2, t.axleFromHitch - 1.6);
+      group.add(leg);
+    }
   }
 
-  const noseZ = off + spec.length / 2;
-  const tailZ = off - spec.length / 2;
-  const mirrorZ = spec.mirrors.z;
-  const mirrorY = spec.height - cabinH * 0.55;
-  for (const sx of [-1, 1]) {
-    const hl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.06), lights.head);
-    hl.position.set(sx * (spec.width / 2 - 0.28), sillY + bodyH * 0.62, noseZ - 0.031);
-    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.06), lights.tail);
-    tl.position.set(sx * (spec.width / 2 - 0.26), sillY + bodyH * 0.66, tailZ + 0.031);
-    const rl = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.06), lights.reverse);
-    rl.position.set(sx * (spec.width / 2 - 0.55), sillY + bodyH * 0.45, tailZ + 0.031);
-    g.add(hl, tl, rl);
-    g.add(mirror(spec, sx, mirrorY));
-  }
-  for (const zPos of [noseZ - 0.081, tailZ + 0.081]) {
-    const bump = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.99, 0.22, 0.16), TRIM);
-    bump.position.set(0, sillY + 0.16, zPos);
-    g.add(bump);
-  }
-  if (spec.trailer) {
-    const ball = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.22, 8), STEEL);
-    ball.position.set(0, sillY - 0.05, spec.trailer.hitch);
-    g.add(ball);
-  }
-
-  // Behind the windscreen with the bonnet in front of it. The eye sits above
-  // the body box, which is what puts the bonnet in the picture — the whole
-  // point of the inside view (DESIGN.md 9).
-  g.userData.view = view(
-    new THREE.Vector3(spec.width * 0.22, sillY + bodyH + cabinH * 0.62, cabinZ + cabinLen * 0.22),
-    mirrorY + 0.04, mirrorZ, spec.width / 2 + spec.mirrors.out,
-    new THREE.Vector3(0, spec.height - cabinH * 0.22, cabinZ + cabinLen / 2 - 0.16),
-  );
-}
-
-function buildBus(g, spec, paint, lights) {
-  const off = centerOffset(spec);
-  const r = spec.wheelRadius;
-  const floorY = r + 0.22;
-  const bodyH = spec.height - floorY;
-
-  const body = new THREE.Mesh(new THREE.BoxGeometry(spec.width, bodyH, spec.length), paint);
-  body.position.set(0, floorY + bodyH / 2, off);
-  g.add(body);
-
-  const skirt = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.94, floorY - 0.1, spec.length * 0.97), TRIM);
-  skirt.position.set(0, (floorY - 0.1) / 2 + 0.1, off);
-  g.add(skirt);
-
-  // window band down both sides and across the front
-  const bandH = bodyH * 0.42;
-  const bandY = floorY + bodyH * 0.62;
-  for (const sx of [-1, 1]) {
-    const band = new THREE.Mesh(new THREE.BoxGeometry(0.07, bandH, spec.length * 0.88), GLASS);
-    band.position.set(sx * (spec.width / 2 - 0.036), bandY, off);
-    g.add(band);
-  }
-  const front = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.9, bandH * 1.15, 0.07), GLAZE);
-  front.position.set(0, bandY, off + spec.length / 2 - 0.036);
-  g.add(front);
-  const back = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.86, bandH * 0.8, 0.07), GLAZE);
-  back.position.set(0, bandY, off - spec.length / 2 + 0.036);
-  g.add(back);
-
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.92, 0.1, spec.length * 0.94), paint);
-  roof.position.set(0, spec.height - 0.03, off);
-  g.add(roof);
-
-  const noseZ = off + spec.length / 2;
-  const tailZ = off - spec.length / 2;
-  const mirrorZ = spec.mirrors.z;
-  const mirrorY = spec.height * 0.78;
-  for (const sx of [-1, 1]) {
-    const hl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.06), lights.head);
-    hl.position.set(sx * (spec.width / 2 - 0.35), floorY * 0.75, noseZ - 0.031);
-    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.06), lights.tail);
-    tl.position.set(sx * (spec.width / 2 - 0.32), floorY * 0.85, tailZ + 0.031);
-    const rl = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.06), lights.reverse);
-    rl.position.set(sx * (spec.width / 2 - 0.72), floorY * 0.6, tailZ + 0.031);
-    g.add(hl, tl, rl);
-    g.add(mirror(spec, sx, mirrorY));
-  }
-
-  // A bus has no bonnet, so the inside view is given the thing that does the
-  // same job: a dash whose front edge is a fixed distance from the nose.
-  const dashH = 0.55;
-  const dash = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.9, dashH, 0.9), TRIM);
-  dash.position.set(0, floorY + dashH / 2 + 0.14, noseZ - 0.75);
-  g.add(dash);
-
-  g.userData.view = view(
-    new THREE.Vector3(spec.width * 0.2, floorY + 1.2, noseZ - 1.55),
-    mirrorY, mirrorZ, spec.width / 2 + spec.mirrors.out,
-    new THREE.Vector3(0, spec.height - bandH * 0.3, noseZ - 0.5),
-  );
-}
-
-function buildTractor(g, spec, paint, lights) {
-  const r = spec.wheelRadius;
-  const frameY = r + 0.32;
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.8, 0.26, spec.length * 0.9), TRIM);
-  frame.position.set(0, frameY, centerOffset(spec) - 0.3);
-  g.add(frame);
-
-  const noseZ = spec.wheelbase + (spec.length - spec.wheelbase - spec.rearOverhang);
-  const cabH = spec.height - frameY - 0.1;
-  const cabLen = 2.5;
-  // A cab-over sits with its face at the bumper, so the cab ends where the
-  // collision rectangle ends and the glass is inset into it.
-  const cabZ = noseZ - cabLen / 2;
-  const cab = new THREE.Mesh(new THREE.BoxGeometry(spec.width, cabH, cabLen), paint);
-  cab.position.set(0, frameY + 0.13 + cabH / 2, cabZ);
-  g.add(cab);
-
-  const ws = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.88, cabH * 0.42, 0.08), GLAZE);
-  ws.position.set(0, frameY + cabH * 0.75, cabZ + cabLen / 2 - 0.041);
-  g.add(ws);
-  const mirrorZ = spec.mirrors.z;
-  const mirrorY = frameY + cabH * 0.85;
-  for (const sx of [-1, 1]) {
-    const sw = new THREE.Mesh(new THREE.BoxGeometry(0.08, cabH * 0.34, cabLen * 0.4), GLASS);
-    sw.position.set(sx * (spec.width / 2 - 0.041), frameY + cabH * 0.72, cabZ + cabLen * 0.2);
-    g.add(sw);
-    const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.5, 10), STEEL);
-    stack.position.set(sx * (spec.width / 2 - 0.16), frameY + cabH * 0.75, cabZ - cabLen / 2 - 0.1);
-    g.add(stack);
-    g.add(mirror(spec, sx, mirrorY));
-  }
-
-  // fifth wheel plate, at the hitch point
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.62, 0.12, 1.1), STEEL);
-  plate.position.set(0, frameY + 0.19, spec.trailer.hitch);
-  g.add(plate);
-
-  const dash = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.86, 0.5, 0.7), TRIM);
-  dash.position.set(0, frameY + cabH * 0.42, cabZ + cabLen / 2 - 0.4);
-  g.add(dash);
-
-  for (const sx of [-1, 1]) {
-    const hl = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.2, 0.06), lights.head);
-    hl.position.set(sx * (spec.width / 2 - 0.33), frameY - 0.05, noseZ - 0.031);
-    g.add(hl);
-    const rl = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.06), lights.reverse);
-    rl.position.set(sx * (spec.width / 2 - 0.5), frameY - 0.05, -spec.rearOverhang + 0.031);
-    g.add(rl);
-  }
-
-  g.userData.view = view(
-    new THREE.Vector3(spec.width * 0.2, frameY + cabH * 0.6, cabZ + cabLen * 0.06),
-    mirrorY, mirrorZ, spec.width / 2 + spec.mirrors.out,
-    new THREE.Vector3(0, frameY + cabH * 0.92, cabZ + cabLen / 2 - 0.2),
-  );
+  addWheels(group, bogie, t.wheelRadius, t.wheelWidth, t.trackWidth, wheels.trailer);
+  group.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return group;
 }
 
 export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
@@ -300,59 +358,14 @@ export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
     lights.tail.emissiveIntensity = 0.12;
   }
 
-  // The coach is a bus with its wheels somewhere else; buildBus is parametric
-  // in length, height and centreOffset, so it draws both.
-  if (spec.id === 'bus' || spec.id === 'coach') buildBus(g, spec, paint, lights);
-  else if (spec.id === 'semi') buildTractor(g, spec, paint, lights);
-  else buildCarBody(g, spec, paint, lights);
+  buildBody(g, spec, paint, lights);
 
   const wheels = { front: [], rear: [], trailer: [] };
   const axles = axleRows(spec);
   addWheels(g, axles.rear, spec.wheelRadius, spec.wheelWidth, spec.trackWidth, wheels.rear);
   addWheels(g, axles.front, spec.wheelRadius, spec.wheelWidth, spec.trackWidth, wheels.front);
 
-  let trailerGroup = null;
-  if (spec.trailer) {
-    const t = spec.trailer;
-    trailerGroup = new THREE.Group();
-    const len = trailerLength(t);
-    const off = trailerCenterOffset(t);
-    const deckY = t.wheelRadius + 0.28;
-    const boxH = t.height - deckY;
-
-    const box = new THREE.Mesh(new THREE.BoxGeometry(t.width, boxH, len), paint);
-    box.position.set(0, deckY + boxH / 2, off);
-    trailerGroup.add(box);
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(t.width * 0.9, 0.2, len * 0.96), TRIM);
-    deck.position.set(0, deckY - 0.06, off);
-    trailerGroup.add(deck);
-
-    for (const sx of [-1, 1]) {
-      const tl = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.16, 0.06), lights.tail);
-      tl.position.set(sx * (t.width / 2 - 0.25), deckY + 0.16, off - len / 2 + 0.031);
-      trailerGroup.add(tl);
-    }
-
-    if (t.drawbar) {
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, t.axleFromHitch - t.axleToFront + 0.3), STEEL);
-      bar.position.set(0, deckY - 0.12, t.axleFromHitch - (t.axleFromHitch - t.axleToFront) / 2);
-      trailerGroup.add(bar);
-    } else {
-      // kingpin plate and landing legs
-      const pin = new THREE.Mesh(new THREE.BoxGeometry(t.width * 0.6, 0.14, 1.0), STEEL);
-      pin.position.set(0, deckY - 0.16, t.axleFromHitch);
-      trailerGroup.add(pin);
-      for (const sx of [-1, 1]) {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, deckY - 0.2, 0.14), STEEL);
-        leg.position.set(sx * t.width * 0.34, (deckY - 0.2) / 2, t.axleFromHitch - 1.6);
-        trailerGroup.add(leg);
-      }
-    }
-
-    const bogie = trailerBogie(t);
-    addWheels(trailerGroup, bogie, t.wheelRadius, t.wheelWidth, t.trackWidth, wheels.trailer);
-    trailerGroup.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  }
+  const trailerGroup = spec.trailer ? buildTrailer(spec.trailer, paint, lights, wheels) : null;
 
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 

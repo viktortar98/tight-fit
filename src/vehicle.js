@@ -16,6 +16,14 @@ const deg = (d) => (d * Math.PI) / 180;
 // `mirrors` is where the door mirrors are and how far past the flank they
 // reach — geometry, not decoration, because they collide (DESIGN.md 17) and
 // `src/carMesh.js` draws them from these numbers rather than inventing its own.
+//
+// `body` is the vehicle's side silhouette, and it is here for the same reason:
+// so that adding a vehicle is a list of points rather than a new function in
+// the mesh builder. `top` walks the outline from the nose backwards, each point
+// a fraction of `length` measured from the tail and a fraction of `height`; the
+// builder closes it along the floor at `sill` and cuts an arch at every axle.
+// `glass` names which of those segments are glazed by index, so the windscreen
+// is the raked segment of the silhouette rather than a slab invented beside it.
 export const VEHICLES = {
   hatch: {
     id: 'hatch',
@@ -23,11 +31,19 @@ export const VEHICLES = {
     length: 3.95, width: 1.76, height: 1.44,
     wheelbase: 2.45, rearOverhang: 0.75, trackWidth: 1.5,
     wheelRadius: 0.31, wheelWidth: 0.2,
-    mirrors: { z: 1.876, out: 0.14, d: 0.1, h: 0.09 },
+    mirrors: { z: 1.876, out: 0.14, d: 0.1, h: 0.09, y: 1.18 },
     maxSteer: deg(36), steerRate: deg(155),
     accel: 3.0, brakeAccel: 6.0, rollDrag: 2.0,
     maxSpeed: 2.9, maxReverse: 2.3, crawlSpeed: 1.0,
     bodyColor: 0xe23c1e,
+    body: {
+      sill: 0.24, arch: 1.22, taper: [0.60, 0.86],
+      top: [[1.000, 0.44], [0.905, 0.50], [0.720, 0.545], [0.560, 0.965],
+        [0.235, 1.000], [0.075, 0.775], [0.000, 0.700]],
+      glass: [2, 4],
+      sides: [[0.26, 0.545, 0.62, 0.94]],
+      eye: [0.550, 0.876], look: [0.650, 0.928],
+    },
   },
   van: {
     id: 'van',
@@ -35,11 +51,19 @@ export const VEHICLES = {
     length: 5.3, width: 2.02, height: 2.3,
     wheelbase: 3.2, rearOverhang: 0.95, trackWidth: 1.72,
     wheelRadius: 0.36, wheelWidth: 0.24,
-    mirrors: { z: 3.19, out: 0.14, d: 0.1, h: 0.11 },
+    mirrors: { z: 3.19, out: 0.14, d: 0.1, h: 0.11, y: 1.66 },
     maxSteer: deg(32), steerRate: deg(130),
     accel: 2.6, brakeAccel: 5.4, rollDrag: 1.9,
     maxSpeed: 2.7, maxReverse: 2.1, crawlSpeed: 0.95,
     bodyColor: 0xf07f12,
+    body: {
+      sill: 0.183, arch: 1.24, taper: [0.55, 0.96],
+      top: [[1.000, 0.34], [0.945, 0.40], [0.900, 0.44], [0.822, 0.90],
+        [0.792, 0.99], [0.020, 1.00], [0.000, 0.94]],
+      glass: [2],
+      sides: [[0.80, 0.90, 0.55, 0.86]],
+      eye: [0.598, 0.808], look: [0.770, 0.889],
+    },
   },
   bus: {
     id: 'bus',
@@ -47,11 +71,19 @@ export const VEHICLES = {
     length: 11.0, width: 2.5, height: 3.15,
     wheelbase: 5.6, rearOverhang: 2.9, trackWidth: 2.1,
     wheelRadius: 0.5, wheelWidth: 0.3,
-    mirrors: { z: 7.75, out: 0.19, d: 0.1, h: 0.28 },
+    mirrors: { z: 7.75, out: 0.19, d: 0.1, h: 0.28, y: 2.457 },
     maxSteer: deg(50), steerRate: deg(105),
     accel: 2.2, brakeAccel: 4.6, rollDrag: 1.8,
     maxSpeed: 2.5, maxReverse: 1.9, crawlSpeed: 0.85,
     bodyColor: 0xd81f5e,
+    body: {
+      sill: 0.175, arch: 1.20, taper: [0.50, 0.97], dash: true,
+      top: [[1.000, 0.30], [0.988, 0.56], [0.972, 0.96], [0.958, 1.00],
+        [0.030, 1.00], [0.012, 0.62], [0.000, 0.32]],
+      glass: [1, 4],
+      sides: [[0.04, 0.95, 0.50, 0.90]],
+      eye: [0.859, 0.610], look: [0.955, 0.903],
+    },
   },
   // A rear-engine coach: the rear axle sits far forward under a long body, so
   // 3.9 m of bus hangs behind it. It turns fractionally wider than the city bus
@@ -64,11 +96,19 @@ export const VEHICLES = {
     length: 12.0, width: 2.55, height: 3.35,
     wheelbase: 6.1, rearOverhang: 3.9, trackWidth: 2.15,
     wheelRadius: 0.52, wheelWidth: 0.3,
-    mirrors: { z: 7.75, out: 0.19, d: 0.1, h: 0.28 },
+    mirrors: { z: 7.75, out: 0.19, d: 0.1, h: 0.28, y: 2.613 },
     maxSteer: deg(52), steerRate: deg(100),
     accel: 2.0, brakeAccel: 4.4, rollDrag: 1.8,
     maxSpeed: 2.4, maxReverse: 1.8, crawlSpeed: 0.85,
     bodyColor: 0x7a4fd6,
+    body: {
+      sill: 0.185, arch: 1.26, taper: [0.52, 0.97], dash: true,
+      top: [[1.000, 0.34], [0.986, 0.60], [0.962, 0.95], [0.944, 1.00],
+        [0.040, 1.00], [0.018, 0.66], [0.000, 0.36]],
+      glass: [1, 4],
+      sides: [[0.05, 0.94, 0.58, 0.92]],
+      eye: [0.871, 0.579], look: [0.958, 0.902],
+    },
   },
   towcar: {
     id: 'towcar',
@@ -76,11 +116,21 @@ export const VEHICLES = {
     length: 4.6, width: 1.86, height: 1.62,
     wheelbase: 2.75, rearOverhang: 0.95, trackWidth: 1.6,
     wheelRadius: 0.33, wheelWidth: 0.22,
-    mirrors: { z: 2.124, out: 0.14, d: 0.1, h: 0.09 },
+    mirrors: { z: 2.124, out: 0.14, d: 0.1, h: 0.09, y: 1.27 },
     maxSteer: deg(34), steerRate: deg(140),
     accel: 2.5, brakeAccel: 5.2, rollDrag: 1.9,
     maxSpeed: 2.6, maxReverse: 2.0, crawlSpeed: 0.9,
     bodyColor: 0x1d7fe0,
+    // An estate: the roof runs back to the tailgate, which is why it can pull
+    // something. Same silhouette grammar as the hatchback, different points.
+    body: {
+      sill: 0.222, arch: 1.20, taper: [0.62, 0.88],
+      top: [[1.000, 0.44], [0.880, 0.48], [0.775, 0.51], [0.620, 0.94],
+        [0.150, 1.00], [0.055, 0.82], [0.000, 0.44]],
+      glass: [2, 4],
+      sides: [[0.18, 0.61, 0.58, 0.92]],
+      eye: [0.550, 0.852], look: [0.655, 0.914],
+    },
     trailer: {
       name: 'box trailer',
       hitch: -1.1,          // signed, along tractor forward: behind the rear axle
@@ -98,11 +148,22 @@ export const VEHICLES = {
     length: 6.3, width: 2.5, height: 3.4,
     wheelbase: 3.9, rearOverhang: 1.0, trackWidth: 2.15,
     wheelRadius: 0.52, wheelWidth: 0.32,
-    mirrors: { z: 5.15, out: 0.21, d: 0.1, h: 0.5 },
+    mirrors: { z: 5.15, out: 0.21, d: 0.1, h: 0.5, y: 2.931 },
     maxSteer: deg(40), steerRate: deg(100),
     accel: 2.0, brakeAccel: 4.2, rollDrag: 1.7,
     maxSpeed: 2.3, maxReverse: 1.7, crawlSpeed: 0.8,
     bodyColor: 0x1fa8a0,
+    // A cab-over: the outline drops from the roof to the chassis rail behind
+    // the cab and runs flat to the tail, so one silhouette draws both the cab
+    // and the bare frame the fifth wheel sits on.
+    body: {
+      sill: 0.288, arch: 1.10, taper: [0.60, 0.98], dash: true,
+      top: [[1.000, 0.42], [1.000, 0.93], [0.982, 1.00], [0.603, 1.00],
+        [0.603, 0.400], [0.000, 0.400]],
+      glass: [0],
+      sides: [[0.66, 0.96, 0.62, 0.92]],
+      eye: [0.825, 0.681], look: [0.968, 0.913],
+    },
     trailer: {
       name: 'semitrailer',
       hitch: 0.45,          // fifth wheel, just ahead of the drive axle

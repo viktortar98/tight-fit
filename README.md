@@ -261,7 +261,7 @@ parked in it a metre apart. An editor edits the parameters.
 | `src/objects.js` | the palette a level is built from, and what expands it |
 | `src/levels.js` | all fourteen levels, in metres |
 | `src/world.js` | scene construction, themes, lighting |
-| `src/carMesh.js` | vehicle and trailer models, saturated or pastel |
+| `src/carMesh.js` | vehicle and trailer models from `spec.body`, saturated or pastel |
 | `src/camera.js` | chase / inside / overhead, body-relative |
 | `src/panels.js` | the three mirrors and the reverse camera, as screen panels |
 | `src/rewind.js` | the tape the run plays backwards through |
