@@ -7,8 +7,11 @@ import { axleRows, centerOffset, trailerBogie, trailerCenterOffset, trailerLengt
 //
 // Nothing drawn here may stick out past the rectangle the physics collides
 // with (DESIGN.md 17). Parts that want to read as flush — lights, bumpers,
-// glazing, mirrors — are inset by half their own depth instead, which is why
-// the offsets below are the sizes of the parts rather than round numbers.
+// glazing — are inset by half their own depth instead, which is why the
+// offsets below are the sizes of the parts rather than round numbers. The
+// mirrors are the exception that proves it: they stick out, so they were given
+// a rectangle of their own, and they are drawn from `spec.mirrors` to exactly
+// fill it.
 //
 // Each builder also records where the driver's head and mirrors are, in the
 // group's own frame. Whoever draws the windows is the only code that knows
@@ -75,6 +78,16 @@ function lightMaterials() {
 // forward is +Z and its up is +Y, so +X is the side a left-hand-drive seat is
 // on. The mirror points sit a hand's width outside the flank, where the glass
 // faces, so a mirror camera is not looking at the inside of the bodywork.
+// Exactly the rectangle `mirrorRect()` collides with: it spans the flank to the
+// outer edge and fills the rectangle's depth, so the mirror the player sees hit
+// something is the mirror that hit it.
+function mirror(spec, sx, y) {
+  const m = spec.mirrors;
+  const box = new THREE.Mesh(new THREE.BoxGeometry(m.out, m.h, m.d), TRIM);
+  box.position.set(sx * (spec.width / 2 + m.out / 2), y, m.z);
+  return box;
+}
+
 function view(eye, mirrorY, mirrorZ, halfWidth, centre) {
   return {
     eye,
@@ -122,7 +135,7 @@ function buildCarBody(g, spec, paint, lights) {
 
   const noseZ = off + spec.length / 2;
   const tailZ = off - spec.length / 2;
-  const mirrorZ = cabinZ + cabinLen / 2 - 0.1;
+  const mirrorZ = spec.mirrors.z;
   const mirrorY = spec.height - cabinH * 0.55;
   for (const sx of [-1, 1]) {
     const hl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.06), lights.head);
@@ -132,11 +145,7 @@ function buildCarBody(g, spec, paint, lights) {
     const rl = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.06), lights.reverse);
     rl.position.set(sx * (spec.width / 2 - 0.55), sillY + bodyH * 0.45, tailZ + 0.031);
     g.add(hl, tl, rl);
-    // Folded against the flank rather than proud of it: a mirror that sticks
-    // out is a mirror the physics does not know about.
-    const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.09, 0.07), TRIM);
-    m.position.set(sx * (spec.width / 2 - 0.051), mirrorY, mirrorZ);
-    g.add(m);
+    g.add(mirror(spec, sx, mirrorY));
   }
   for (const zPos of [noseZ - 0.081, tailZ + 0.081]) {
     const bump = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.99, 0.22, 0.16), TRIM);
@@ -154,7 +163,7 @@ function buildCarBody(g, spec, paint, lights) {
   // point of the inside view (DESIGN.md 9).
   g.userData.view = view(
     new THREE.Vector3(spec.width * 0.22, sillY + bodyH + cabinH * 0.62, cabinZ + cabinLen * 0.22),
-    mirrorY + 0.04, mirrorZ, spec.width / 2,
+    mirrorY + 0.04, mirrorZ, spec.width / 2 + spec.mirrors.out,
     new THREE.Vector3(0, spec.height - cabinH * 0.22, cabinZ + cabinLen / 2 - 0.16),
   );
 }
@@ -194,7 +203,7 @@ function buildBus(g, spec, paint, lights) {
 
   const noseZ = off + spec.length / 2;
   const tailZ = off - spec.length / 2;
-  const mirrorZ = noseZ - 0.35;
+  const mirrorZ = spec.mirrors.z;
   const mirrorY = spec.height * 0.78;
   for (const sx of [-1, 1]) {
     const hl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.06), lights.head);
@@ -204,9 +213,7 @@ function buildBus(g, spec, paint, lights) {
     const rl = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.06), lights.reverse);
     rl.position.set(sx * (spec.width / 2 - 0.72), floorY * 0.6, tailZ + 0.031);
     g.add(hl, tl, rl);
-    const m = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.08), TRIM);
-    m.position.set(sx * (spec.width / 2 - 0.061), mirrorY, mirrorZ);
-    g.add(m);
+    g.add(mirror(spec, sx, mirrorY));
   }
 
   // A bus has no bonnet, so the inside view is given the thing that does the
@@ -218,7 +225,7 @@ function buildBus(g, spec, paint, lights) {
 
   g.userData.view = view(
     new THREE.Vector3(spec.width * 0.2, floorY + 1.2, noseZ - 1.55),
-    mirrorY, mirrorZ, spec.width / 2,
+    mirrorY, mirrorZ, spec.width / 2 + spec.mirrors.out,
     new THREE.Vector3(0, spec.height - bandH * 0.3, noseZ - 0.5),
   );
 }
@@ -243,7 +250,7 @@ function buildTractor(g, spec, paint, lights) {
   const ws = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.88, cabH * 0.42, 0.08), GLAZE);
   ws.position.set(0, frameY + cabH * 0.75, cabZ + cabLen / 2 - 0.041);
   g.add(ws);
-  const mirrorZ = cabZ + cabLen / 2 - 0.15;
+  const mirrorZ = spec.mirrors.z;
   const mirrorY = frameY + cabH * 0.85;
   for (const sx of [-1, 1]) {
     const sw = new THREE.Mesh(new THREE.BoxGeometry(0.08, cabH * 0.34, cabLen * 0.4), GLASS);
@@ -252,9 +259,7 @@ function buildTractor(g, spec, paint, lights) {
     const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.5, 10), STEEL);
     stack.position.set(sx * (spec.width / 2 - 0.16), frameY + cabH * 0.75, cabZ - cabLen / 2 - 0.1);
     g.add(stack);
-    const mir = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.08), TRIM);
-    mir.position.set(sx * (spec.width / 2 - 0.051), mirrorY, mirrorZ);
-    g.add(mir);
+    g.add(mirror(spec, sx, mirrorY));
   }
 
   // fifth wheel plate, at the hitch point
@@ -277,7 +282,7 @@ function buildTractor(g, spec, paint, lights) {
 
   g.userData.view = view(
     new THREE.Vector3(spec.width * 0.2, frameY + cabH * 0.6, cabZ + cabLen * 0.06),
-    mirrorY, mirrorZ, spec.width / 2,
+    mirrorY, mirrorZ, spec.width / 2 + spec.mirrors.out,
     new THREE.Vector3(0, frameY + cabH * 0.92, cabZ + cabLen / 2 - 0.2),
   );
 }

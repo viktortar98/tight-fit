@@ -113,7 +113,9 @@ cab-over have no bonnet, so they get the thing that does its job instead — a
 dash whose front edge is a known distance from the nose. All three mirrors are
 there too, aimed exactly where the real glass points, but drawn at the sides
 and top of the screen rather than out at the corners of the windscreen, so
-reading one never means turning the view. Angles are held relative to the driven body, so a jackknifed
+reading one never means turning the view. The mirrors stick out and they
+collide: they get their own thin rectangle in the vehicle's footprint, so
+clipping one on a pillar costs you a crash exactly as a bumper would. Angles are held relative to the driven body, so a jackknifed
 trailer never drags your viewpoint with it, and a view you chose stays on the
 same corner of the vehicle as it turns. If a wall is in the way, it is in the
 way; the overhead view is one button away.

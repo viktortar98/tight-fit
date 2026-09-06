@@ -1050,16 +1050,24 @@ union:
 | towcar | 0.140 m | 0.040–0.050 m | 0.230 m (tow ball) |
 | semi | 0.210 m | 0.260 m (cab and screen past the nose) | 0.030 m (side windows) |
 
-Two ways to close a gap, and they are not equivalent. Widening the collision
-rectangle to the geometry is the realistic one — mirrors do hit things — and it
-changes the vehicle footprint, which invalidates every level's proof
-(constraint 3): +0.28 m on the hatchback's width is 16%, against aisles cut to
-2.9 m. Bringing the geometry inside the rectangle costs nothing but the look.
-**The second was taken**, so mirrors are folded against the flank, lights and
-bumpers are inset by half their own depth, and the semi's cab ends where its
-rectangle ends. Everything is now zero.
+Two ways to close a gap, and they are not equivalent. Bringing the geometry
+inside the rectangle costs nothing but the look. Widening the collision
+footprint to the geometry is the realistic one — mirrors do hit things — and it
+changes what fits, which invalidates every level's proof (constraint 3).
 
-Everything except one. The tow car's ball sits 0.230 m behind the car's
+**Lights, bumpers and glazing took the first**, and are inset by half their own
+depth; the semi's cab ends where its rectangle ends.
+
+**The mirrors took the second**, on the user's decision: "Let them stick out and
+collide". They are not folded in, and they are not a wider `width` either — a
+car is only mirror-wide at the mirrors, and widening the body would make its
+bumpers hit things its bumpers do not reach. They get a rectangle of their own,
+`spec.mirrors` wide and thin, at the mirror's own z. The direction of the
+dependency is the part worth keeping: the rectangle is in the spec and
+`src/carMesh.js` draws the housing to fill it, so the mirror that the player
+sees hit something is the mirror that hit it, and the two cannot drift apart.
+
+Everything else is now zero — except one. The tow car's ball sits 0.230 m behind the car's
 rectangle because that is where the hitch physically is, and the drawbar spans
 1.3 m of open air between the car's rectangle and the trailer's. Drawing that
 inside a rectangle would misplace the hitch; giving it a rectangle of its own
@@ -1067,7 +1075,10 @@ would change what fits, and so needs the levels re-proved. It is in Open
 decisions rather than closed by default.
 
 *Enforced by:* nothing yet. The check exists as a script and its numbers are
-above; it is not wired into `pnpm lint` or the validator.
+above; it is not wired into `pnpm lint` or the validator. The mirrors are the
+one part it cannot catch by construction, and they do not need it: `mirror()`
+in `src/carMesh.js` builds the housing from the same `spec.mirrors` that
+`mirrorRect()` collides with.
 
 ## 18. Rewind is free, and it does not launder the score
 
@@ -1218,14 +1229,6 @@ means a third rectangle on the combination, which changes what fits and so
 needs Trailer Trouble and Fold re-proved — the same cost as widening a vehicle.
 Leaving it means the tow car has 1.3 m of visible steel that is not there as
 far as the physics is concerned. Not decided.
-
-**Whether mirrors should be part of the vehicle's footprint.** Constraint 17
-closed the mirror gap by folding the mirrors in, which was the option that cost
-no proofs. The other option is the realistic one: mirrors stick out, and a
-mirror that clips a wall in a parking game is a fair thing to lose to. It costs
-+0.28 m of width on the hatchback (16%), +0.38 m on the bus and +0.42 m on the
-semi, against aisles cut to 2.9 m — so every level would need re-proving and
-several would likely need re-cutting. Not decided.
 
 **Whether obstacles get a height.** Found by measurement, not assumed: collision
 is two-dimensional. `collidersOf()` drops `h`, `overlaps()` is a separating-axis

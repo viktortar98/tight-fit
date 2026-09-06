@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { bodyRects, integrate } from './vehicle.js';
+import { integrate, rearBodyRect } from './vehicle.js';
 
 // Screen panels: extra views of the scene, rendered into the corners of the
 // frame rather than into the world.
@@ -100,8 +100,7 @@ class Guides {
     const pos = this.rails.map((g) => g.attributes.position);
     const col = this.rails.map((g) => g.attributes.color);
     for (let i = 0; i <= GUIDE_STEPS; i++) {
-      const rects = bodyRects(spec, s);
-      const r = rects[rects.length - 1];
+      const r = rearBodyRect(spec, s);
       const sy = Math.sin(r.rot);
       const cy = Math.cos(r.rot);
       const bx = r.x - sy * (r.d / 2);
@@ -164,8 +163,7 @@ export class Panels {
         p.cam.position.set(px, m.y, pz);
         p.cam.lookAt(px + (d.x * c + d.z * s) * 10, m.y + d.y * 10, pz + (-d.x * s + d.z * c) * 10);
       } else {
-        const rects = bodyRects(spec, car);
-        const r = rects[rects.length - 1];
+        const r = rearBodyRect(spec, car);
         const sy = Math.sin(r.rot);
         const cy = Math.cos(r.rot);
         const h = (spec.trailer ? spec.trailer.height : spec.height) * 0.78;

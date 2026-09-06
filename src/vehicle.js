@@ -12,6 +12,10 @@ const deg = (d) => (d * Math.PI) / 180;
 
 // A trailer is described from its own axle: how far the hitch is in front of
 // it (`axleFromHitch`), and how much body sits fore and aft of the axle.
+//
+// `mirrors` is where the door mirrors are and how far past the flank they
+// reach — geometry, not decoration, because they collide (DESIGN.md 17) and
+// `src/carMesh.js` draws them from these numbers rather than inventing its own.
 export const VEHICLES = {
   hatch: {
     id: 'hatch',
@@ -19,6 +23,7 @@ export const VEHICLES = {
     length: 3.95, width: 1.76, height: 1.44,
     wheelbase: 2.45, rearOverhang: 0.75, trackWidth: 1.5,
     wheelRadius: 0.31, wheelWidth: 0.2,
+    mirrors: { z: 1.876, out: 0.14, d: 0.1, h: 0.09 },
     maxSteer: deg(36), steerRate: deg(155),
     accel: 3.0, brakeAccel: 6.0, rollDrag: 2.0,
     maxSpeed: 2.9, maxReverse: 2.3, crawlSpeed: 1.0,
@@ -30,6 +35,7 @@ export const VEHICLES = {
     length: 5.3, width: 2.02, height: 2.3,
     wheelbase: 3.2, rearOverhang: 0.95, trackWidth: 1.72,
     wheelRadius: 0.36, wheelWidth: 0.24,
+    mirrors: { z: 3.19, out: 0.14, d: 0.1, h: 0.11 },
     maxSteer: deg(32), steerRate: deg(130),
     accel: 2.6, brakeAccel: 5.4, rollDrag: 1.9,
     maxSpeed: 2.7, maxReverse: 2.1, crawlSpeed: 0.95,
@@ -41,6 +47,7 @@ export const VEHICLES = {
     length: 11.0, width: 2.5, height: 3.15,
     wheelbase: 5.6, rearOverhang: 2.9, trackWidth: 2.1,
     wheelRadius: 0.5, wheelWidth: 0.3,
+    mirrors: { z: 7.75, out: 0.19, d: 0.1, h: 0.28 },
     maxSteer: deg(50), steerRate: deg(105),
     accel: 2.2, brakeAccel: 4.6, rollDrag: 1.8,
     maxSpeed: 2.5, maxReverse: 1.9, crawlSpeed: 0.85,
@@ -57,6 +64,7 @@ export const VEHICLES = {
     length: 12.0, width: 2.55, height: 3.35,
     wheelbase: 6.1, rearOverhang: 3.9, trackWidth: 2.15,
     wheelRadius: 0.52, wheelWidth: 0.3,
+    mirrors: { z: 7.75, out: 0.19, d: 0.1, h: 0.28 },
     maxSteer: deg(52), steerRate: deg(100),
     accel: 2.0, brakeAccel: 4.4, rollDrag: 1.8,
     maxSpeed: 2.4, maxReverse: 1.8, crawlSpeed: 0.85,
@@ -68,6 +76,7 @@ export const VEHICLES = {
     length: 4.6, width: 1.86, height: 1.62,
     wheelbase: 2.75, rearOverhang: 0.95, trackWidth: 1.6,
     wheelRadius: 0.33, wheelWidth: 0.22,
+    mirrors: { z: 2.124, out: 0.14, d: 0.1, h: 0.09 },
     maxSteer: deg(34), steerRate: deg(140),
     accel: 2.5, brakeAccel: 5.2, rollDrag: 1.9,
     maxSpeed: 2.6, maxReverse: 2.0, crawlSpeed: 0.9,
@@ -89,6 +98,7 @@ export const VEHICLES = {
     length: 6.3, width: 2.5, height: 3.4,
     wheelbase: 3.9, rearOverhang: 1.0, trackWidth: 2.15,
     wheelRadius: 0.52, wheelWidth: 0.32,
+    mirrors: { z: 5.15, out: 0.21, d: 0.1, h: 0.5 },
     maxSteer: deg(40), steerRate: deg(100),
     accel: 2.0, brakeAccel: 4.2, rollDrag: 1.7,
     maxSpeed: 2.3, maxReverse: 1.7, crawlSpeed: 0.8,
@@ -219,8 +229,30 @@ export function wheelPoints(spec, s) {
 }
 
 // Every rectangle the world has to collide against.
+// The mirrors stick out and they collide, by the user's decision: "Let them
+// stick out and collide". They get a rectangle of their own rather than a wider
+// body, because a car is only mirror-wide at the mirrors — widening `width`
+// would make its bumpers hit things its bumpers do not reach.
+function mirrorRect(spec, s) {
+  const m = spec.mirrors;
+  return {
+    x: s.x + Math.sin(s.yaw) * m.z,
+    z: s.z + Math.cos(s.yaw) * m.z,
+    w: spec.width + 2 * m.out, d: m.d, rot: s.yaw,
+  };
+}
+
+// The rectangle at the back of the whole vehicle, which is the trailer's when
+// there is one. Named rather than indexed off `bodyRects`, because what that
+// returns is a set the physics tests in any order.
+export function rearBodyRect(spec, s) {
+  return spec.trailer ? trailerRect(spec, s) : bodyRect(spec, s);
+}
+
 export function bodyRects(spec, s) {
-  return spec.trailer ? [bodyRect(spec, s), trailerRect(spec, s)] : [bodyRect(spec, s)];
+  const r = [bodyRect(spec, s), mirrorRect(spec, s)];
+  if (spec.trailer) r.push(trailerRect(spec, s));
+  return r;
 }
 
 // Advance a state by dt at its own speed and the given steering angle.
