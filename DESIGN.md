@@ -188,7 +188,22 @@ the fallback that approximates them.
 
 The consequence is that the pad is the reference the rest is measured against:
 pad glyphs are the HUD legend a player sees first, and the keyboard legend is
-the swap-in. A pad whose triggers report no analog value still has to drive.
+the swap-in. The legend follows the device last touched, so a keyboard-only
+player is not left reading pad glyphs.
+
+**A pad whose triggers report no analog value drives from the left stick, and
+its Y is a direction, not a magnitude.** Past 0.35 you are in first gear,
+forward or reverse; X stays fully analog. This looks like the worse trade until
+you notice a stick gate is round: with an analog throttle on Y, full lock on X
+leaves nothing for Y, so that pad could never drive a full-lock arc — and every
+level number is chosen against the swept ring that arc makes (constraint 7), so
+levels 5, 7 and 10 would be unreachable. **A fallback that cannot finish the
+game is not a fallback.** Losing the analog throttle is cheap by comparison:
+constraint 6 hands steady speed to the vehicle anyway, and `LB` still crawls.
+
+The latch is set the first time either trigger reports anything at all, and
+cleared on disconnect so swapping pads re-tests. An Xbox pad never enters this
+branch.
 
 *Held by:* `src/gamepad.js` and the pad branches in `Game.padMenu`.
 
@@ -202,7 +217,9 @@ Removed under this rule, all of them aids for finding the bay:
 
 - the screen-edge chevron with its distance-in-metres readout
   (`Game.updateTargetArrow`, ~35 lines of screen-space projection),
-- the bobbing cone floating over the bay,
+- the bobbing cone floating over the bay, and the four corner posts under it —
+  posts are a clearance aid in principle, but at 1.25 m beside a 1.44 m
+  hatchback they were more floating furniture,
 - the level hint, which states the solution in words. It moved to the level
   select tile and the pause card, where a player who wants it can go and get
   it, instead of occupying the largest block of text on screen forever.
@@ -248,6 +265,22 @@ adds later.
 
 *Held by:* the reader.
 
+## 14. A modified key is a browser command, not a game input
+
+`Ctrl`, `Meta` or `Alt` held means the keystroke belongs to the browser, and
+the game does not look at it. One rule, replacing a hardcoded list of key codes
+that had drifted out of step with the keys the game actually acts on.
+
+The list was not merely redundant. It matched on `e.code`, so `Ctrl+R` hit
+`preventDefault()` and **the page could not be reloaded** while the canvas had
+focus; `Ctrl+M`, `Ctrl+Z` and `Ctrl+S` went the same way. A rule that names a
+class cannot drift like a list that names members.
+
+`preventDefault` now fires only for keys the game binds, which is where the
+defaults worth suppressing are — arrows and space scroll the page.
+
+*Held by:* `src/input.js`.
+
 ---
 
 ## Where the rules are enforced
@@ -258,9 +291,9 @@ adds later.
 | 4 — honest record | stale-record check in the validator | exit 1, prints the shorter answer |
 | 4 — par derivation | `parOf` in `src/levels.js` | one place to change |
 | 7 — swept ring | printed per level by the validator | visible drift |
-| 1, 2, 5, 6, 8, 9, 10, 11, 12, 13 | nothing | silent |
+| 1, 2, 5, 6, 8, 9, 10, 11, 12, 13, 14 | nothing | silent |
 
-Ten of thirteen are held by reading. That is the honest state of it: the
+Eleven of fourteen are held by reading. That is the honest state of it: the
 solvability gate is machine-checked because a broken level is invisible until
 someone plays it, and the rest are cheap for a person to notice and expensive
 to automate. This file is what a reviewer checks a change against.

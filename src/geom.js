@@ -1,7 +1,7 @@
 // 2D oriented-rectangle math. The whole game collides on the XZ plane:
 // rects are {x, z, w (local X), d (local Z), rot (radians, Y axis)}.
 
-export const TAU = Math.PI * 2;
+const TAU = Math.PI * 2;
 
 export function clamp(v, lo, hi) {
   return v < lo ? lo : v > hi ? hi : v;
@@ -9,10 +9,6 @@ export function clamp(v, lo, hi) {
 
 export function lerp(a, b, t) {
   return a + (b - a) * t;
-}
-
-export function rect(x, z, w, d, rot = 0) {
-  return { x, z, w, d, rot };
 }
 
 export function corners(r, grow = 0) {
@@ -30,7 +26,7 @@ export function corners(r, grow = 0) {
 }
 
 // Local-frame projection of a world point (inverse of the rotation above).
-export function toLocal(r, p) {
+function toLocal(r, p) {
   const c = Math.cos(r.rot);
   const s = Math.sin(r.rot);
   const dx = p.x - r.x;
@@ -67,7 +63,7 @@ export function overlaps(a, b, growA = 0) {
   return true;
 }
 
-export function pointInRect(p, r, grow = 0) {
+function pointInRect(p, r, grow = 0) {
   const l = toLocal(r, p);
   return Math.abs(l.x) <= r.w / 2 + grow && Math.abs(l.z) <= r.d / 2 + grow;
 }
@@ -80,7 +76,7 @@ export function rectInsideRect(inner, outer, shrinkInner = 0) {
   return true;
 }
 
-export function pointRectDistance(p, r) {
+function pointRectDistance(p, r) {
   const l = toLocal(r, p);
   const dx = Math.max(Math.abs(l.x) - r.w / 2, 0);
   const dz = Math.max(Math.abs(l.z) - r.d / 2, 0);

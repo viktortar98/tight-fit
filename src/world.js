@@ -26,7 +26,14 @@ const THEMES = {
   },
 };
 
+// Both of these depend on the theme, not on the level, so they are drawn once
+// and kept for the life of the page. `clear()` disposes every other texture it
+// finds, so it consults this set before reaching for dispose().
+const KEPT = new Set();
+
+const grainCache = new Map();
 function groundTexture(theme) {
+  if (grainCache.has(theme)) return grainCache.get(theme);
   const c = document.createElement('canvas');
   c.width = c.height = 512;
   const ctx = c.getContext('2d');
@@ -50,6 +57,8 @@ function groundTexture(theme) {
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.anisotropy = 8;
+  grainCache.set(theme, tex);
+  KEPT.add(tex);
   return tex;
 }
 
@@ -71,6 +80,7 @@ function stripeTexture() {
   }
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  KEPT.add(tex);
   return tex;
 }
 
@@ -94,7 +104,7 @@ export class World {
         c.traverse?.((o) => {
           if (o.isMesh) {
             o.geometry.dispose();
-            if (o.material.map && o.material.map !== this.stripe) o.material.map.dispose();
+            if (o.material.map && !KEPT.has(o.material.map)) o.material.map.dispose();
           }
         });
       }
@@ -106,7 +116,6 @@ export class World {
   build(level) {
     this.clear();
     const theme = THEMES[level.theme] ?? THEMES.lot;
-    this.theme = theme;
     const b = level.bounds;
     const cx = (b.minX + b.maxX) / 2;
     const cz = (b.minZ + b.maxZ) / 2;
@@ -199,8 +208,7 @@ export class World {
 
     // --- target
     this.target = level.target;
-    this.targetGroup = this.buildTarget(level.target);
-    this.root.add(this.targetGroup);
+    this.root.add(this.buildTarget(level.target));
 
     return this;
   }
@@ -325,34 +333,17 @@ export class World {
       g.add(m);
     }
 
-    // corner posts, so the target reads in the chase view too
-    const postMat = new THREE.MeshBasicMaterial({ color: 0x5cf2a0, transparent: true, opacity: 0.72 });
-    for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-      const lx = (sx * t.w) / 2;
-      const lz = (sz * t.d) / 2;
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.055, 1.25, 8), postMat);
-      post.position.set(t.x + lx * c + lz * s, 0.62, t.z - lx * s + lz * c);
-      g.add(post);
-    }
-
-    const arrow = new THREE.Mesh(
-      new THREE.ConeGeometry(0.42, 0.9, 4),
-      new THREE.MeshBasicMaterial({ color: 0x5cf2a0, transparent: true, opacity: 0.85 }),
-    );
-    arrow.rotation.x = Math.PI;
-    arrow.rotation.y = Math.PI / 4;
-    arrow.position.set(t.x, 3.0, t.z);
-    g.add(arrow);
-    this.targetArrow = arrow;
     this.targetEdgeMat = edgeMat;
     this.targetFill = fill.material;
     return g;
   }
 
+  // The bay is a boundary drawn on the ground, and the only thing it has to
+  // say on a fiftieth attempt is whether you are inside it yet — DESIGN.md 1.
+  // Anything standing up out of it was a first-attempt aid, and a first
+  // attempt is one attempt out of many.
   animateTarget(time, inside) {
-    if (!this.targetArrow) return;
-    this.targetArrow.position.y = 2.7 + Math.sin(time * 2.4) * 0.22;
-    this.targetArrow.visible = !inside;
+    if (!this.targetEdgeMat) return;
     const pulse = 0.55 + Math.sin(time * 3) * 0.2;
     this.targetEdgeMat.opacity = inside ? 1 : pulse + 0.2;
     this.targetFill.opacity = inside ? 0.3 : 0.14;

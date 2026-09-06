@@ -14,14 +14,19 @@ export class Input {
     this.tapped = new Set();
     this.drag = { active: false, dx: 0, dy: 0 };
     this.wheel = 0;
-    this.enabled = true;
 
     target.addEventListener('keydown', (e) => {
       if (e.repeat) return;
+      // A modified key is a browser command, not a game input: Ctrl+R has to
+      // stay a reload.
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       const a = KEYMAP[e.code];
       if (a) this.keys.add(a);
       this.tapped.add(e.code);
-      if (a || ['KeyC', 'KeyR', 'KeyV', 'KeyM', 'KeyZ', 'Escape'].includes(e.code)) e.preventDefault();
+      // Only the driving keys have a default worth cancelling — arrows and
+      // space scroll the page. Every other key the game reads is listed once,
+      // in main.js, and does not need cancelling here.
+      if (a) e.preventDefault();
     });
     target.addEventListener('keyup', (e) => {
       const a = KEYMAP[e.code];
@@ -70,7 +75,6 @@ export class Input {
   }
 
   driving() {
-    if (!this.enabled) return { throttle: 0, steer: 0, brake: false, crawl: false };
     const k = this.keys;
     return {
       throttle: (k.has('up') ? 1 : 0) + (k.has('down') ? -1 : 0),

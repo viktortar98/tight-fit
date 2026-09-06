@@ -236,9 +236,7 @@ export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
   const wheels = { front: [], rear: [], trailer: [] };
   const axles = axleLayout(spec);
   addWheels(g, axles.rear, spec.wheelRadius, spec.wheelWidth, spec.trackWidth, wheels.rear);
-  const frontStore = [];
-  addWheels(g, axles.front, spec.wheelRadius, spec.wheelWidth, spec.trackWidth, frontStore);
-  wheels.front = frontStore;
+  addWheels(g, axles.front, spec.wheelRadius, spec.wheelWidth, spec.trackWidth, wheels.front);
 
   let trailerGroup = null;
   if (spec.trailer) {
@@ -281,17 +279,11 @@ export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
     const bogie = t.drawbar ? [0] : [0.7, -0.7];
     addWheels(trailerGroup, bogie, t.wheelRadius, t.wheelWidth, t.trackWidth, wheels.trailer);
     trailerGroup.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-    g.userData.trailerGroup = trailerGroup;
   }
 
-  g.traverse((o) => {
-    if (o.isMesh) {
-      o.castShadow = true;
-      o.receiveShadow = opts.receiveShadow ?? false;
-    }
-  });
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
-  return { group: g, trailerGroup, wheels, tailMat: lights.tail, reverseMat: lights.reverse, paint };
+  return { group: g, trailerGroup, wheels, tailMat: lights.tail, reverseMat: lights.reverse };
 }
 
 export function updateVehicleMesh(mesh, spec, { steer = 0, spin = 0, braking = false, reversing = false }) {
@@ -309,7 +301,3 @@ export function updateVehicleMesh(mesh, spec, { steer = 0, spin = 0, braking = f
   mesh.tailMat.emissiveIntensity = braking ? 1.6 : 0.25;
   mesh.reverseMat.emissiveIntensity = reversing ? 1.4 : 0.0;
 }
-
-// Back-compat alias used by the world builder for parked props.
-export const createCarMesh = createVehicleMesh;
-export const updateCarMesh = updateVehicleMesh;

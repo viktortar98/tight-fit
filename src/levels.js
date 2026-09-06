@@ -413,9 +413,5 @@ export const LEVELS = [
 // Par is the record plus a working allowance. Matching a solver that can try
 // every line is not the bar; getting near it is. It lives here, once, so that
 // changing the bar changes every level at the same time.
-export const PAR_ALLOWANCE = 2;
+const PAR_ALLOWANCE = 2;
 export const parOf = (level) => level.record + PAR_ALLOWANCE;
-
-export function levelById(id) {
-  return LEVELS.find((l) => l.id === id);
-}

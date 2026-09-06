@@ -10,6 +10,10 @@ export const BTN = {
 };
 
 const DEAD = 0.16;
+// How far the left stick has to leave centre before it counts as a gear, on a
+// pad that is driving from the stick. Well past DEAD: a stick you are holding
+// off-centre to steer must not also select a direction of travel.
+const STICK_GEAR = 0.35;
 
 function curve(v) {
   const a = Math.abs(v);
@@ -24,8 +28,10 @@ export class Pad {
     this.connected = false;
     this.prev = [];
     this.tappedSet = new Set();
-    this.id = '';
-    addEventListener('gamepadconnected', (e) => { this.id = e.gamepad.id; });
+    // Some pads report nothing at all on buttons 6 and 7 — the triggers are
+    // either missing or mapped somewhere this code refuses to guess at. Until
+    // one of them reports a value, the left stick is the throttle.
+    this.triggersSeen = false;
   }
 
   raw() {
@@ -41,9 +47,9 @@ export class Pad {
     if (!p) {
       this.connected = false;
       this.prev = [];
+      this.triggersSeen = false; // the next pad plugged in gets tested afresh
       return null;
     }
-    const wasConnected = this.connected;
     this.connected = true;
     this.pad = p;
     const vals = p.buttons.map((b) => (typeof b === 'object' ? b.value : b));
@@ -53,7 +59,7 @@ export class Pad {
       if (down && !wasDown) this.tappedSet.add(i);
     }
     this.prev = vals;
-    this.justConnected = !wasConnected;
+    if (vals[BTN.RT] > 0 || vals[BTN.LT] > 0) this.triggersSeen = true;
     return p;
   }
 
@@ -69,9 +75,20 @@ export class Pad {
     const lt = this.analog(BTN.LT);
     let throttle = rt - lt;
     if (Math.abs(throttle) < 0.06) throttle = 0;
-    // stick fallback for pads without analog triggers
-    const stickY = -curve(p.axes[1] ?? 0);
-    if (throttle === 0 && Math.abs(stickY) > 0.2 && rt === 0 && lt === 0) throttle = 0;
+    // A pad whose triggers have never said anything drives from the left
+    // stick, which is also the steering axis. A stick gate is round, so at
+    // full lock there is no Y left to push: the stick's Y is therefore a
+    // direction, not a magnitude — past the gate you are in first gear, and
+    // full lock is still yours while you have it. An analog throttle is the
+    // cheap thing to lose here (DESIGN.md 6 hands steady speed to the car
+    // anyway, and LB still crawls); full lock is not, because every level is
+    // measured against the swept ring it makes (DESIGN.md 7).
+    // One trigger reading is enough to end this: the stick goes back to
+    // steering only, and stays there until the pad is unplugged.
+    if (!this.triggersSeen) {
+      const y = -(p.axes[1] ?? 0);
+      throttle = Math.abs(y) > STICK_GEAR ? Math.sign(y) : 0;
+    }
     return {
       throttle,
       steer: -curve(p.axes[0] ?? 0),

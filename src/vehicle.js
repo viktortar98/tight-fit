@@ -90,8 +90,6 @@ export const VEHICLES = {
   },
 };
 
-export const VEHICLE_IDS = Object.keys(VEHICLES);
-
 // Distance from the rear axle to the geometric centre of the body box.
 export function centerOffset(spec) {
   const frontOverhang = spec.length - spec.wheelbase - spec.rearOverhang;
@@ -114,7 +112,7 @@ export function combinationLength(spec) {
   return front + (-t.hitch + t.axleFromHitch + t.axleToRear);
 }
 
-export function turningRadius(spec) {
+function turningRadius(spec) {
   return spec.wheelbase / Math.tan(spec.maxSteer);
 }
 
@@ -139,7 +137,7 @@ export function bodyRect(spec, s) {
   };
 }
 
-export function hitchPoint(spec, s) {
+function hitchPoint(spec, s) {
   const t = spec.trailer;
   return { x: s.x + Math.sin(s.yaw) * t.hitch, z: s.z + Math.cos(s.yaw) * t.hitch };
 }
@@ -227,7 +225,6 @@ export class Vehicle {
 
   body(state = this) { return bodyRect(this.spec, state); }
   trailerAxleWorld(state = this) { return trailerAxle(this.spec, state); }
-  trailer(state = this) { return this.spec.trailer ? trailerRect(this.spec, state) : null; }
   rects(state = this) { return bodyRects(this.spec, state); }
   integrate(state, dt) { return integrate(this.spec, state, dt, this.steer); }
 
