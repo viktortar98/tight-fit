@@ -60,6 +60,26 @@ card are all pad-navigable.
 | `LS` click | `M` | mute |
 | `Menu` | `Esc` | pause |
 
+**Handling is settable**, from the level select or the pause card.
+
+*Steering* — **Direct** is the default: where you hold the stick is where the
+front wheels point, and letting go straightens them. **Rate** is the truck-sim
+handling: how far you push the stick is how fast the wheels turn, and letting
+go leaves the lock where it is, so coming back to straight is something you
+have to do.
+
+*Throttle* — **Speed** is the default: the trigger is the speedometer, half
+pressed is half speed, and the vehicle comes down about as fast as the trigger
+itself springs back. It reads the trigger's own return curve, so it is
+connected without being a switch. This game is about finding the line, not
+about holding a speed along it, which is why this is the default rather than
+the option. **Accelerator** is the older feel: the trigger builds speed and
+letting go coasts down.
+
+The modes change how you ask, not what the vehicle can do: every combination
+reaches the same steering angles and the same speeds, so every level is
+finishable under any of them and a record means the same thing in all four.
+
 A pad whose triggers report no analog value drives from the left stick instead,
 with full lock still reachable — a fallback that could not turn at full lock
 could not finish several of the levels.

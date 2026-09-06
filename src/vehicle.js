@@ -253,9 +253,19 @@ export class Vehicle {
   control(dt, input) {
     const s = this.spec;
 
-    const steerTarget = clamp(input.steer, -1, 1) * s.maxSteer;
-    const steerRate = s.steerRate * (Math.abs(input.steer) < 0.02 ? 1.7 : 1) * dt;
-    this.steer += clamp(steerTarget - this.steer, -steerRate, steerRate);
+    const wheel = clamp(input.steer, -1, 1);
+    if (input.steerMode === 'rate') {
+      // The stick is the steering wheel's speed, not its angle. Let go and the
+      // lock stays where you left it, so straightening out is a thing you do
+      // rather than a thing that happens. Both modes reach every angle in
+      // [-maxSteer, maxSteer], which is why the solvability proofs in
+      // tools/validate.js hold for either (DESIGN.md 7).
+      this.steer = clamp(this.steer + wheel * s.steerRate * dt, -s.maxSteer, s.maxSteer);
+    } else {
+      const steerTarget = wheel * s.maxSteer;
+      const steerRate = s.steerRate * (Math.abs(wheel) < 0.02 ? 1.7 : 1) * dt;
+      this.steer += clamp(steerTarget - this.steer, -steerRate, steerRate);
+    }
 
     const throttle = clamp(input.throttle, -1, 1);
     const capF = input.crawl ? s.crawlSpeed : s.maxSpeed;
@@ -270,6 +280,25 @@ export class Vehicle {
         this.speed = 0;
         accel = 0;
       }
+    } else if (input.throttleMode === 'speed') {
+      // The trigger is the speedometer, not the accelerator: where you hold it
+      // is how fast the vehicle goes. A trigger let go springs back over a few
+      // tens of milliseconds rather than instantly, so following it is already
+      // a curve and not a step — the rate limit below only stops a keyboard,
+      // which has no such curve, from teleporting the speed.
+      //
+      // Closing the gap gets the brake's rate rather than the coast's, which
+      // is what makes this mode feel connected: the vehicle is where the
+      // trigger says it is, near enough, instead of trailing it. Constraint 6
+      // still holds — the caps are the same ones, crawl included, so this
+      // changes how speed is asked for and not how much of it there is.
+      const target = throttle * (throttle >= 0 ? capF : capR);
+      const closing = Math.abs(target) < Math.abs(this.speed) || target * this.speed < 0;
+      const rate = (closing ? s.brakeAccel : s.accel) * dt;
+      const step = clamp(target - this.speed, -rate, rate);
+      this.braking = closing && Math.abs(step) > 0;
+      this.speed += step;
+      accel = 0;
     } else if (Math.abs(throttle) > 0.02) {
       const dir = Math.sign(throttle);
       if (this.speed * dir < -0.05) {

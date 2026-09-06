@@ -1,5 +1,6 @@
 import { LEVELS } from './levels.js';
 import { VEHICLES } from './vehicle.js';
+import { SETTINGS } from './settings.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -15,6 +16,8 @@ export class Hud {
       sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
       hold: $('hold'), holdFill: $('hold-fill'), toast: $('toast'), flash: $('flash'),
       grid: $('level-grid'),
+      settings: $('settings'), settingsList: $('settings-list'),
+      steerLegend: $('steer-legend'),
       pTitle: $('pause-title'),
       rKicker: $('result-kicker'), rTitle: $('result-title'), rShunts: $('result-shunts'),
       rBumps: $('result-bumps'), rRank: $('result-rank'), rNote: $('result-note'),
@@ -29,6 +32,9 @@ export class Hud {
     $('btn-quit').onclick = () => handlers.toMenu();
     $('unlock-all').onclick = () => handlers.unlockAll();
     $('wipe').onclick = () => handlers.wipe();
+    $('btn-settings').onclick = () => handlers.openSettings();
+    $('btn-pause-settings').onclick = () => handlers.openSettings();
+    $('btn-settings-back').onclick = () => handlers.closeSettings();
 
     // Pad glyphs are what the legend shows until there is evidence otherwise:
     // this game is played on a controller. Touching the keyboard is that
@@ -57,11 +63,52 @@ export class Hud {
     });
   }
 
+  // The whole menu is generated from the SETTINGS table, so a new setting is
+  // a new entry there and nothing here.
+  renderSettings(settings) {
+    this.el.settingsList.innerHTML = '';
+    for (const s of SETTINGS) {
+      const box = document.createElement('div');
+      box.className = 'setting';
+      box.innerHTML = `<span class="cap">${s.name}</span>`;
+      const opts = document.createElement('div');
+      opts.className = 'opts';
+      opts.setAttribute('role', 'radiogroup');
+      opts.setAttribute('aria-label', s.name);
+      for (const v of s.values) {
+        const b = document.createElement('button');
+        b.className = 'opt';
+        b.setAttribute('role', 'radio');
+        b.setAttribute('aria-checked', String(settings[s.id] === v.id));
+        b.innerHTML = `<span class="on">${settings[s.id] === v.id ? 'on' : 'off'}</span>
+          <b>${v.name}</b><p class="note">${v.note}</p>`;
+        b.onclick = () => this.h.setSetting(s.id, v.id);
+        opts.appendChild(b);
+      }
+      box.appendChild(opts);
+      this.el.settingsList.appendChild(box);
+    }
+  }
+
+  showSettings(settings, on) {
+    if (on) this.renderSettings(settings);
+    this.el.settings.classList.toggle('hidden', !on);
+  }
+
+  // The pad legend names the stick's job, and the two modes give it different
+  // jobs. Nothing else on screen changes with the mode.
+  setSteerMode(mode) {
+    if (this.el.steerLegend) {
+      this.el.steerLegend.textContent = mode === 'rate' ? 'turn wheel' : 'steer';
+    }
+  }
+
   showMenu(progress) {
     this.renderMenu(progress);
     this.el.menu.classList.remove('hidden');
     this.el.result.classList.add('hidden');
     this.el.pause.classList.add('hidden');
+    this.el.settings.classList.add('hidden');
     this.el.hud.classList.add('hidden');
   }
 
@@ -69,6 +116,7 @@ export class Hud {
     this.el.menu.classList.add('hidden');
     this.el.result.classList.add('hidden');
     this.el.pause.classList.add('hidden');
+    this.el.settings.classList.add('hidden');
     this.el.hud.classList.remove('hidden');
   }
 

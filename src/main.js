@@ -9,6 +9,7 @@ import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { Pad, BTN } from './gamepad.js';
 import { Hud } from './hud.js';
+import { load as loadSettings, save as saveSettings } from './settings.js';
 import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.js';
 
 // Versioned with the scoring unit. When the unit changes this key changes,
@@ -47,6 +48,7 @@ class Game {
     this.pad = new Pad();
     this.sfx = new Sfx();
     this.progress = loadProgress();
+    this.settings = loadSettings();
 
     this.hud = new Hud({
       play: (i) => this.play(i),
@@ -63,6 +65,16 @@ class Game {
         this.progress = { unlocked: 0, best: {} };
         this.save();
         this.hud.renderMenu(this.progress);
+      },
+      openSettings: () => this.openSettings(),
+      closeSettings: () => this.closeSettings(),
+      setSetting: (id, value) => {
+        this.settings[id] = value;
+        saveSettings(this.settings);
+        // Re-render rather than toggle a class: the menu is generated from the
+        // settings, so the settings are the only place the state lives.
+        this.hud.renderSettings(this.settings);
+        this.hud.setSteerMode(this.settings.steering);
       },
     });
 
@@ -81,6 +93,7 @@ class Game {
     addEventListener('blur', () => { if (this.state === 'playing') this.setPaused(true); });
     this.resize();
     this.hud.showMenu(this.progress);
+    this.hud.setSteerMode(this.settings.steering);
     if (import.meta.env?.DEV) window.game = this;
     this.renderer.setAnimationLoop(() => this.frame());
   }
@@ -142,6 +155,21 @@ class Game {
   toMenu() {
     this.state = 'menu';
     this.hud.showMenu(this.progress);
+  }
+
+  // Settings sit on top of whatever was showing and hand it back on the way
+  // out, so the same card serves the level select and a paused level.
+  openSettings() {
+    if (this.state === 'settings') return;
+    this.settingsFrom = this.state;
+    this.state = 'settings';
+    this.hud.showSettings(this.settings, true);
+  }
+
+  closeSettings() {
+    if (this.state !== 'settings') return;
+    this.hud.showSettings(this.settings, false);
+    this.state = this.settingsFrom;
   }
 
   setPaused(on) {
@@ -311,7 +339,8 @@ class Game {
     const el = this.hud.el;
     const overlay = !el.menu.classList.contains('hidden') ? el.menu
       : !el.result.classList.contains('hidden') ? el.result
-        : !el.pause.classList.contains('hidden') ? el.pause : null;
+        : !el.settings.classList.contains('hidden') ? el.settings
+          : !el.pause.classList.contains('hidden') ? el.pause : null;
     return overlay ? [...overlay.querySelectorAll('button:not(:disabled)')] : [];
   }
 
@@ -336,10 +365,16 @@ class Game {
       this.sfx.click();
     }
     if (this.pad.tapped(BTN.A)) {
-      const el = btns.includes(document.activeElement) ? document.activeElement : btns[this.navIndex];
-      el.click();
+      const i = btns.indexOf(document.activeElement);
+      // Remember where the click happened: choosing a setting re-renders the
+      // card, and the button that had focus no longer exists to hand it back.
+      if (i >= 0) this.navIndex = i;
+      btns[i >= 0 ? i : this.navIndex].click();
     }
-    if (this.pad.tapped(BTN.B) && this.state === 'paused') this.setPaused(false);
+    if (this.pad.tapped(BTN.B)) {
+      if (this.state === 'settings') this.closeSettings();
+      else if (this.state === 'paused') this.setPaused(false);
+    }
   }
 
   frame() {
@@ -361,7 +396,8 @@ class Game {
     }
 
     if (input.pressed('Escape') || this.pad.tapped(BTN.START)) {
-      if (this.state === 'playing') this.setPaused(true);
+      if (this.state === 'settings') this.closeSettings();
+      else if (this.state === 'playing') this.setPaused(true);
       else if (this.state === 'paused') this.setPaused(false);
     }
 
@@ -391,6 +427,8 @@ class Game {
           crawl: keys.crawl || padDrive.crawl,
         }
         : keys;
+      drive.steerMode = this.settings.steering;
+      drive.throttleMode = this.settings.throttle;
       this.accum += dt;
       let steps = 0;
       while (this.accum >= PHYS_DT && steps < 12) {
