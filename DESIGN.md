@@ -1295,9 +1295,9 @@ any of it; `dev.html#ghosts` is where it is looked at (constraint 22).
 | 13 — no dead code | `pnpm knip`, `pnpm lint` | exit 1, names the export |
 | 15 — settings are timing, not geometry | review; `gains()` scales only rates, and `maxSteer` / dimensions are not in it | silent |
 | 17 — nothing drawn outside a rectangle | construction, for body parts and mirrors only | silent |
+| 17 — a mirror is on the vehicle, not beside it | `window.dev.mirrors()` on `dev.html` | names each floating mirror and its gap |
 | 21 — the editor writes calls the builders accept | `window.dev.builders()` on `dev.html` | prints `BAD <type>` |
 | 22 — no two surfaces at one depth | `window.dev.coplanar(id)` on `dev.html` | names the shared plane |
-| 17 — a mirror is on the vehicle, not beside it | `window.dev.mirrors()` on `dev.html` | names each floating mirror and its gap |
 | 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 19, 20, 23 | nothing | silent |
 | 17, for everything else | nothing; the script that did it went with the solver | silent |
 | 3, 4 | withdrawn | — |
