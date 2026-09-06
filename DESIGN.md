@@ -663,9 +663,21 @@ aiming at a value.
 Two consequences that were derived rather than decided, and are worth keeping
 because the derivation generalises:
 
-- **The vehicle name is not on the play HUD.** The player's vehicle is the only
-  saturated colour on screen (constraint 8), so a tag naming it labels the one
-  thing that cannot be missed. The level-select tile says it before you enter.
+- **The vehicle name is on the play HUD after all, and the derivation that
+  removed it was wrong in an instructive way.** It used to be here as a
+  consequence: the player's vehicle is the only saturated colour on screen
+  (constraint 8), so a tag naming it labels the one thing that cannot be
+  missed, and the level-select tile says it before you enter. The user
+  overruled it — "each level should name which vehicle is on the level" — and
+  the reason the derivation failed is that it treated the name as a label on
+  the *car*. It is a label on the *level*. The roster is a content axis (Open
+  decisions): several of the fourteen repose an earlier level's geometry with a
+  heavier or worse-steering vehicle, and on those the vehicle is the whole
+  difference between one level and another. A player looking at a paused card
+  that says only "The Alcove" is not being told which of the two problems by
+  that name they are in. So it is named wherever the level is named — tile,
+  play HUD, pause card, result card — in the dim mono the rest of the level
+  identity uses, which is not the register a saturated tag would have been.
 - **The proximity bar is captioned `nearest`.** With the speedometer gone, an
   unlabelled bar across the bottom centre sits exactly where a speedometer
   would, and the gauge read most often must not be mistakable for the quantity

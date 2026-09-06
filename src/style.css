@@ -201,6 +201,14 @@ h1::after { content: ""; display: block; width: 54px; height: 3px; background: v
 .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
 .kicker.void { color: var(--danger); }
 .card h2 { margin: 6px 0 18px; font-size: 27px; letter-spacing: -0.02em; }
+/* Which vehicle the level is driven with. It sits under the name because on
+   several levels it *is* the difference: the same bay against a longer body is
+   a different problem (DESIGN.md 12). */
+.card h2:has(+ .card-veh) { margin-bottom: 4px; }
+.card-veh {
+  margin: 0 0 18px; font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.06em; color: var(--dim);
+}
 .result-stats { display: flex; gap: 26px; margin-bottom: 16px; }
 .result-stats b { display: block; font-family: var(--mono); font-size: 22px; }
 .result-stats span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); }

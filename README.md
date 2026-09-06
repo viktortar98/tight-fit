@@ -152,6 +152,12 @@ because they are the only things the view cannot tell you — there is no
 speedometer and no gear indicator, and nothing on screen is there to help you
 find the bay on your first attempt.
 
+The corner also names the level and the vehicle it is driven with, and so do
+the pause and result cards. The vehicle is part of the level's identity rather
+than a label on the car: several of the fourteen set an earlier level's
+geometry against a longer body or a worse lock, and on those the vehicle is the
+whole difference between one problem and another.
+
 **Hold rewind and the run plays backwards.** No budget, no cooldown. It winds
 back the collisions and the direction changes with it, because the score is
 recorded step by step alongside the vehicle's position rather than tallied

@@ -19,9 +19,10 @@ export class Hud {
       grid: $('level-grid'), userGrid: $('user-grid'), editor: $('editor'),
       settings: $('settings'), settingsList: $('settings-list'),
       steerLegend: $('steer-legend'),
-      pTitle: $('pause-title'),
+      pTitle: $('pause-title'), pVeh: $('pause-veh'),
       rKicker: $('result-kicker'), rTitle: $('result-title'), rShunts: $('result-shunts'),
       rCollisions: $('result-collisions'), rRank: $('result-rank'), rNote: $('result-note'),
+      rVeh: $('result-veh'),
       btnNext: $('btn-next'),
     };
 
@@ -185,13 +186,22 @@ export class Hud {
 
   // A level the player wrote has no number in the fourteen, so it is labelled
   // by where it came from instead.
+  //
+  // The vehicle is named everywhere the level is named — the tile, the play
+  // HUD, the pause card and the result card. Decided by the user, against the
+  // derivation in DESIGN.md 12 that put it only on the tile: on several of the
+  // fourteen the vehicle *is* what the level is, so naming it is naming the
+  // level and not labelling the car.
   setLevel(index, level, best) {
+    const veh = VEHICLES[level.vehicle] ?? { name: level.vehicle };
     this.el.lvlLabel.textContent = index < 0
-      ? `your level · ${level.name}`
-      : `${String(index + 1).padStart(2, '0')} / ${LEVELS.length} · ${level.name}`;
+      ? `your level · ${level.name} · ${veh.name}`
+      : `${String(index + 1).padStart(2, '0')} / ${LEVELS.length} · ${level.name} · ${veh.name}`;
     this.el.best.textContent = best ? `${best.shunts}` : '—';
-    this.el.artic.classList.toggle('hidden', !VEHICLES[level.vehicle].trailer);
+    this.el.artic.classList.toggle('hidden', !veh.trailer);
     this.el.pTitle.textContent = level.name;
+    this.el.pVeh.textContent = veh.name;
+    this.el.rVeh.textContent = veh.name;
   }
 
   // `on` means "show the pad legend", not "a pad exists".
