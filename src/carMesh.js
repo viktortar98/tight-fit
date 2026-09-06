@@ -48,6 +48,13 @@ const GLAZE = new THREE.MeshStandardMaterial({
   color: 0x9fc4dc, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.22,
 });
 const STEEL = new THREE.MeshStandardMaterial({ color: 0x8d939c, roughness: 0.5, metalness: 0.5 });
+// What the cabin is lined with. A separate material because the inside of a
+// car is not the colour of the outside of one, and a separate material is
+// available here only because the lining is separate geometry -- see
+// `lining()` for why it has to be.
+const LINING = new THREE.MeshStandardMaterial({
+  color: 0x3a3d44, roughness: 0.85, metalness: 0.04, side: THREE.DoubleSide,
+});
 
 function addWheels(group, positions, r, w, track, store) {
   const wg = wheelGeometry(r, w);
@@ -190,6 +197,104 @@ function pane(g, from, to, width, length, height, zOffset) {
   g.add(m);
 }
 
+// What the driver sees of their own vehicle.
+//
+// The shell is one solid extrusion, so from a seat inside it every surface is
+// a back face and the renderer culls all of them: the inside view showed the
+// bonnet, which is outside the cabin, and then open sky. Making the shell
+// double-sided does not fix that -- a solid has no inner surface to show, and
+// the driver would simply be sealed inside an opaque block.
+//
+// So the cabin gets a lining: thin panels laid along the inside of the
+// silhouette, inside the shell, where the shell's own front faces hide them
+// from anyone outside. They are read from the same `top` and `sides` the
+// exterior is read from, so the roof is over the driver's head because that is
+// where the roof is, and a glazed segment simply gets no panel, which is what
+// makes a windscreen something you can see through rather than a hole somebody
+// remembered to leave.
+const LINE_T = 0.055;
+
+// Where two panels meet, both stop on the same mitre, or the corner is a slit
+// the driver can see daylight through.
+function mitre(p0, d0, p1, d1) {
+  const den = d0[0] * d1[1] - d0[1] * d1[0];
+  if (Math.abs(den) < 1e-6) return null;
+  const t = ((p1[0] - p0[0]) * d1[1] - (p1[1] - p0[1]) * d1[0]) / den;
+  return [p0[0] + d0[0] * t, p0[1] + d0[1] * t];
+}
+
+function lining(g, b, spec, tailZ) {
+  const { length, height, width } = spec;
+  const half = (width * (b.taper ? b.taper[1] : 1)) / 2;
+  const waist = (b.taper ? b.taper[0] : 0) * height;
+  const p = b.top.map(([a, y]) => [a * length, y * height]);
+  const glazed = new Set(b.glass ?? []);
+
+  // Each segment's inward offset line, then the vertex where consecutive ones
+  // cross. The outline is walked counter-clockwise, so (-dy, da) points in.
+  const line = [];
+  for (let i = 0; i < p.length - 1; i++) {
+    const d = [p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1]];
+    const len = Math.hypot(d[0], d[1]) || 1;
+    const n = [-d[1] / len, d[0] / len];
+    line.push({ o: [p[i][0] + n[0] * LINE_T, p[i][1] + n[1] * LINE_T], d });
+  }
+  const inner = p.map((_, i) => {
+    const a = line[i - 1];
+    const bl = line[i];
+    if (!a) return bl ? [bl.o[0], bl.o[1]] : null;
+    if (!bl) return [a.o[0] + a.d[0], a.o[1] + a.d[1]];
+    return mitre(a.o, a.d, bl.o, bl.d) ?? [bl.o[0], bl.o[1]];
+  });
+
+  // Roof, header, rear -- one panel per unglazed segment of the cabin. A
+  // segment below the waist is skipped because the lower half of the shell is
+  // solid all the way to the waist, and its top face is already a surface the
+  // driver looks at.
+  const inset = Math.max(0.02, half - LINE_T * 1.2);
+  for (let i = 0; i < line.length; i++) {
+    if (glazed.has(i)) continue;
+    if ((p[i][1] + p[i + 1][1]) / 2 <= waist) continue;
+    const quad = [p[i], p[i + 1], inner[i + 1], inner[i]];
+    if (quad.some((q) => !q)) continue;
+    const m = piece(quad, inset * 2, tailZ, LINING);
+    if (m) { m.userData.inner = true; g.add(m); }
+  }
+
+  // The flanks, which is where a pillar is: the cabin outline as a panel just
+  // inside each side, with the side glass cut out of it. The hole is the
+  // window, so what is left of the panel is the A-pillar in front of it, the
+  // rail under it and the pillar behind it -- named by nothing, because they
+  // are whatever the silhouette leaves.
+  const above = p.filter((q) => q[1] > waist);
+  if (above.length >= 2) {
+    const pts = [...above];
+    const first = above[0];
+    const last = above[above.length - 1];
+    pts.push([last[0], waist], [first[0], waist]);
+    const shape = new THREE.Shape(pts.map(([a, y]) => new THREE.Vector2(a, y)));
+    for (const [a0, a1, y0, y1] of b.sides ?? []) {
+      if (y0 * height <= waist + 0.02) continue;
+      const h = new THREE.Path();
+      h.moveTo(a0 * length, y0 * height);
+      h.lineTo(a1 * length, y0 * height);
+      h.lineTo(a1 * length, y1 * height);
+      h.lineTo(a0 * length, y1 * height);
+      shape.holes.push(h);
+    }
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: LINE_T, bevelEnabled: false });
+    geo.rotateY(-Math.PI / 2);
+    // rotateY put the extrusion on -X, so the panel spans [-LINE_T, 0]; half
+    // its own thickness brings its centre onto the flank it lines.
+    for (const sx of [-1, 1]) {
+      const m = new THREE.Mesh(geo, LINING);
+      m.position.set(sx * (half - LINE_T / 2) + LINE_T / 2, 0, tailZ);
+      m.userData.inner = true;
+      g.add(m);
+    }
+  }
+}
+
 // The driver sits on the left, and +X is the driver's left: the group's
 // forward is +Z and its up is +Y, so +X is the side a left-hand-drive seat is
 // on. The mirror points sit a hand's width outside the flank, where the glass
@@ -211,6 +316,7 @@ function buildBody(g, spec, paint, lights) {
   const tailZ = -spec.rearOverhang;
   const axles = [...axleRows(spec).rear, ...axleRows(spec).front].map((z) => z - tailZ);
   shell(g, outline(b, length, height, axles, spec.wheelRadius), width, height, b.taper, tailZ, paint);
+  if (b.taper) lining(g, b, spec, tailZ);
 
   // Glazing. `glass` names segments of the outline by index, so the windscreen
   // is the raked part of the shape and cannot end up somewhere else than the
@@ -367,7 +473,9 @@ export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
 
   const trailerGroup = spec.trailer ? buildTrailer(spec.trailer, paint, lights, wheels) : null;
 
-  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  // The lining is inside the shell. It must not cast, or every vehicle throws
+  // a second shadow from surfaces nothing outside it can see.
+  g.traverse((o) => { if (o.isMesh) o.castShadow = !o.userData.inner; });
 
   return {
     group: g, trailerGroup, wheels, view: g.userData.view,

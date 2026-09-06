@@ -111,6 +111,18 @@ export const SETTINGS = [
     values: [{ id: 'on', name: 'On' }, { id: 'off', name: 'Off' }],
   },
   {
+    // The one aid that is off unless asked for. The others show the player
+    // something the vehicle itself would show them; this one draws the answer
+    // on the ground, which DESIGN.md 10 is about. It exists as a setting so
+    // that the default game is still the game that constraint describes.
+    id: 'turnCircles',
+    name: 'Turning circles',
+    note: 'The circle each wheel is on at the steering you are holding, and the '
+      + 'point they all turn about. Hold the wheel and they stay where they '
+      + 'are; only turning it moves them. Off by default.',
+    values: [{ id: 'off', name: 'Hidden' }, { id: 'on', name: 'Shown' }],
+  },
+  {
     id: 'traces',
     name: 'Tyre marks',
     note: 'The line each wheel leaves on the ground. It is the record of what '

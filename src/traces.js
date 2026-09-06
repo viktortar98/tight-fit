@@ -18,10 +18,15 @@ const SPACING = 0.06;
 // the trace stopped being informative a long way back.
 const MAX = 6000;
 
+// Faint on purpose. The trace is there to be read after the fact, when you go
+// looking for the line you took; at the opacity where it reads at a glance it
+// competes with the paint and the obstacles for attention every frame, which is
+// the opposite of what a record is for.
+//
 // DoubleSide because the ribbon's winding follows the direction of travel:
 // reverse out of a bay and the quads face down, which FrontSide culls.
 const MATERIAL = new THREE.MeshBasicMaterial({
-  color: 0x14161a, transparent: true, opacity: 0.24, depthWrite: false,
+  color: 0x14161a, transparent: true, opacity: 0.11, depthWrite: false,
   side: THREE.DoubleSide,
   polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
 });

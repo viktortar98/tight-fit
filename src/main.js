@@ -12,6 +12,7 @@ import { Hud } from './hud.js';
 import { Panels } from './panels.js';
 import { Tape } from './rewind.js';
 import { Traces } from './traces.js';
+import { TurnCircles } from './turnCircles.js';
 import { load as loadSettings, save as saveSettings, gains } from './settings.js';
 import { overlaps, rectInsideRect, rectDistance, corners, clamp, normalizeAngle } from './geom.js';
 
@@ -104,6 +105,7 @@ class Game {
     this.padSeen = true;
     this.padWasConnected = false;
     this.carMesh = null;
+    this.circles = null;
     this.traces = null;
     this.vehicle = null;
     this.clock = new THREE.Clock();
@@ -153,6 +155,10 @@ class Game {
     this.traces = new Traces(this.spec);
     this.traces.group.visible = this.settings.traces === 'on';
     this.scene.add(this.traces.group);
+    if (!this.circles) {
+      this.circles = new TurnCircles();
+      this.scene.add(this.circles.group);
+    }
     this.carMesh = createVehicleMesh(this.spec);
     this.scene.add(this.carMesh.group);
     if (this.carMesh.trailerGroup) this.scene.add(this.carMesh.trailerGroup);
@@ -585,6 +591,10 @@ class Game {
         this.carMesh.trailerGroup.position.set(axle.x, 0, axle.z);
         this.carMesh.trailerGroup.rotation.y = car.trailerYaw;
       }
+      // Recomputed from the pose the player is looking at, so the ring lands in
+      // the same place every frame the steering is unchanged.
+      if (this.settings.turnCircles === 'on') this.circles.update(this.spec, car, this.level.bounds);
+      else this.circles.group.visible = false;
       updateVehicleMesh(this.carMesh, this.spec, {
         steer: car.steer,
         spin: car.wheelSpin,
@@ -599,7 +609,10 @@ class Game {
         camera: this.settings.reverseCam === 'on',
       });
       if (this.anyPanel) this.panels.aim(this.spec, car, this.carMesh.view);
-      if (this.reversing && this.settings.reverseCam === 'on') {
+      // The rails belong to the panel, so they are computed when the panel is
+      // being drawn and not merely when reverse is selected.
+      if (this.anyPanel && this.reversing && this.rig.mode === 'cockpit'
+          && this.settings.reverseCam === 'on') {
         this.panels.guides.update(this.spec, car);
       }
       this.world.animateTarget(performance.now() / 1000, this.inside);

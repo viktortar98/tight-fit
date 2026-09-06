@@ -24,6 +24,17 @@ const deg = (d) => (d * Math.PI) / 180;
 // builder closes it along the floor at `sill` and cuts an arch at every axle.
 // `glass` names which of those segments are glazed by index, so the windscreen
 // is the raked segment of the silhouette rather than a slab invented beside it.
+//
+// `eye` and `look` are where the driver's head and the interior mirror are, in
+// the same fractions. Both sit *inside* the cabin, and that is a constraint and
+// not a preference: the inside view puts the camera at `eye`, so a head placed
+// level with the top of the windscreen has the whole cabin behind it and sees
+// no roof, no pillar and no mirror, and a mirror placed above the glass line
+// looks at the outside of the vehicle's own roof. Both were true of every car
+// here until they were measured. The rule they were measured against is a head
+// 0.32 m behind the top of the windscreen and a mirror 0.10 m behind it and
+// 0.13 m under whatever roof is over that point -- the cab's roof on a lorry,
+// which is not the highest roof it has.
 export const VEHICLES = {
   // The bottom of the range, and the control for every level a bigger vehicle
   // has to fit into: short, narrow, and 38° of lock on a 2.30 m wheelbase.
@@ -44,7 +55,7 @@ export const VEHICLES = {
         [0.230, 1.000], [0.070, 0.800], [0.000, 0.720]],
       glass: [2, 4],
       sides: [[0.25, 0.52, 0.63, 0.95]],
-      eye: [0.545, 0.880], look: [0.645, 0.930],
+      eye: [0.440, 0.880], look: [0.502, 0.895],
     },
   },
   hatch: {
@@ -64,7 +75,7 @@ export const VEHICLES = {
         [0.235, 1.000], [0.075, 0.775], [0.000, 0.700]],
       glass: [2, 4],
       sides: [[0.26, 0.545, 0.62, 0.94]],
-      eye: [0.550, 0.876], look: [0.650, 0.928],
+      eye: [0.479, 0.876], look: [0.535, 0.877],
     },
   },
   // Three boxes instead of two: 0.80 m more car than the hatchback, most of it
@@ -86,7 +97,7 @@ export const VEHICLES = {
         [0.290, 1.000], [0.185, 0.720], [0.030, 0.660], [0.000, 0.600]],
       glass: [2, 4],
       sides: [[0.315, 0.555, 0.62, 0.94]],
-      eye: [0.560, 0.875], look: [0.660, 0.925],
+      eye: [0.508, 0.875], look: [0.554, 0.879],
     },
   },
   // The same length as the saloon to within 3 cm, and 12 cm wider. It exists to
@@ -109,7 +120,7 @@ export const VEHICLES = {
         [0.225, 1.000], [0.075, 0.870], [0.000, 0.780]],
       glass: [2, 4],
       sides: [[0.25, 0.585, 0.60, 0.94]],
-      eye: [0.565, 0.855], look: [0.665, 0.925],
+      eye: [0.532, 0.855], look: [0.579, 0.882],
     },
   },
   van: {
@@ -129,7 +140,7 @@ export const VEHICLES = {
         [0.792, 0.99], [0.020, 1.00], [0.000, 0.94]],
       glass: [2],
       sides: [[0.80, 0.90, 0.55, 0.86]],
-      eye: [0.598, 0.808], look: [0.770, 0.889],
+      eye: [0.598, 0.808], look: [0.664, 0.935],
     },
   },
   // The wide-circle vehicle: 3.68 m of wheelbase and only 30° of lock, so it
@@ -152,7 +163,7 @@ export const VEHICLES = {
         [0.420, 1.000], [0.418, 0.600], [0.000, 0.600]],
       glass: [2, 4],
       sides: [[0.44, 0.55, 0.62, 0.94]],
-      eye: [0.560, 0.870], look: [0.650, 0.930],
+      eye: [0.508, 0.870], look: [0.544, 0.902],
     },
   },
   // The tail-swing vehicle, and the near-twin of the step van below. They are
@@ -175,7 +186,7 @@ export const VEHICLES = {
         [0.800, 0.855], [0.800, 1.000], [0.010, 1.000], [0.000, 0.94]],
       glass: [1],
       sides: [[0.81, 0.95, 0.46, 0.78]],
-      eye: [0.880, 0.560], look: [0.965, 0.820],
+      eye: [0.880, 0.560], look: [0.926, 0.814],
     },
   },
   // Wheels near the ends of the same box: 1.20 m of rear overhang against the
@@ -197,7 +208,7 @@ export const VEHICLES = {
         [0.015, 1.00], [0.000, 0.93]],
       glass: [1],
       sides: [[0.86, 0.95, 0.50, 0.88]],
-      eye: [0.880, 0.560], look: [0.960, 0.880],
+      eye: [0.880, 0.560], look: [0.928, 0.957],
     },
   },
   // The user's own example, and the reason the roster is not a size ladder: it
@@ -221,7 +232,7 @@ export const VEHICLES = {
         [0.800, 1.000], [0.015, 1.000], [0.000, 0.90]],
       glass: [3],
       sides: [[0.05, 0.79, 0.52, 0.86]],
-      eye: [0.795, 0.640], look: [0.855, 0.900],
+      eye: [0.771, 0.640], look: [0.791, 0.957],
     },
   },
   bus: {
@@ -241,7 +252,7 @@ export const VEHICLES = {
         [0.030, 1.00], [0.012, 0.62], [0.000, 0.32]],
       glass: [1, 4],
       sides: [[0.04, 0.95, 0.50, 0.90]],
-      eye: [0.859, 0.610], look: [0.955, 0.903],
+      eye: [0.859, 0.610], look: [0.891, 0.959],
     },
   },
   // A rear-engine coach: the rear axle sits far forward under a long body, so
@@ -266,7 +277,7 @@ export const VEHICLES = {
         [0.040, 1.00], [0.018, 0.66], [0.000, 0.36]],
       glass: [1, 4],
       sides: [[0.05, 0.94, 0.58, 0.92]],
-      eye: [0.871, 0.579], look: [0.958, 0.902],
+      eye: [0.871, 0.579], look: [0.900, 0.961],
     },
   },
   towcar: {
@@ -288,7 +299,7 @@ export const VEHICLES = {
         [0.150, 1.00], [0.055, 0.82], [0.000, 0.44]],
       glass: [2, 4],
       sides: [[0.18, 0.61, 0.58, 0.92]],
-      eye: [0.550, 0.852], look: [0.655, 0.914],
+      eye: [0.550, 0.852], look: [0.598, 0.863],
     },
     trailer: {
       name: 'box trailer',
@@ -321,7 +332,7 @@ export const VEHICLES = {
         [0.603, 0.400], [0.000, 0.400]],
       glass: [0],
       sides: [[0.66, 0.96, 0.62, 0.92]],
-      eye: [0.825, 0.681], look: [0.968, 0.913],
+      eye: [0.825, 0.681], look: [0.881, 0.962],
     },
     trailer: {
       name: 'semitrailer',

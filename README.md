@@ -261,11 +261,12 @@ parked in it a metre apart. An editor edits the parameters.
 | `src/objects.js` | the palette a level is built from, and what expands it |
 | `src/levels.js` | all fourteen levels, in metres |
 | `src/world.js` | scene construction, themes, lighting |
-| `src/carMesh.js` | vehicle and trailer models from `spec.body`, saturated or pastel |
+| `src/carMesh.js` | vehicle and trailer models from `spec.body`, plus the cabin lining |
 | `src/camera.js` | chase / inside / overhead, body-relative |
 | `src/panels.js` | the three mirrors and the reverse camera, as screen panels |
 | `src/rewind.js` | the tape the run plays backwards through |
 | `src/traces.js` | the marks the tyres leave, one ribbon per wheel |
+| `src/turnCircles.js` | the circle each wheel is on, drawn on the ground when asked |
 | `src/gamepad.js` | Xbox mapping, analog triggers, rumble |
 | `src/main.js` | game loop, collision resolution, progression |
 | `DESIGN.md` | the constraints all of the above exist to satisfy |

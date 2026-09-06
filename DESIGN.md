@@ -443,6 +443,12 @@ being the removed feature under another name, and all four are load-bearing:
   scene with `visible = false`, switched on for that one render pass and off
   again. No other view can show them, including the overhead one, which is the
   view that would turn them into a plan-view solution.
+- **Only from the driver's seat.** The panel itself is inside-view only, along
+  with the mirrors. It was not, once, and that was a bug: from a chase or
+  overhead camera the player is already looking at the space behind the vehicle,
+  so a reversing panel there is a second, worse answer to a question the view
+  has already answered — and it carried the rails into the overhead view, which
+  is exactly the plan-view solution the bullet above forbids.
 - **Only while reversing.** Forwards, where the interesting judgement is,
   there is nothing.
 - **Only one metre.** Long enough to know whether the bumper clears; far too
@@ -452,6 +458,29 @@ being the removed feature under another name, and all four are load-bearing:
   own `integrate()` at the steering angle actually held, so they are the path
   and not an artist's idea of it — and they say nothing about where the bay is
   or how to get into it, which is what constraint 12 forbids.
+
+**The turning circles are the second exception, and they are off.** Requested
+as such: a projection on the ground of "the circle that wheel would drive along
+if the steering wheel would stay in the current position", for every wheel, with
+the shared centre marked. Four things keep this one honest too:
+
+- **It is a setting, and it starts off.** The game a player is given is still
+  the game the first paragraph describes. Turning it on is a decision the
+  player makes about their own game.
+- **It is the present, not a plan.** The figure is the geometry the vehicle is
+  in at the lock it is holding — hold the wheel and drive, and the circles do
+  not move, because they were never a path the vehicle was going to take. Turn
+  the wheel and the whole figure jumps. This is the difference between showing
+  the player what their steering *is* and showing them what to do with it.
+- **It says nothing about the bay.** Same as the rails: no ghost, no target, no
+  route. Constraint 12 is untouched.
+- **It is clipped to the level.** A gentle lock puts the circle hundreds of
+  metres away; what is off the level is not drawn, and the level is not made
+  bigger to hold it. A circle scaled to fit would be a circle the vehicle is not
+  on.
+
+*Held by:* `src/turnCircles.js`, and the `turnCircles` setting defaulting to
+`off` in `src/settings.js`.
 
 **The tyre traces are not an exception, because they are not a prediction.**
 They record where the vehicle has already been (constraint 19). A player can
