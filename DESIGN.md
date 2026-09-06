@@ -1248,11 +1248,12 @@ standing-in-it rule. Nothing checks any of it;
 | 17 — nothing drawn outside a rectangle | construction, for body parts and mirrors only | silent |
 | 21 — the editor writes calls the builders accept | `window.dev.builders()` on `dev.html` | prints `BAD <type>` |
 | 22 — no two surfaces at one depth | `window.dev.coplanar(id)` on `dev.html` | names the shared plane |
+| 17 — a mirror is on the vehicle, not beside it | `window.dev.mirrors()` on `dev.html` | names each floating mirror and its gap |
 | 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 19, 20, 23 | nothing | silent |
 | 17, for everything else | nothing; the script that did it went with the solver | silent |
 | 3, 4 | withdrawn | — |
 
-**Three of twenty-one live constraints are machine-checked**, and two of the three
+**Four of twenty-one live constraints are machine-checked**, and three of the four
 have to be asked rather than run. That is the honest
 state of it, and it got worse on purpose: constraints 3, 4, 7, 16 and 1's probe
 were all held by `tools/validate.js`, and the tool was removed. What it bought

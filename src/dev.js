@@ -225,7 +225,7 @@ function ghostsFor(id) {
   if (!ghostSets.has(id)) {
     const spec = VEHICLES[id];
     const { reach } = extent(spec);
-    const set = new Ghosts(spec, meshFor(id), null);
+    const set = new Ghosts(spec, meshFor(id));
     set.setShown(true);
     // At full lock, because that is where a stroke ends, and a copy that
     // dropped the steering angle would show up nowhere else.
@@ -450,7 +450,43 @@ function builders() {
   return out.join('\n');
 }
 
-window.dev = { report, coplanar, builders, VEHICLES, LEVELS };
+// Every mirror has to touch the vehicle it belongs to.
+//
+// A mirror is placed by hand, in `spec.mirrors`, and it is the one part of a
+// vehicle that is not derived from the silhouette — so it is the one part that
+// can be specified somewhere the bodywork is not. That is not hypothetical:
+// eight of the thirteen were, the worst by 70 cm, and on the cars they hung in
+// the air over the bonnet because the windscreen had sloped away beneath them.
+// Nothing in the game puts a camera close enough to a parked car's A-pillar to
+// show it, which is why it survived to be reported by the player.
+//
+// The test is the mirror's *front* face, not its centre: on a raked screen the
+// front is the corner that leaves the body first. A negative number is how far
+// the mirror is buried in the body, which is fine — mirrors have stalks.
+function mirrors() {
+  const out = [];
+  for (const [id, spec] of Object.entries(VEHICLES)) {
+    const m = spec.mirrors;
+    const b = spec.body;
+    if (!m || !b?.top) continue;
+    const af = (m.z + m.d / 2 + spec.rearOverhang) / spec.length;
+    let up = null;
+    for (let i = 0; i < b.top.length - 1; i++) {
+      const a = b.top[i];
+      const c = b.top[i + 1];
+      if (af >= Math.min(a[0], c[0]) && af <= Math.max(a[0], c[0])) {
+        up = a[1] + ((af - a[0]) / ((c[0] - a[0]) || 1)) * (c[1] - a[1]);
+        break;
+      }
+    }
+    const gap = (m.y + m.h / 2) - (up === null ? -Infinity : up * spec.height);
+    out.push({ id, gap: +gap.toFixed(3), floating: gap > 0 });
+  }
+  const bad = out.filter((o) => o.floating);
+  return { ok: bad.length === 0, floating: bad, all: out };
+}
+
+window.dev = { report, coplanar, builders, mirrors, VEHICLES, LEVELS };
 
 spinning = new URLSearchParams(location.search).get('spin') === '1';
 addEventListener('resize', layout);

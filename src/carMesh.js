@@ -332,8 +332,20 @@ function lining(g, b, spec, tailZ) {
 // something is the mirror that hit it.
 function mirror(spec, sx) {
   const m = spec.mirrors;
-  const box = new THREE.Mesh(new THREE.BoxGeometry(m.out, m.h, m.d), TRIM);
-  box.position.set(sx * (spec.width / 2 + m.out / 2), m.y, m.z);
+  // Which flank it reaches back to is the flank *at its own height*, not the
+  // widest one. A mirror sits up in the greenhouse, and on a tapered body the
+  // greenhouse is narrower than the sills — so starting the box at the full
+  // half-width leaves it hanging in the air beside the glass, by 12 cm on a
+  // hatchback against a 13 cm arm. It read as floating because it was. Same
+  // test the side glass makes two functions up, for the same reason.
+  const b = spec.body;
+  const narrow = b?.taper && m.y > b.taper[0] * spec.height;
+  const flank = (spec.width / 2) * (narrow ? b.taper[1] : 1);
+  // The outer edge does not move: it is what `mirrorRect()` collides out to,
+  // and DESIGN.md 17 wants the drawn thing inside the rectangle that stops it.
+  const outer = spec.width / 2 + m.out;
+  const box = new THREE.Mesh(new THREE.BoxGeometry(outer - flank, m.h, m.d), TRIM);
+  box.position.set(sx * ((flank + outer) / 2), m.y, m.z);
   return box;
 }
 
