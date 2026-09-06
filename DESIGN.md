@@ -91,10 +91,10 @@ publish it, and why its withdrawal (constraint 4) changes nothing here.
 
 The result card's verdict follows from that. It used to have four grades, the
 top one gated on beating par. With no par it lost that one, and the remaining
-three were all about crashes — which is a scale over a fact that has only two
-values, so it is now the two: `counts` or `void`.
+three were all about collisions — which is a scale over a fact that has only
+two values, so it is now the two: `counts` or `void`.
 
-**A crash voids the score, not the progress.** A run with any contact in it
+**A collision voids the score, not the progress.** A run with any contact in it
 still parks and still unlocks the next level — nobody is stuck on a level they
 cannot drive cleanly — but nothing about it is recorded. A best is therefore
 always a clean run, which is why it needs no tie-break to say which of two runs
@@ -108,9 +108,9 @@ does not count in the colour reserved for success says two things at once.
 
 **The word on the HUD is "direction changes."** It used to say `shunts`, which
 is right in driving usage but shares a register with *a shunt*, a minor
-collision — displayed next to a crash counter, in a game where a crash now
-voids the run. `shunts` survives as the identifier in code, where the second
-meaning cannot reach a player.
+collision — displayed next to the collision counter, in a game where a
+collision now voids the run. `shunts` survives as the identifier in code, where
+the second meaning cannot reach a player.
 
 **The save key carries the scoring unit, and the level order** (`STORE =
 'tight-fit.v4'`). A best recorded in a unit the game no longer uses is not
@@ -174,11 +174,12 @@ search, a lattice and four probes to check fourteen levels that do not change.
 
 *Held by:* nothing. Playing the level is the check.
 
-## 5. A crash is entering contact, not being in it
+## 5. A collision is entering contact, not being in it
 
-Touching something is a state. The crash is the moment you enter that state,
-and you cannot enter it again until you have left it. Grinding along a wall is
-one crash however long you hold it; letting go and hitting again is two.
+Touching something is a state. The collision is the moment you enter that
+state, and you cannot enter it again until you have left it. Grinding along a
+wall is one collision however long you hold it; letting go and hitting again is
+two.
 
 There is no threshold in speed and none in time. Both have been tried:
 
@@ -193,16 +194,24 @@ There is no threshold in speed and none in time. Both have been tried:
 Contact state is the unit the game already owns, because the physics computes
 it every sub-step to decide where the vehicle stops.
 
+**The word is "collision" and not "crash", and it follows from the two bullets
+above.** Decided by the user. A game with no severity threshold scores a
+0.05 m/s kerb touch and a hard hit identically, so "crash" promises a severity
+this game refuses to measure and then does not deliver it. "Collision" names
+the event, and the event is all there is. The counter, the on-screen label, the
+identifier in the code and this file now say one word between them — they used
+to say three: `bumps`, "crashes", "contact".
+
 **The jackknife stop is a contact.** Decided by the user: folding a trailer as
-far as the hitch goes costs a crash, on the same terms as a wall — one on
+far as the hitch goes costs a collision, on the same terms as a wall — one on
 entering, none for holding it, another after unwinding and refolding. It
 already stopped the vehicle, because `isFree` refuses a jackknifed state
 exactly as it refuses one inside a wall (constraint 16); what it did not do was
 score correctly.
 
-It scored **two crashes for one fold**, and the reason is that `touching` was
-inferred from whether a step was refused rather than read off the state. At a
-wall those agree: the sub-step creep leaves the body flush, so every later step
+It scored **two collisions for one fold**, and the reason is that `touching`
+was inferred from whether a step was refused rather than read off the state.
+At a wall those agree: the sub-step creep leaves the body flush, so every later step
 is refused too. At the fold they do not. Measured on Fold against a 78.00°
 limit: refused at 77.9918°, then a **free** step at 77.9978° — nearer the limit
 than the refusal — then refused again. The free step cleared `touching`, so the
@@ -215,7 +224,7 @@ the refusal is remembered, and `touching` is held until the articulation comes
 back below it.
 
 Impact still scales the flash and the rumble; it does not decide whether the
-crash happened. Sound, rumble, flash and the counter all fire on the same
+collision happened. Sound, rumble, flash and the counter all fire on the same
 event — with the cooldown gone they would otherwise have fired every physics
 step, buzzing at 120 Hz and allocating an audio buffer per frame for a scrape.
 
@@ -545,7 +554,7 @@ and its colour change, which is the "you are inside" feedback constraint 1
 depends on.
 
 **The only gauges are the scored numbers and what the player cannot see.**
-Shunts, crashes and your own best are the score — there is no record and no
+Shunts, collisions and your own best are the score — there is no record and no
 par on screen (constraint 2). The proximity bar is the one
 gauge showing something no camera angle reveals, and the articulation gauge is
 the only honest warning before a trailer folds. The speedometer and the gear
@@ -868,15 +877,15 @@ physics step; let go and it continues from there. There is no budget, no
 cooldown and no cost.
 
 **A recorded frame is the whole step, score included** — pose, motion, shunts,
-crashes, the direction the last move was in, whether the vehicle was already
-touching something. That is the entire mechanism for "undo the crashes and
+collisions, the direction the last move was in, whether the vehicle was already
+touching something. That is the entire mechanism for "undo the collisions and
 direction changes I made during the stretch I rewound": the counters are on the
 tape with the pose, so winding the tape back winds them back, and no arithmetic
 anywhere needs to know a rewind happened.
 
 **It does not conflict with constraint 2**, which is the thing to check before
-adding an undo to a scored game. Rewinding past a crash puts the vehicle back
-*before* the crash, so that stretch has to be driven again; the count that
+adding an undo to a scored game. Rewinding past a collision puts the vehicle
+back *before* it, so that stretch has to be driven again; the count that
 survives is the count belonging to the path the player actually finished on.
 The same holds for direction changes: rewinding a shunt also rewinds the
 progress the shunt bought. What rewind removes is the cost of *restarting* —
@@ -1332,8 +1341,9 @@ to fill a table.
 
 ### Recorded, not open
 
-**The jackknife stop is a crash.** Decided by the user, from the three options
-that were on the table — a contact, a refusal to steer further, or a void. It
+**The jackknife stop is a collision.** Decided by the user, from the three
+options that were on the table — a contact, a refusal to steer further, or a
+void. It
 is a contact, which is the one that needed no new rule: the fold already
 stopped the vehicle the way a wall does, so making it score the way a wall does
 is the whole change. Written up under constraint 5, including the double-count

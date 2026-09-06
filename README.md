@@ -9,11 +9,13 @@ What is scored is **direction changes**: every time you swap between forward
 and reverse. Parking anything is easy given unlimited shunts, so the shunts are
 the game. There is no par and no published best — the only number to beat is
 your own on that level, and it sits next to your current one.
-Crashes are counted per attempt too, however gentle: a crash is the moment you
-touch something, so grinding along a wall is one crash, and letting go before
-you hit it again is what makes it two. Folding a trailer as far as the hitch
-goes is a crash on the same terms — the rig stops dead against the fold, and
-unwinding and refolding it is a second one.
+Collisions are counted per attempt too, however gentle: a collision is the
+moment you touch something, so grinding along a wall is one collision, and
+letting go before you hit it again is what makes it two. There is no severity
+threshold anywhere in the game, which is why the word is *collision* and not
+*crash* — a kerb touch and a real hit score the same. Folding a trailer as far
+as the hitch goes counts on the same terms: the rig stops dead against the
+fold, and unwinding and refolding it is a second one.
 
 Nothing tops 2.9 m/s. Holding a steady creep is not the challenge, so the
 vehicles do it for you — the throttle is analog, but first gear is all there is.
@@ -128,7 +130,7 @@ there too, aimed exactly where the real glass points, but drawn at the sides
 and top of the screen rather than out at the corners of the windscreen, so
 reading one never means turning the view. The mirrors stick out and they
 collide: they get their own thin rectangle in the vehicle's footprint, so
-clipping one on a pillar costs you a crash exactly as a bumper would. Angles are held relative to the driven body, so a jackknifed
+clipping one on a pillar costs you a collision exactly as a bumper would. Angles are held relative to the driven body, so a jackknifed
 trailer never drags your viewpoint with it, and a view you chose stays on the
 same corner of the vehicle as it turns. If a wall is in the way, it is in the
 way; the overhead view is one button away.
@@ -153,10 +155,10 @@ speedometer and no gear indicator, and nothing on screen is there to help you
 find the bay on your first attempt.
 
 **Hold rewind and the run plays backwards.** No budget, no cooldown. It winds
-back the crashes and the direction changes with it, because the score is
+back the collisions and the direction changes with it, because the score is
 recorded step by step alongside the vehicle's position rather than tallied
-beside it — so a rewind past a crash also puts you back before the crash, and
-you have to drive that stretch again. What it removes is the half minute of
+beside it — so a rewind past a collision also puts you back before it, and you
+have to drive that stretch again. What it removes is the half minute of
 driving back to the interesting part, which was never the difficulty.
 
 **Press ghost and the vehicle stays where it is** — a translucent copy of it,
@@ -343,5 +345,5 @@ Collision is 2D: every obstacle, and every unit of the vehicle, is a rectangle
 on the XZ plane, so what you see in the overhead view is exactly what the
 physics uses. Contact stops the vehicle rather than bouncing it — a binary
 search on the last sub-step lets it creep right up against a wall instead of
-freezing short of it. Every contact counts as a crash for that attempt and buzzes the pad —
+freezing short of it. Every contact counts as a collision for that attempt and buzzes the pad —
 harder hits flash the screen more, but nothing scrapes through for free.

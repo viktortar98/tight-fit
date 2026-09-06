@@ -12,7 +12,7 @@ export class Hud {
       lvlLabel: $('lvl-label'),
       keysKb: $('keys-kb'), keysPad: $('keys-pad'),
       artic: $('artic'), articDot: $('artic-dot'), articLabel: $('artic-label'),
-      shunts: $('stat-shunts'), bumps: $('stat-bumps'), best: $('stat-best'),
+      shunts: $('stat-shunts'), collisions: $('stat-collisions'), best: $('stat-best'),
       sensor: $('sensor'), sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
       finish: $('finish'), finishKey: $('finish-key'), toast: $('toast'), flash: $('flash'),
       wheelRot: $('wheel-rot'), rewind: $('rewind'), rewindLeft: $('rewind-left'),
@@ -21,7 +21,7 @@ export class Hud {
       steerLegend: $('steer-legend'),
       pTitle: $('pause-title'),
       rKicker: $('result-kicker'), rTitle: $('result-title'), rShunts: $('result-shunts'),
-      rBumps: $('result-bumps'), rRank: $('result-rank'), rNote: $('result-note'),
+      rCollisions: $('result-collisions'), rRank: $('result-rank'), rNote: $('result-note'),
       btnNext: $('btn-next'),
     };
 
@@ -203,8 +203,8 @@ export class Hud {
 
   update(s) {
     this.el.shunts.textContent = s.shunts;
-    this.el.bumps.textContent = s.bumps;
-    this.el.bumps.parentElement.classList.toggle('hot', s.bumps > 0);
+    this.el.collisions.textContent = s.collisions;
+    this.el.collisions.parentElement.classList.toggle('hot', s.collisions > 0);
 
     // The proximity sensor is an aid the inside view deliberately does without
     // (DESIGN.md 12): from the driver's seat you get the mirrors, the reverse
@@ -263,14 +263,14 @@ export class Hud {
     });
   }
 
-  showResult({ level, shunts, bumps, rank, note, isLast }) {
+  showResult({ level, shunts, collisions, rank, note, isLast }) {
     this.el.rKicker.textContent = rank.kicker;
     // The kicker is the accent colour, which reads as approval. A voided run
     // must not wear it.
     this.el.rKicker.classList.toggle('void', !rank.clean);
     this.el.rTitle.textContent = level.name;
     this.el.rShunts.textContent = shunts;
-    this.el.rBumps.textContent = bumps;
+    this.el.rCollisions.textContent = collisions;
     this.el.rRank.textContent = rank.label;
     this.el.rNote.textContent = note;
     this.el.btnNext.textContent = isLast ? 'Back to levels' : 'Next level';

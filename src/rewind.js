@@ -2,13 +2,13 @@
 //
 // A recorded frame is everything a physics step reads and writes: the
 // vehicle's pose and motion, and the counters that are the score. That is what
-// makes "undo the crashes and direction changes I made during the stretch I
+// makes "undo the collisions and direction changes I made during the stretch I
 // rewound" not a second feature — the score is on the tape with the pose, so
 // winding the tape back winds the score back with it, and no arithmetic
 // anywhere has to know that a rewind happened.
 //
-// It also keeps the score honest. Rewinding past a crash puts the vehicle back
-// before the crash, so the stretch has to be driven again; what you keep is
+// It also keeps the score honest. Rewinding past a collision puts the vehicle
+// back before it, so the stretch has to be driven again; what you keep is
 // the count that belongs to the path you actually finished on. Rewind removes
 // the cost of restarting, not the cost of the mistake.
 

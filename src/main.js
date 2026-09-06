@@ -235,7 +235,7 @@ class Game {
   restart() {
     const s = this.level.start;
     this.vehicle.reset(s.x, s.z, s.yaw);
-    this.bumps = 0;
+    this.collisions = 0;
     this.shunts = 0;
     this.lastDir = 0;
     this.canFinish = false;
@@ -405,7 +405,7 @@ class Game {
     this.tape.push({
       x: car.x, z: car.z, yaw: car.yaw, trailerYaw: car.trailerYaw,
       speed: car.speed, steer: car.steer, wheelSpin: car.wheelSpin,
-      shunts: this.shunts, bumps: this.bumps, lastDir: this.lastDir,
+      shunts: this.shunts, collisions: this.collisions, lastDir: this.lastDir,
       touching: this.touching, canFinish: this.canFinish, inside: this.inside,
       trace: this.traces.count, foldAt: this.foldAt,
     });
@@ -423,7 +423,7 @@ class Game {
     car.wheelSpin = f.wheelSpin;
     car.braking = false;
     this.shunts = f.shunts;
-    this.bumps = f.bumps;
+    this.collisions = f.collisions;
     this.lastDir = f.lastDir;
     this.touching = f.touching;
     this.foldAt = f.foldAt;
@@ -494,7 +494,7 @@ class Game {
     // so every later step is refused too. At the fold they do not. Measured on
     // Fold, against a 78.00° limit: refused at 77.9918°, then a *free* step at
     // 77.9978° — nearer the limit than the refusal — then refused again. That
-    // free step cleared `touching`, so one fold scored two crashes.
+    // free step cleared `touching`, so one fold scored two collisions.
     //
     // No margin on the angle can separate those two states, because a slow
     // approach passes through any margin while still free. What distinguishes
@@ -508,13 +508,13 @@ class Game {
     this.traces.follow(car.state);
   }
 
-  // A crash is entering contact, not being in it — see DESIGN.md 5. Touching
-  // is a state, so grinding along a wall is one crash however long it lasts,
-  // and letting go before hitting again is what makes it two. There is no
-  // threshold in either speed or time: this game measures neither.
+  // A collision is entering contact, not being in it — see DESIGN.md 5.
+  // Touching is a state, so grinding along a wall is one collision however long
+  // it lasts, and letting go before hitting again is what makes it two. There
+  // is no threshold in either speed or time: this game measures neither.
   onContact(impact) {
     if (this.touching) return;
-    this.bumps++;
+    this.collisions++;
     this.sfx.bump(clamp(impact / 2.5, 0.05, 1));
     this.pad.rumble(clamp(impact / 2.2, 0.15, 1), impact > 0.6 ? 220 : 110);
     this.hud.flash(impact > 0.6 ? 0.1 + impact * 0.05 : 0.05);
@@ -541,7 +541,7 @@ class Game {
     const car = this.vehicle;
     return {
       shunts: this.shunts,
-      bumps: this.bumps,
+      collisions: this.collisions,
       gap,
       steer: car.steer / this.spec.maxSteer,
       rewinding: this.rewinding,
@@ -566,12 +566,12 @@ class Game {
     const id = this.level.id;
     const store = this.userLevel ? this.userBests : this.progress.best;
     const prev = store[id];
-    // A crash voids the score but not the progress (DESIGN.md 2). The level is
+    // A collision voids the score but not the progress (DESIGN.md 2). The level is
     // still passed and the next one still unlocks — you are never stuck on a
     // level you cannot drive cleanly — but nothing about the run is recorded,
     // so a best is always a clean run and needs no tie-break to say which of
     // two is better.
-    const clean = this.bumps === 0;
+    const clean = this.collisions === 0;
     const better = clean && (!prev || this.shunts < prev.shunts);
     if (better) store[id] = { shunts: this.shunts };
     // A level the player wrote unlocks nothing: the fourteen are a sequence,
@@ -589,7 +589,8 @@ class Game {
 
     const notes = [];
     if (!clean) {
-      notes.push(`${this.bumps} crash${this.bumps === 1 ? '' : 'es'}, so this run does not count.`);
+      const n = this.collisions;
+      notes.push(`${n} collision${n === 1 ? '' : 's'}, so this run does not count.`);
     }
     if (better && prev) notes.push('New best.');
     else if (prev) notes.push(`Your best is ${prev.shunts}.`);
@@ -597,7 +598,7 @@ class Game {
     this.hud.showResult({
       level: this.level,
       shunts: this.shunts,
-      bumps: this.bumps,
+      collisions: this.collisions,
       rank,
       note: notes.join(' ') || 'Textbook.',
       isLast: !!this.userLevel || this.index + 1 >= LEVELS.length,
