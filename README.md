@@ -66,8 +66,8 @@ angle at the hitch, which is the only honest warning you get before it folds.
 Those are the only two gauges, because they are the only two things the view
 cannot tell you — there is no speedometer, no gear indicator and no
 steering-angle readout, and nothing on screen is there to help you find the bay
-on your first attempt. The level's hint lives on the level-select tile and the
-pause card, for a player who wants it.
+on your first attempt. There are no hints anywhere: what a level is about is in
+its geometry, and finding it is the level.
 
 ## Vehicles
 
@@ -95,11 +95,11 @@ did not — a new kind of problem rather than a tighter version of the last one.
 
 | # | Level | Vehicle | What it asks |
 |---|---|---|---|
-| 1 | First Bay | Hatchback | Where the bay is, and what counts as parked. |
+| 1 | First Bay | Hatchback | A 2.9 m aisle. The bay is behind your shoulder. |
 | 2 | Tight Lane | Hatchback | How do you aim an entry, with 0.64 m of slack? |
 | 3 | The Short Side | Hatchback | The room is 1.45 m past the bay and 15 m behind it. |
 | 4 | Kerbside | Hatchback | The bay is beside the aisle, not across it. |
-| 5 | The Alcove | Hatchback | 5.8 m each side. Reversing in wants 6.5. |
+| 5 | The Alcove | Hatchback | 4.6 m each side. Reversing in wants 6.5. |
 | 6 | Dead End | Hatchback | The room you need is behind you, going nowhere. |
 | 7 | The Impossible Gap | Hatchback | Can you tell it fits before you commit? |
 | 8 | Van Life | Van | Same puzzle, half a metre more vehicle. |

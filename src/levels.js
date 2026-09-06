@@ -62,47 +62,67 @@ const PASTEL = [0xcfe0ef, 0xeadfd0, 0xdcead8, 0xf2dee1, 0xe3dded, 0xd7e9e8, 0xef
 const pick = (i) => PASTEL[i % PASTEL.length];
 
 export const LEVELS = [
-  // Asks: where is the bay, and what counts as parked? Open lot, wide aisle,
-  // nothing to work around. The only level whose answer is just to drive.
+  // Asks: where is the bay, what counts as parked, and which way do you go in?
+  // Two rows and the aisle between them, which is what a car park is. The
+  // aisle is 2.9 m: past the 1.60 m a reverse-in needs, short of the 3.04 m a
+  // nose-first swing needs. So the bay is entered backwards, and the whole
+  // series is built on the manoeuvre this level hands you on the first
+  // attempt. Nothing is in the way and nothing is tight except the one number.
   {
     id: 'first-bay',
     name: 'First Bay',
-    hint: 'Swing wide, then straighten up. Hold Shift to crawl.',
     vehicle: 'hatch',
     theme: 'lot',
-    record: 0,
-    bounds: { minX: -16, maxX: 16, minZ: -15.5, maxZ: 10 },
-    start: { x: 9, z: -6.5, yaw: -P2 },
+    record: 2,
+    bounds: { minX: -16, maxX: 16, minZ: -15.5, maxZ: -3.0 },
+    start: { x: 9, z: -9.05, yaw: -P2 },
     target: { x: 0, z: -13, w: 2.5, d: 5, rot: 0 },
     obstacles: [
       parked(-2.5, -14.125, 0, 'hatch', pick(0)),
-      parked(2.5, -11.675, Math.PI, 'hatch', pick(1)),
+      parked(2.5, -14.125, 0, 'hatch', pick(1)),
       parked(-7.5, -14.125, 0, 'hatch', pick(2)),
       parked(5, -14.125, 0, 'hatch', pick(3)),
-      parked(-12.5, -11.675, Math.PI, 'hatch', pick(4)),
-      kerb(0, 1.2, 26, 0.4),
-      cone(13.5, -6.5),
+      parked(-12.5, -14.125, 0, 'hatch', pick(4)),
+      // The far row. It is what makes the aisle an aisle. A parked body sits
+      // 1.22 m off the point it is placed at, so the number that matters here
+      // is the collider's near face at -7.60, not the -4.40 written below.
+      parked(-3.5, -4.4, Math.PI, 'hatch', pick(5)),
+      parked(1.5, -4.4, Math.PI, 'hatch', pick(6)),
+      parked(6.5, -4.4, Math.PI, 'hatch', pick(7)),
+      parked(-8.5, -4.4, Math.PI, 'hatch', pick(2)),
+      parked(11.5, -4.4, Math.PI, 'hatch', pick(0)),
+      parked(-13.5, -4.4, Math.PI, 'hatch', pick(3)),
     ],
-    paint: bayRow(0, -13, 11, 2.5, 5),
+    paint: [...bayRow(0, -13, 11, 2.5, 5), ...bayRow(0, -5.525, 11, 2.5, 5)],
   },
 
-  // Asks: how do you aim an entry the bay is barely wider than? First level
-  // with a lane instead of a lot, and with 0.64 m of slack rather than a bay
-  // you can miss the middle of. Named for the question it asks and not for a
-  // manoeuvre: the bay is 5 m deep, so a nose-first entry fits, and nothing
-  // here requires reversing in. The Short Side is where that starts.
+  // Asks: how do you aim the reverse-in First Bay handed you, at a bay barely
+  // wider than the car? Same 2.9 m lane; 0.64 m of slack rather than 0.74, and
+  // a wall opposite rather than a row of cars, so there is nothing to line up
+  // against.
+  //
+  // Honest about what this is, because the measurements say it plainly. The
+  // manoeuvre is First Bay's and the new difficulty is precision, not
+  // comprehension. The window in which a perpendicular bay costs a direction
+  // change at all is a lane between 2.83 m — below it nothing can turn — and
+  // 3.04 m, above which a nose-first swing fits. That is 0.21 m wide, so lane
+  // width cannot be what separates two levels, and slack is the only lever
+  // left. It is a steep one: at this lane the search needs 5 direction changes
+  // for 0.64 m of slack, 4 for 0.69, 3 for 0.79. Three would sit better after
+  // First Bay's two, and it would also make this bay looser than First Bay's,
+  // which is the drift the rename was supposed to end. Left at 0.64 with the
+  // curve problem written down rather than papered over.
   {
     id: 'tight-lane',
     name: 'Tight Lane',
-    hint: 'A 4.4 m lane between the wall and the row, and 0.64 m of slack in the bay. Aim it, do not swing it.',
     vehicle: 'hatch',
     theme: 'lot',
-    record: 0,
-    bounds: { minX: -14, maxX: 17, minZ: -15.5, maxZ: 4 },
-    start: { x: 10, z: -8.3, yaw: -P2 },
+    record: 5,
+    bounds: { minX: -14, maxX: 17, minZ: -15.5, maxZ: -6.0 },
+    start: { x: 10, z: -9.05, yaw: -P2 },
     target: { x: 0, z: -13, w: 2.4, d: 5, rot: 0 },
     obstacles: [
-      wall(1.5, -5.5, 31, 1.2, { h: 1.5 }),
+      wall(1.5, -7.0, 31, 1.2, { h: 1.5 }),
       parked(-2.4, -14.125, 0, 'hatch', pick(1)),
       parked(2.4, -11.675, Math.PI, 'hatch', pick(5)),
       parked(-7.2, -14.125, 0, 'hatch', pick(2)),
@@ -121,7 +141,6 @@ export const LEVELS = [
   {
     id: 'short-side',
     name: 'The Short Side',
-    hint: 'The wall is 1.45 m past the bay. Reversing in sweeps 6.5 m of aisle, and all of it is behind you.',
     vehicle: 'hatch',
     theme: 'garage',
     record: 2,
@@ -159,7 +178,6 @@ export const LEVELS = [
   {
     id: 'parallel',
     name: 'Kerbside',
-    hint: 'A 5.7 m gap for a 3.95 m car. Line up your rear wheels with their bumper, full lock, reverse.',
     vehicle: 'hatch',
     theme: 'street',
     record: 1,
@@ -187,18 +205,20 @@ export const LEVELS = [
   {
     id: 'alcove',
     name: 'The Alcove',
-    hint: 'A yard 11.6 m long and 5.2 m deep. Reversing in wants 6.5 m of it on one side, and there is 5.8 m.',
     vehicle: 'hatch',
     theme: 'garage',
-    record: 0,
-    bounds: { minX: -6.3, maxX: 6.3, minZ: -14.2, maxZ: -2.9 },
-    start: { x: 4.4, z: -5.9, yaw: -P2 },
+    record: 2,
+    bounds: { minX: -5.1, maxX: 5.1, minZ: -14.2, maxZ: -2.9 },
+    start: { x: 3.2, z: -5.9, yaw: -P2 },
     target: { x: 0, z: -11, w: 2.6, d: 5, rot: 0 },
     obstacles: [
-      // 5.8 m of yard each side of the bay: past 5.47 (a nose-first swing),
-      // short of 6.54 (a reverse-in swing). That one number is the level.
-      wall(-6.5, -8.6, 1.4, 12, { h: 3.2, color: 0xd0d2d6 }),
-      wall(6.5, -8.6, 1.4, 12, { h: 3.2, color: 0xd0d2d6 }),
+      // 4.6 m of yard each side of the bay. A nose-first swing wants 4.09 m of
+      // run-up on one side and 1.95 m past on the other, and a reverse-in
+      // wants 6.54 m past — so neither arc fits end to end, and the room has
+      // to be made rather than found. The depth is untouched: 5.2 m, plenty
+      // for either entry. It is the length that stopped being enough.
+      wall(-5.3, -8.6, 1.4, 12, { h: 3.2, color: 0xd0d2d6 }),
+      wall(5.3, -8.6, 1.4, 12, { h: 3.2, color: 0xd0d2d6 }),
       wall(0, -14.15, 15, 1.0, { h: 3.2, color: 0xd0d2d6 }),
       wall(0, -2.8, 15, 1.0, { h: 3.2, color: 0xd0d2d6 }),
       parked(-2.6, -12.225, 0, 'hatch', pick(1)),
@@ -214,7 +234,6 @@ export const LEVELS = [
   {
     id: 'dead-end',
     name: 'Dead End',
-    hint: 'A 3.4 m alley into a 3.0 m doorway. No single arc fits — borrow the dead end behind you.',
     vehicle: 'hatch',
     theme: 'alley',
     record: 4,
@@ -240,7 +259,6 @@ export const LEVELS = [
   {
     id: 'impossible-gap',
     name: 'The Impossible Gap',
-    hint: 'A 2.3 m slot, then ninety degrees inside a 2.6 m corridor. It fits. Barely.',
     vehicle: 'hatch',
     theme: 'alley',
     record: 3,
@@ -269,7 +287,6 @@ export const LEVELS = [
   {
     id: 'van-life',
     name: 'Van Life',
-    hint: '5.3 m of van, a 5.6 m lane, a 3 m bay. Everything you learned is now half a metre too big.',
     vehicle: 'van',
     theme: 'lot',
     record: 1,
@@ -290,7 +307,6 @@ export const LEVELS = [
   {
     id: 'loading-dock',
     name: 'Loading Dock',
-    hint: 'Reverse blind around the corner between two vans. Press C for the overhead view.',
     vehicle: 'van',
     theme: 'garage',
     record: 3,
@@ -317,7 +333,6 @@ export const LEVELS = [
   {
     id: 'bus-stop',
     name: 'Bus Stop',
-    hint: '11 m of bus into a 13.5 m gap. The lock is good — the overhang is not.',
     vehicle: 'bus',
     theme: 'street',
     record: 1,
@@ -346,7 +361,6 @@ export const LEVELS = [
   {
     id: 'trailer-trouble',
     name: 'Trailer Trouble',
-    hint: 'Reverse the trailer, not the car. Turn the wrong way and it folds — watch the trailer gauge.',
     vehicle: 'towcar',
     theme: 'lot',
     record: 1,
@@ -368,7 +382,6 @@ export const LEVELS = [
   {
     id: 'artic-dock',
     name: 'Artic Dock',
-    hint: 'Sixteen and a half metres, hinged in the middle. The trailer parks, not the cab.',
     vehicle: 'semi',
     theme: 'lot',
     record: 1,
@@ -393,7 +406,6 @@ export const LEVELS = [
   {
     id: 'blind-side',
     name: 'Blind Side',
-    hint: 'The dock is on your right, where the mirror shows you nothing, and the yard is shorter than the truck plus its swing.',
     vehicle: 'semi',
     theme: 'garage',
     record: 1,

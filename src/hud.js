@@ -15,7 +15,7 @@ export class Hud {
       sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
       hold: $('hold'), holdFill: $('hold-fill'), toast: $('toast'), flash: $('flash'),
       grid: $('level-grid'),
-      pTitle: $('pause-title'), pHint: $('pause-hint'),
+      pTitle: $('pause-title'),
       rKicker: $('result-kicker'), rTitle: $('result-title'), rShunts: $('result-shunts'),
       rBumps: $('result-bumps'), rRank: $('result-rank'), rNote: $('result-note'),
       btnNext: $('btn-next'),
@@ -46,12 +46,9 @@ export class Hud {
       const b = document.createElement('button');
       b.className = `tile${unlocked ? '' : ' locked'}`;
       b.disabled = !unlocked;
-      // The hint lives here: it is read once, when you pick the level, not on
-      // every one of the attempts that follow.
       b.innerHTML = `<span class="veh">${VEHICLES[lvl.vehicle].name}</span>
         <span class="n">${String(i + 1).padStart(2, '0')}</span>
         <span class="t">${unlocked ? lvl.name : 'Locked'}</span>
-        ${unlocked ? `<span class="h">${lvl.hint}</span>` : ''}
         <span class="m">${unlocked
           ? (best ? `your best: ${best.shunts}` : 'not parked yet')
           : 'finish the one before'}</span>`;
@@ -84,10 +81,7 @@ export class Hud {
       `${String(index + 1).padStart(2, '0')} / ${LEVELS.length} · ${level.name}`;
     this.el.best.textContent = best ? `${best.shunts}` : '—';
     this.el.artic.classList.toggle('hidden', !VEHICLES[level.vehicle].trailer);
-    // The pause card is the second place the hint is available — the one you
-    // can reach mid-attempt without leaving the level.
     this.el.pTitle.textContent = level.name;
-    this.el.pHint.textContent = level.hint;
   }
 
   // `on` means "show the pad legend", not "a pad exists".
@@ -141,6 +135,9 @@ export class Hud {
 
   showResult({ level, shunts, bumps, rank, note, isLast }) {
     this.el.rKicker.textContent = rank.kicker;
+    // The kicker is the accent colour, which reads as approval. A voided run
+    // must not wear it.
+    this.el.rKicker.classList.toggle('void', !rank.clean);
     this.el.rTitle.textContent = level.name;
     this.el.rShunts.textContent = shunts;
     this.el.rBumps.textContent = bumps;

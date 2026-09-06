@@ -136,16 +136,11 @@ h1::after { content: ""; display: block; width: 54px; height: 3px; background: v
 .tile:disabled { opacity: 0.34; cursor: not-allowed; }
 .tile .n { font-family: var(--mono); font-size: 11px; color: var(--accent); }
 .tile .t { display: block; font-weight: 620; margin: 3px 0 6px; }
-/* The level's problem, stated where you choose the level rather than while you
-   are driving it. */
-.tile .h { display: block; font-size: 11.5px; line-height: 1.45; color: var(--dim); margin-bottom: 9px; }
 .tile .m {
   font-family: var(--mono); font-size: 11px; color: var(--dim);
   margin-top: auto; padding-top: 8px; border-top: 1px solid var(--edge);
 }
 .tile.locked .n { color: var(--dim); }
-/* A locked tile has no hint, so its score line sits under the name rather
-   than being pushed to the bottom of a row sized by unlocked neighbours. */
 .tile.locked .m { margin-top: 0; }
 .tile .veh { float: right; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
 
@@ -159,6 +154,7 @@ h1::after { content: ""; display: block; width: 54px; height: 3px; background: v
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
 }
 .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+.kicker.void { color: var(--danger); }
 .card h2 { margin: 6px 0 18px; font-size: 27px; letter-spacing: -0.02em; }
 .result-stats { display: flex; gap: 26px; margin-bottom: 16px; }
 .result-stats b { display: block; font-family: var(--mono); font-size: 22px; }

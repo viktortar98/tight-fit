@@ -55,11 +55,30 @@ thing constraint 1 says this game is not about. It also cannot be honest: the
 number would come from the solver, and what the solver finds is one route, not
 the best one (constraint 4).
 
-The rating on the result card follows from that. It used to have four grades,
-the top one gated on beating par; with no par it has three, and all three are
-about crashes, which is the other thing the game measures.
+The result card's verdict follows from that. It used to have four grades, the
+top one gated on beating par. With no par it lost that one, and the remaining
+three were all about crashes — which is a scale over a fact that has only two
+values, so it is now the two: `counts` or `void`.
 
-**The save key carries the scoring unit** (`STORE = 'tight-fit.v2'`). A best
+**A crash voids the score, not the progress.** A run with any contact in it
+still parks and still unlocks the next level — nobody is stuck on a level they
+cannot drive cleanly — but nothing about it is recorded. A best is therefore
+always a clean run, which is why it needs no tie-break to say which of two runs
+is better, and why nothing further is left to grade. This is what makes
+constraint 2 true as written. It also ends the cheapest exploit in the game,
+which was to lean on a wall to find out where it is: contact costs the run.
+
+The card's kicker line carries the accent colour, which reads as approval, so a
+voided run takes `--danger` instead (`.kicker.void`). A card that says the run
+does not count in the colour reserved for success says two things at once.
+
+**The word on the HUD is "direction changes."** It used to say `shunts`, which
+is right in driving usage but shares a register with *a shunt*, a minor
+collision — displayed next to a crash counter, in a game where a crash now
+voids the run. `shunts` survives as the identifier in code, where the second
+meaning cannot reach a player.
+
+**The save key carries the scoring unit** (`STORE = 'tight-fit.v3'`). A best
 recorded in a unit the game no longer uses is not data, it is a memory of an
 abandoned decision, so when the unit changes the key changes and there is
 nothing to migrate. The migration loop that used to strip old time-based bests
@@ -119,16 +138,25 @@ number is stale and the level is easier than its design believes. Finding more
 is not a failure — it is the lattice.
 
 **What this measurement found.** On the objective that is actually the score,
-almost the whole level set is a 0-shunt or 1-shunt level. That is a fact about
-the levels, not about the tool, and it is the first thing the next level design
-session has to answer.
+ten of the thirteen levels wanted 0 or 1 direction change. The game's own
+scoring unit was, in almost every level, not being asked for. That is a fact
+about the levels and not about the tool, and it is what the tool is for. Three
+levels were re-cut in response — First Bay to 2, Tight Lane to 5, The Alcove to
+2 — and the remaining 1-shunt levels are the six large-vehicle ones, where the
+vehicle rather than the geometry is the problem the level poses.
+
+The lever that moved them is narrow. A perpendicular bay costs a direction
+change only while the lane in front of it is between the hatchback's swept
+width (2.83 m, below which it cannot turn at all) and the depth its nose-first
+swing needs (3.04 m). That is a 0.21 m window, measured, and every lane in the
+hatchback series is now placed inside or below it on purpose.
 
 **It costs what it costs.** Ordering by direction changes first means the
 search exhausts everything reachable in *n* of them before it looks at *n+1*.
 The Impossible Gap went from 1 s to 26 s, Blind Side from 20 s to 50 s, Artic
-Dock from 101 s to 404 s. That was accepted rather than worked around: this is a tool a designer runs between
-edits, not something in a player's way, and a fast wrong number is worth less
-than a slow honest one.
+Dock from 101 s to 404 s. That was accepted rather than worked around: this is
+a tool a designer runs between edits, not something in a player's way, and a
+fast wrong number is worth less than a slow honest one.
 
 *Enforced by:* the stale-record check in `tools/validate.js`, exit 1.
 
@@ -333,9 +361,14 @@ Removed under this rule, all of them aids for finding the bay:
 - the bobbing cone floating over the bay, and the four corner posts under it —
   posts are a clearance aid in principle, but at 1.25 m beside a 1.44 m
   hatchback they were more floating furniture,
-- the level hint, which states the solution in words. It moved to the level
-  select tile and the pause card, where a player who wants it can go and get
-  it, instead of occupying the largest block of text on screen forever.
+- the level hint, which stated the solution in words. It first moved to the
+  level-select tile and the pause card; then it went entirely. The tile is
+  unavoidable before a first attempt, so a hint there is not optional reading —
+  it hands over the insight the level exists to make you find, and turns a
+  level that is hard to figure out into one that is merely hard to drive. The
+  geometry now carries the whole lesson. The risk taken knowingly: a level
+  whose idea nobody finds looks exactly like a level that is broken, and
+  nothing in the game distinguishes them.
 
 What stays is what is read while inching in on the tenth attempt: the bay's
 ground outline, which is the containment boundary the level is scored against,
@@ -440,40 +473,34 @@ otherwise be lost. Each says who it belongs to.
 
 ### Core, and the user's
 
-**The level set does not ask for shunts.** With the solver's objective fixed to
-be the game's score (constraint 4), the fewest direction changes found on each
-level is: First Bay 0, Tight Lane 0, The Short Side 2, Kerbside 1, The Alcove
-0, Dead End 4, The Impossible Gap 3, Van Life 1, Loading Dock 3, Bus Stop 1,
-Trailer Trouble 1, Artic Dock 1, Blind Side 1. Three hatchback levels are
-0-shunt levels, and the only score this game has is direction changes. A 0-shunt level cannot be
-scored: a clean first run is already perfect. The old numbers were four, three
-and zero — they were artifacts of a search that priced a shunt at 1.4 m of
-driving, and they made the set look like it had range it does not have.
+**The difficulty curve of the hatchback series.** After re-cutting the three
+0-shunt levels, the fewest direction changes found on each is: First Bay 2,
+Tight Lane 5, The Short Side 2, Kerbside 1, The Alcove 2, Dead End 4, The
+Impossible Gap 3. Level 2 is now the second hardest in the series. That is not
+a tuning slip, it is what the geometry allows: a perpendicular bay costs a
+direction change only when the lane is between 2.83 m (below which nothing can
+turn) and 3.04 m (above which a nose-first swing fits), a window 0.21 m wide,
+so lane width cannot separate two levels and bay slack is the only lever left.
+It is steep — at Tight Lane's lane, 0.64 m of slack costs 5, 0.69 m costs 4,
+0.79 m costs 3. Three would sit better after First Bay's two and would also
+make Tight Lane's bay looser than First Bay's, which is the drift its rename
+was meant to end. The alternatives are to reorder the series, to give Tight
+Lane a second idea that is not slack, or to accept the spike.
 
-**The progression has two ideas in one level.** Tight Lane does not require
-reversing, so The Short Side is where both the reverse-in *and* "the room is on
-the side you did not arrive from" arrive together. That is two new ideas in one
-level, against the rule that each level introduces one. Cutting Pillar Problem
-shortened the habit-building interval further, so The Alcove now breaks a
-belief that only The Short Side and Kerbside built — and Kerbside is a
-different parking form. Tight Lane may also be execution difficulty wearing a
-comprehension label: "0.64 m of slack, aim it" is precision unless its question
-is made "align before you enter, because you cannot correct inside".
+**Tight Lane has no idea of its own.** Its manoeuvre is First Bay's and its
+only new difficulty is precision, against the rule that each level introduces
+something new to figure out rather than a harder version of the last thing.
+The measurements above say why: for a perpendicular bay there is nothing else
+to vary. A second idea for level 2 has to come from somewhere other than the
+bay's dimensions — which bay of several is the one that fits, an obstruction
+that moves the entry, a neighbour that overhangs.
 
-**The hints give the answer away.** The level-select tile is unavoidable before
-a first attempt, and several hints state the insight outright: The Short Side
-names which side has the room, Kerbside gives the manoeuvre step by step, The
-Alcove says reverse entry does not fit, Dead End says to borrow the dead end.
-Against the rule that a level should be harder to *figure out*, that converts
-discovery into execution. The alternative is to state the problem on the tile
-and put the solution behind an explicit request.
-
-**Crashes rank the run.** Constraint 2 says the score is direction changes.
-`Game.finish` breaks a tie between two bests on crash count, and the result
-card's rating is decided entirely by crashes. Counting contact and showing it
-is compatible with shunt-only scoring; letting it choose the better run and
-award the rating is not. Either the rating and the tie-break go, or constraint
-2 says the score is shunts *and* crashes.
+**Which manoeuvre First Bay should teach.** Re-cutting it to cost a direction
+change made it a two-row car park with a 2.9 m aisle, so level 1 now hands the
+player the reverse-in. That fixes what was wrong before — The Short Side used
+to introduce the reverse-in *and* "the room is on the side you did not arrive
+from" in the same level — but it also means level 1 teaches the manoeuvre, the
+controls and the parking test at once.
 
 **What "this level teaches X" has to mean** before a tool can check it: that
 every completion embodies the lesson, that the best-shunt completion does, or
@@ -481,28 +508,24 @@ only that one intended solution exists. Impossibility cannot be proved here —
 a lattice search that finds no counterexample has only failed to find one — so
 "every completion" is not available. The reachable contract is the middle one,
 and it is the one that follows the player's incentive: a player optimises
-shunts against their own best, so if an unintended route is cheaper in shunts,
+direction changes against their own best, so if an unintended route is cheaper,
 the game rewards avoiding the lesson.
 
-**The word "shunt" on the HUD.** The stat row is labelled `shunts`; the result
-card says "direction changes"; the README defines the first with the second.
-Nothing in the game itself defines it, and the word is ordinary driving usage
-rather than something a player is guaranteed to arrive with. Either the HUD
-label becomes "direction changes" and the game has one word for the thing it
-scores, or `shunts` stays as a short label a player learns once and the longer
-phrase stays on the card that has room for it. *Recorded because it was asked,
-which is the evidence that it is not self-explanatory.*
+**Mirrors, or a driver's-eye view.** Blind Side is described as the dock on the
+side the mirrors do not cover. There are no mirrors, so that is currently a
+description of nothing and the level's difficulty is pure geometry. Mirror
+insets on the chase view, or a bumper-height driver's-eye mode, would make the
+stated problem real and would make constraint 10 bite considerably harder. *It
+adds a decision rather than removing one.*
 
-**Mirrors, or a driver's-eye view.** Blind Side's hint says "the side the
-mirrors don't cover". There are no mirrors, so that sentence is currently
-fiction and the level's difficulty is pure geometry. Mirror insets on the chase
-view, or a bumper-height driver's-eye mode, would make the stated problem real
-and would make constraint 10 bite considerably harder. *It adds a decision
-rather than removing one.*
-
-**Levels for the van, bus, tow car and semi.** Answered for the hatchback only,
-and that answer is now in question above. Same terms: design session first,
-with the user; do not invent levels to fill a table.
+**A per-level design goal for the six large-vehicle levels.** Van Life, Loading
+Dock, Bus Stop, Trailer Trouble, Artic Dock and Blind Side each state what the
+vehicle makes hard, but none states what the *player* has to work out, which is
+what the hatchback series was re-cut around. Five of the six cost 1 direction
+change. Whether that is a gap or the correct answer — the vehicle being the
+problem, so the geometry need not also be — is undecided. Same terms as the
+hatchback series: a design session first, with the user; do not invent levels
+to fill a table.
 
 ### Recorded, not open
 

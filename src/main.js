@@ -13,7 +13,7 @@ import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.j
 
 // Versioned with the scoring unit. When the unit changes this key changes,
 // and there is nothing to migrate — a best in an abandoned unit is not data.
-const STORE = 'tight-fit.v2';
+const STORE = 'tight-fit.v3';
 const PHYS_DT = 1 / 120;
 
 function loadProgress() {
@@ -271,25 +271,30 @@ class Game {
     this.sfx.win();
     const id = this.level.id;
     const prev = this.progress.best[id];
-    const better = !prev || this.shunts < prev.shunts
-      || (this.shunts === prev.shunts && this.bumps < prev.bumps);
-    if (better) this.progress.best[id] = { shunts: this.shunts, bumps: this.bumps };
+    // A crash voids the score but not the progress (DESIGN.md 2). The level is
+    // still passed and the next one still unlocks — you are never stuck on a
+    // level you cannot drive cleanly — but nothing about the run is recorded,
+    // so a best is always a clean run and needs no tie-break to say which of
+    // two is better.
+    const clean = this.bumps === 0;
+    const better = clean && (!prev || this.shunts < prev.shunts);
+    if (better) this.progress.best[id] = { shunts: this.shunts };
     if (this.index === this.progress.unlocked) this.progress.unlocked = Math.min(LEVELS.length - 1, this.index + 1);
     this.save();
 
-    // Rank is bumps, and only bumps. It used to have a fourth grade that
-    // asked whether you beat par; with no target number on the surface at all
-    // (DESIGN.md 2) there is nothing left for that grade to mean.
-    const rank = this.bumps === 0
-      ? { label: 'flawless', kicker: 'not a mark on it' }
-      : this.bumps <= 2
-        ? { label: 'scuffed', kicker: 'parked' }
-        : { label: 'rough', kicker: 'parked, eventually' };
+    // There is nothing left to grade. A run either counts or it does not, and
+    // which one it is is the only thing the card has to say about quality.
+    const rank = clean
+      ? { clean: true, label: 'counts', kicker: 'parked' }
+      : { clean: false, label: 'void', kicker: 'parked, but you hit something' };
 
     const notes = [];
-    if (this.bumps > 0) notes.push(`${this.bumps} crash${this.bumps === 1 ? '' : 'es'} on this run.`);
+    if (!clean) {
+      notes.push(`${this.bumps} crash${this.bumps === 1 ? '' : 'es'}, so this run does not count.`);
+    }
     if (better && prev) notes.push('New best.');
     else if (prev) notes.push(`Your best is ${prev.shunts}.`);
+    else if (!clean) notes.push('No clean run on this level yet.');
     this.hud.showResult({
       level: this.level,
       shunts: this.shunts,
