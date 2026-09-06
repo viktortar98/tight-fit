@@ -163,9 +163,39 @@ viewpoint with it. For an articulated vehicle the chase camera frames the
 *whole combination*, not the cab — that is geometry, not guessing, and so is
 deriving distance and pitch from vehicle length in `reset()`.
 
-Smoothing position is not guessing either; it is only non-instantaneity.
-Moving the camera somewhere the player did not put it is. The two "pay it back
-in height" adjustments — arena clamp and occlusion pull-in — were the latter.
+Smoothing position is not guessing either; it is only non-instantaneity — and
+it is now one time constant, because position, look point and the overhead
+rotation were three spellings of the same decision (0.103, 0.112 and 0.115 per
+frame at 60 Hz). Moving the camera somewhere the player did not put it is
+guessing, and the arena clamp and the occlusion pull-in both did.
+
+Those two were removed on measurement, not taste, and the numbers are recorded
+here because intuition argues for putting them back:
+
+- Together they moved the camera **a mean of 3.36 m from the pose the player's
+  instructions describe, up to 28.6 m** on artic-dock. The clamp fired on
+  30–90% of poses depending on the level, so it was the normal operating
+  condition rather than a rescue.
+- The pull-in **failed exactly where it was needed**: `max(2.4, hit - 0.4)`
+  puts the camera *through* any occluder nearer than 2.8 m, which on Dead End
+  is 15% of the cases where it fired. Its answer to the hardest pose was to
+  hide the camera inside the masonry.
+- What it bought was 7.2% of sampled poses with a wall at screen centre, and
+  2.3% once the framing below was fixed. Of that residual, the chase view is
+  **0% blocked when the vehicle points along the corridor it is in**. What is
+  left is pointing across a 3.4 m alley between 4.2 m walls, where clearing the
+  wall would need a 59° sight line — no camera placement answers that pose.
+
+So the player gets the wall, and three controls that get them out of it. A wall
+is predictable; a 6 m lurch whenever a pillar crosses the sight line is not.
+The pose that has no camera answer has a *mode* answer, one button away.
+
+**`street` is an enclosed theme.** Kerbside, The Squeeze and Bus Stop are
+canyons between 5 m buildings 8–9 m apart — more enclosed than the garage
+levels — and were being framed as though they were open lots. The lot is the
+only theme with room to stand back in, so the test is `theme !== 'lot'`.
+
+The camera reads the pad through the `BTN` map, like every other reader.
 
 *Held by:* `src/camera.js`.
 
@@ -318,10 +348,12 @@ kind of thing constraint 9 now forbids, and the smoothing especially so. Set
 against that: it is a stated frame of reference, not the camera guessing, and
 it makes a stick-left always a nose-left. *The user's call.*
 
-**Themes.** `THEMES` holds four eight-field tables where the real distinction is
-binary — `camera.js` already collapses them with `theme === 'garage' ||
-theme === 'alley'`. Deliberately not touched: the themes are expected to be
-replaced wholesale, and optimising a thing on its way out is waste.
+**Themes.** `THEMES` holds four eight-field tables whose real distinction is
+close to binary. Note the binary is *open vs enclosed* and `lot` is the only
+open one — `camera.js` used to test `garage || alley`, which quietly misfiled
+the three street-canyon levels. Deliberately not collapsed: the themes are
+expected to be replaced wholesale, and optimising a thing on its way out is
+waste. Whatever replaces them should keep that one distinction.
 
 **Levels per vehicle.** The bus and the tow car carry one level each, and
 levels 7/8 are one route driven by two vehicles. More levels per vehicle are

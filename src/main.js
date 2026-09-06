@@ -373,10 +373,6 @@ class Game {
         this.state = 'playing';
       }
       if (input.pressed('KeyC') || this.pad.tapped(BTN.RB)) this.hud.toast(`camera: ${this.rig.cycle()}`);
-      if (input.pressed('KeyV') || this.pad.tapped(BTN.BACK)) {
-        this.rig.autoFlip = !this.rig.autoFlip;
-        this.hud.toast(`reverse camera ${this.rig.autoFlip ? 'auto' : 'fixed'}`);
-      }
       if (input.pressed('KeyM') || this.pad.tapped(BTN.LS)) {
         this.sfx.muted = !this.sfx.muted;
         this.hud.toast(this.sfx.muted ? 'muted' : 'sound on');
@@ -425,7 +421,7 @@ class Game {
         braking: car.braking,
         reversing: car.speed < -0.05,
       });
-      this.rig.update(dt, car, this.spec, this.world);
+      this.rig.update(dt, car, this.spec);
       this.world.animateTarget(performance.now() / 1000, this.inside);
     }
 
