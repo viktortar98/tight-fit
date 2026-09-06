@@ -7,10 +7,6 @@ export function clamp(v, lo, hi) {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
-export function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
 export function corners(r, grow = 0) {
   const c = Math.cos(r.rot);
   const s = Math.sin(r.rot);

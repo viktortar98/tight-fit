@@ -256,12 +256,7 @@ export class World {
     }
 
     let mat;
-    if (o.kind === 'barrier') {
-      const tex = this.stripe.clone();
-      tex.needsUpdate = true;
-      tex.repeat.set(Math.max(1, o.w / 1.2), 1);
-      mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75 });
-    } else if (o.kind === 'kerb') {
+    if (o.kind === 'kerb') {
       mat = new THREE.MeshStandardMaterial({ color: 0xe6e3db, roughness: 0.95 });
     } else if (o.kind === 'pillar') {
       mat = new THREE.MeshStandardMaterial({ color: 0xd3d5d9, roughness: 0.92 });
