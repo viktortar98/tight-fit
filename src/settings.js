@@ -144,13 +144,18 @@ export const SETTINGS = [
     // the player scores, and a game whose score *is* direction changes would
     // hand an unasked-for level a dozen of them. DESIGN.md 12 is about what is
     // on screen for the first attempt, and this is for the eighth.
+    //
+    // It does not depend on the circles and is not listed under them: a ghost
+    // is a pose and carries no figure on the ground (DESIGN.md 23).
     id: 'ghosts',
     name: 'Direction-change ghosts',
     note: 'A pale copy of the vehicle left standing wherever you swap between '
       + 'forward and reverse, so a shuffle shows every pose it went through at '
-      + 'once instead of one at a time. The poses are kept whether or not they '
-      + 'are drawn, so turning this on halfway through a manoeuvre shows the '
-      + 'whole manoeuvre. Off by default.',
+      + 'once instead of one at a time. The newest is the firmest and each '
+      + 'older one is fainter, so the order they were left in is on the floor '
+      + 'too. The poses are kept whether or not they are drawn, so turning '
+      + 'this on halfway through a manoeuvre shows the whole manoeuvre. Off by '
+      + 'default.',
     values: [{ id: 'off', name: 'Hidden' }, { id: 'on', name: 'Shown' }],
   },
   {

@@ -39,6 +39,7 @@ const MAX_RADIUS = 4000;
 const REAR_COLOUR = 0x4a9fd8;
 const FRONT_COLOUR = 0xb07ee8;
 const CENTRE_COLOUR = 0xe8b33c;
+const OPACITY = 0.5;
 
 function ribbon(count, colour, opacity) {
   const g = new THREE.BufferGeometry();
@@ -62,28 +63,12 @@ function ribbon(count, colour, opacity) {
 }
 
 export class TurnCircles {
-  // Two things a caller gets to say about how this is drawn, and both exist
-  // for the frozen copy a ghost carries (src/ghosts.js).
-  //
-  // `opacity` keeps a ghost's figure under the live one, so there is never a
-  // question about which figure the wheel in your hands is moving.
-  //
-  // `rings` is the more interesting one. `rear` drops the front-wheel circles,
-  // which for a *past* pose are the ones the ground already has: the tyre
-  // marks (DESIGN.md 19) are the arcs the wheels actually ran, front pair
-  // included, drawn where they ran. What a past pose adds that nothing else
-  // records is the centre it was turning about, and the circle its rear axle —
-  // the end that decides where the vehicle ends up — was on. Six ghosts of the
-  // full figure is thirty-six rings over one manoeuvre, and a picture nobody
-  // can read is not a record of anything.
-  constructor({ opacity = 0.5, rings = 'all' } = {}) {
+  constructor() {
     this.group = new THREE.Group();
     this.group.visible = false;
     this.rings = [];
     this.spec = null;
-    this.opacity = opacity;
-    this.wheelSet = rings;
-    this.centre = ribbon(64, CENTRE_COLOUR, opacity);
+    this.centre = ribbon(64, CENTRE_COLOUR, OPACITY);
     this.group.add(this.centre.mesh);
   }
 
@@ -101,12 +86,10 @@ export class TurnCircles {
     for (const z of rows.rear) {
       for (const sx of [-1, 1]) this.wheels.push([(sx * spec.trackWidth) / 2, z, REAR_COLOUR]);
     }
-    if (this.wheelSet === 'all') {
-      for (const z of rows.front) {
-        for (const sx of [-1, 1]) this.wheels.push([(sx * spec.trackWidth) / 2, z, FRONT_COLOUR]);
-      }
+    for (const z of rows.front) {
+      for (const sx of [-1, 1]) this.wheels.push([(sx * spec.trackWidth) / 2, z, FRONT_COLOUR]);
     }
-    this.rings = this.wheels.map(([, , colour]) => ribbon(MAX_STEPS + 1, colour, this.opacity));
+    this.rings = this.wheels.map(([, , colour]) => ribbon(MAX_STEPS + 1, colour, OPACITY));
     for (const r of this.rings) this.group.add(r.mesh);
   }
 

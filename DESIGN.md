@@ -1099,9 +1099,10 @@ point rather than something the game imports.
 
 A setting. Turn it on and each time the run swaps between forward and reverse,
 a translucent copy of the vehicle stays where it turned: same model, same
-place, same steering angle, and — with the turning circles on — on the circles
-it was turning about. Eight strokes leave eight of them, and the whole
-manoeuvre is on the floor at once instead of one pose at a time.
+place, same steering angle. Eight strokes leave eight of them, and the whole
+manoeuvre is on the floor at once instead of one pose at a time. A ghost is a
+pose and nothing else — nothing is drawn on the ground for it, for a reason
+given below that is the second half of this constraint.
 
 **It answers a question the game could not otherwise be asked.** The user's
 statement of what it is for, which is the specification:
@@ -1133,9 +1134,10 @@ The class of problems is real and every item in it was open before this
 decision: when to press, how many pile up, what the cap should be, whether
 there is a clear key, and whether a player who released the stick before
 pressing captures a straightened wheel — measured at 0.27 rad against the 0.36
-rad actually held through the stroke, and once at 0.00, which drew no figure at
-all. An automatic capture has none of them, because it does not depend on a
-player's reaction at all.
+rad actually held through the stroke, and once at 0.00. An automatic capture
+has none of them, because it does not depend on a player's reaction at all.
+That last measurement outlived the question it was taken for: it is the number
+behind the withdrawal further down.
 
 It also costs nothing to detect. A direction change is a sign change in the
 direction of travel above 0.2 m/s, and the game already counts them, because
@@ -1155,8 +1157,7 @@ Restart clears them for the same reason: a new run starts at zero.
 **The poses are recorded whether or not they are drawn.** Five numbers per
 direction change, kept regardless of the setting. So a player who finishes a
 shuffle, wonders why it worked, and turns the aid on then is shown the
-manoeuvre rather than whatever is left of it. The same holds for the circles: a
-ghost builds its figure when the circles setting reaches it.
+manoeuvre rather than whatever is left of it.
 
 **It is off by default**, and constraint 12 is why rather than constraint 10.
 It is a record and not a prediction, so 10 has nothing against it — but it puts
@@ -1189,9 +1190,7 @@ showing — measured on First Bay, and the saturated shape the player steers by
 had gone. Hiding them costs nothing, because a ghost of where you are standing
 is the one place you can already see the vehicle, and driving off it brings it
 back. The test is the game's own rectangle overlap, so "standing in it" means
-what it means everywhere else. The circles stay behind: they lie on the ground,
-they veil nothing, and the centre a stroke turned about is the half of the
-record the tyre marks do not draw.
+what it means everywhere else.
 
 **Nothing is drawn from the driver's seat.** From the seat the eye is *inside*
 the ghost, and a translucent shell around the head fogs the windscreen and all
@@ -1199,28 +1198,79 @@ three mirrors together — measured on Kerbside, and the whole view went milky.
 The rule costs nothing, because every view is one button away (constraint 9)
 and the ghost is a thing you read by looking at the vehicle from outside it.
 
-**A ghost carries the turning circles of the pose it was captured at**, when
-the player has that setting on. Requested as such, and it follows from what
-constraint 10 already says about that figure: hold the wheel and the circles do
-not move, so the circles are a property of the pose and outlive it. Two things
-about it were decided here rather than asked for:
+**A ghost carries no figure on the ground, and that is a withdrawal.** The
+first version drew the turning circles of the pose each ghost was captured at,
+because it had been asked for and because constraint 10 already says a circle
+is a property of the pose rather than a prediction about it. The user withdrew
+the request after seeing it, and the reason is a fact about where direction
+changes actually happen:
 
-- **Only the rear circles and the shared centre.** For a *past* pose the front
-  circles are the ones the ground already has — the tyre marks are the arcs the
-  wheels actually ran, front pair included, drawn where they ran. What a past
-  pose adds that nothing else records is the centre it was turning about and
-  the circle the end that decides where the vehicle lands was on. Six ghosts of
-  the full figure is thirty-six rings over one manoeuvre, and a picture nobody
-  can read records nothing.
-- **They are fainter than the live figure**, which has to stay the one the
-  wheel in your hands is moving.
+> "very often, the position of the direction change has nothing to do with
+> maximal wheel angle and wheel trace projection that belongs to it... my
+> turning points were once where I was reversing straight and then going
+> forward to turn fully into the other direction... So it had nothing to do
+> with the exact wheel trace that would be shown for that position. So now I'm
+> thinking that it was a bad idea to show wheel traces for this capture...
+> because the position, the position change, the sideways movement of the car,
+> and the change of the angle is the interesting part."
 
-**Twenty-four, then the oldest goes.** A run needing more than two dozen
-strokes has stopped being a manoeuvre anyone reads off the floor. The oldest is
-dropped because the newest is the one being compared against. The cap is the
-one place the ghosts and the score disagree, which is why a ghost stores its
-shunt number rather than its index: a truncation after a rewind still lands on
-the right ones when the front of the list has fallen off.
+The measurement taken for a different question is the numeric form of that
+charge: at a reversal the lock read 0.27 rad where 0.36 had been held through
+the stroke, and once 0.00. A figure drawn from the instant of a reversal is a
+claim about a turn that the stroke did not make, and a straight stroke ends
+with no figure at all. Neither is a record of anything, which is what puts this
+on the wrong side of the rule that opens this constraint.
+
+What survives is the pose itself, front wheels included: they stay turned as
+they were, because the angle of a wheel is part of a pose in the way that a
+ring painted on the floor is not. The `opacity` and `rings` options added to
+`TurnCircles` for the withdrawn version were removed with it — nothing else
+used them, and an unused constructor option is not something `knip` can see.
+
+**The fade is how the order is read, and its limit is measured.** The user
+asked for it and said what it is for: opacity decreases with age, "although it
+should never truly disappear... something like exponential decay", so that "it
+would make the progress more readable". Three things follow. Age is position in
+the sequence and not seconds, because a ghost left before a five-minute pause
+is not older than the one after it. The oldest never reaches nothing, because
+the whole manoeuvre is the thing being read. And every ghost owns its material,
+because a shared one can only say one thing about age.
+
+The curve is `floor + (top - floor) · ratio^age` with top 0.45, floor 0.11 and
+ratio 0.66, and those three are measured rather than chosen. What a step of the
+curve is worth is not a difference in alpha but a difference on screen, and a
+ghost is drawn over whatever it is standing on. Measured on First Bay from
+overhead, in luminance out of 255 against each ghost's own background, the
+steps of this series are **9.9, 8.1, 5.7, 4.4, 2.8 and then under two**, and
+the floor still stands 16.7 above the ground it is drawn on.
+
+So the honest limit is that **the picture orders about the newest four**, and
+everything older sits together near the floor. That is not a curve that can be
+tuned out of it: the whole usable range is about 0.45 down to 0.11, which is
+some fifty luminance levels, and a dozen steps that a reader could tell apart
+would need every one of them. An exponential spends the range at the recent
+end, which is where the question is — the two poses either side of the last
+stroke are the pair the aid exists to compare. The rest of the trail says
+"older, all of them", which is a true thing to say.
+
+One thing the fade does not fix. Ghosts that overlap each other still compound,
+because writing depth makes a *single* ghost one blend and does nothing about
+two: ten poses within half a metre of each other — a player rocking on the spot
+— read as a pale slab about 90% opaque, against 99.75% if every ghost were
+drawn at the top of the curve. The fade improves that case without solving it,
+and constraint 8 is protected by the standing-in-it rule above rather than by
+the curve.
+
+**Twelve, then the oldest goes.** A dozen is about the score of a hard level,
+so the cap usually keeps the whole manoeuvre; a run needing more than that has
+stopped being a manoeuvre anyone reads off the floor. It was two dozen before
+the fade was measured, and two dozen had no argument behind it: past the fourth
+ghost the curve no longer distinguishes anything, so the far end of a longer
+list is a crowd rather than a record. The oldest is dropped because the newest
+is the one being compared against. The cap is the one place the ghosts and the
+score disagree, which is why a ghost stores its shunt number rather than its
+index: a truncation after a rewind still lands on the right ones when the front
+of the list has fallen off.
 
 **The lock is the one the finished stroke was driven at, not the one held at
 the instant of the reversal.** By the time the game detects a direction change
@@ -1228,16 +1278,15 @@ the wheel is already on its way to the next stroke's lock and is at neither:
 measured on The Short Side at −0.203 rad, between a stroke held at +0.203 and
 one about to be driven at −0.55. So the step remembers the steering angle from
 the last step the vehicle was still moving the old way, and that is what the
-ghost carries. It makes the ghost the stroke that just ended, whole — the pose
-it finished in and the circle it ran on — and the alternating centres of a
-shuffle are then a row of marks on the floor, which is the picture the feature
-exists to draw. The remembered angle is on the rewind tape with everything else
-(constraint 18).
+ghost carries. The wheels are the only thing that shows it — nothing is drawn
+on the ground — but a pose whose wheels are caught mid-transit between two
+strokes is a pose the vehicle was never in, and this is a record. The
+remembered angle is on the rewind tape with everything else (constraint 18).
 
-*Held by:* `src/ghosts.js`, `Game.stepPhysics` for the instant and the lock,
-`Game.restore` for the rewind, and `Game.frame` for the seat rule and the
-standing-in-it rule. Nothing checks any of it;
-`dev.html#ghosts` is where it is looked at (constraint 22).
+*Held by:* `src/ghosts.js` for the copy, the fade and the cap,
+`Game.stepPhysics` for the instant and the lock, `Game.restore` for the rewind,
+and `Game.frame` for the seat rule and the standing-in-it rule. Nothing checks
+any of it; `dev.html#ghosts` is where it is looked at (constraint 22).
 
 ## Where the rules are enforced
 
@@ -1551,13 +1600,28 @@ means the game actively rewards avoiding the lesson. Not yet built. What a
 checker needs is below, under "How a level's design goal gets checked": a
 signature carried on the search state, not a test on the final pose.
 
-**Mirrors, and the driver's-eye view.** Decided: neither, and the reason is
-general. The game has one kind of view — outside the vehicle, whole vehicle
-visible — so no level may be built on what the player cannot see. That is now
-written into constraint 9, along with the half of it that gains something:
-height is legible from an outside view and invisible from a plan view, and
-`wall()` already takes an `h`. Blind Side, whose entire premise was a mirror
-blind spot, is renamed Yard Full and now claims only the obstruction it has.
+**Mirrors, and the driver's-eye view.** Decided against, then built anyway,
+and the record is worth keeping in that order. The decision was that the game
+has one kind of view — outside the vehicle, whole vehicle visible — so no
+level may be built on what the player cannot see. What survives of it is the
+half that gains something: height is legible from an outside view and invisible
+from a plan view, and `wall()` already takes an `h`.
+
+The rest was overturned by the user asking for the seat itself. Constraint 9
+now lists `cockpit` as one of three modes — a seat, a bonnet and three mirrors
+— and `src/carMesh.js` builds the mirrors and records where the driver's head
+sits; the mirrors are a setting in `src/settings.js`. So a reader who finds
+cockpit mode and wonders whether it breaks a rule has the answer here: it does
+not, because the rule it would break was withdrawn. What *is* still enforced is
+the sentence that did the work — no level may be built on what the player
+cannot see — and it holds because every view is one button away, so nothing a
+level does can depend on the player being in one of them.
+
+Blind Side, whose entire premise was a mirror blind spot, was renamed Yard Full
+under the old rule and now claims only the obstruction it has. The rename still
+stands and the reason for it no longer does, which makes it a level-design
+question rather than a documentation one: mirrors exist, so a level *could* be
+built on one again. Nobody has asked for that.
 
 **Themes.** `THEMES` holds four eight-field tables whose real distinction is
 close to binary: open versus enclosed, with `lot` the only open one.

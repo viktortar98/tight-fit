@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { TurnCircles } from './turnCircles.js';
 import { bodyRect, trailerAxle } from './vehicle.js';
 import { overlaps } from './geom.js';
 
@@ -17,8 +16,7 @@ import { overlaps } from './geom.js';
 //
 // Turn the setting on and each reversal leaves a translucent copy of the
 // vehicle standing where it turned: same model, same place, same steering
-// angle, and — when the turning circles are on — on the circles it was turning
-// about. A shuffle of eight strokes leaves eight of them, and the manoeuvre is
+// angle. A shuffle of eight strokes leaves eight of them, and the manoeuvre is
 // on the ground all at once instead of one pose at a time.
 //
 // What it is for is the one thing driving cannot show you. A parallel-parking
@@ -41,6 +39,14 @@ import { overlaps } from './geom.js';
 // It is a record and not a prediction. Every ghost is a place the vehicle has
 // already been, at a moment the game did not choose but merely noticed.
 //
+// A ghost is a pose and nothing else. Nothing is drawn on the ground for it:
+// the turning circles it carried in a first version came off, because the lock
+// at a reversal is very often unrelated to the stroke that produced the
+// displacement — a stroke reversed out of straight-line travel captures a
+// wheel near centre, and the figure drawn for it is a claim about a turn that
+// did not happen (DESIGN.md 23). The front wheels stay turned as they were,
+// because that is part of the pose and not a figure about it.
+//
 // Two decisions worth stating, because neither is arbitrary:
 //
 // The ghost is desaturated, not tinted like the car it came from. The player's
@@ -55,10 +61,35 @@ import { overlaps } from './geom.js';
 // outside, and through a translucent shell it is just clutter inside the
 // outline.
 
-// A run that needs more than two dozen strokes has stopped being a manoeuvre
+// A run that needs more than this many strokes has stopped being a manoeuvre
 // anyone is reading off the floor. The oldest goes, because the newest is the
-// one being compared against.
-const MAX = 24;
+// one being compared against, and because past the far end of the fade below
+// an older ghost is no longer distinguishable from an even older one anyway.
+const MAX = 12;
+
+// The fade. A ghost is drawn fainter the further back in the sequence it is,
+// so the order the poses were left in can be read off the picture without
+// counting: the newest is the firmest thing on the floor and the trail leads
+// back from it.
+//
+// Age is position in the list, not seconds — a ghost left before a five-minute
+// pause is not older than the one left after it — and the oldest never reaches
+// nothing: at the floor a ghost is still a shape against the asphalt, because
+// the whole manoeuvre is what the aid is for.
+//
+// The three numbers were measured on screen rather than chosen, because
+// nominal opacity is not what a reader sees: a ghost is drawn over whatever it
+// stands on, so what a step of the curve is worth is a number of luminance
+// levels, not a number of hundredths of alpha. Measured on First Bay from
+// overhead, in luminance out of 255 over each ghost's own background, the
+// steps of this series are 9.9, 8.1, 5.7, 4.4, 2.8 and then under two. So the
+// picture orders about the newest four and the rest sit together near the
+// floor: see DESIGN.md 23, which is where that limit is written down rather
+// than hidden in a constant.
+const TOP = 0.45;
+const FLOOR = 0.11;
+const RATIO = 0.66;
+const fade = (age) => FLOOR + (TOP - FLOOR) * RATIO ** age;
 
 // Pale rather than mid-grey, and at an opacity that survives being drawn over
 // asphalt. The first pass was 0x9aa4b0 at 0.3 and it disappeared into the road
@@ -73,27 +104,23 @@ const MAX = 24;
 // vehicle gains centimetres per cycle, painted the player's own car out of the
 // picture entirely and left a white slab. That breaks DESIGN.md 8 outright:
 // the saturated shape is supposed to be the one you are driving. Writing depth
-// makes a stack of ghosts cost about what one costs.
+// makes a stack of ghosts cost about what one costs — and it is also what
+// makes the fade above mean anything, because one ghost is then one blend of
+// its own opacity rather than a dozen.
+const COLOUR = 0xdfe6ef;
 const material = (color, opacity) => new THREE.MeshStandardMaterial({
   color, roughness: 0.95, metalness: 0.0,
   transparent: true, opacity, depthWrite: true,
 });
 
-const MATERIAL = material(0xdfe6ef, 0.45);
-
 // Warm where the record is cool, and firmer: a pose in the vehicle's future
 // has to be tellable at a glance from a pose in its past, and the two are
 // often on screen together. It can afford the extra weight because there is
-// never more than one of it — the 0.45 above is the number that keeps a *pile*
-// of ghosts off the player's car, and a pile is the one thing this cannot be.
-// It stays pale even so, because a saturated vehicle-shaped thing on this
-// screen is the player's own car and nothing else (DESIGN.md 8).
+// never more than one of it — the fade above is what keeps a *pile* of ghosts
+// off the player's car, and a pile is the one thing this cannot be. It stays
+// pale even so, because a saturated vehicle-shaped thing on this screen is the
+// player's own car and nothing else (DESIGN.md 8).
 const CONTACT_MATERIAL = material(0xf0b9a2, 0.55);
-
-// Fainter than the live figure, which has to stay the one you are steering by,
-// and only the rear circles and the centre — see the note on `rings` in
-// src/turnCircles.js for why a past pose does not want the front pair.
-const CIRCLE_OPACITY = 0.3;
 
 // A copy of the built vehicle that shares its geometry, and a map from each
 // source node to its copy so the caller can pose the parts it cares about.
@@ -122,14 +149,12 @@ export class Ghosts {
   // `mesh` is the live vehicle's mesh, and it is the only description of the
   // model a ghost has: copying the thing on screen is what makes "the same
   // vehicle" true by construction rather than by two builders agreeing.
-  constructor(spec, mesh, bounds) {
+  constructor(spec, mesh) {
     this.spec = spec;
     this.mesh = mesh;
-    this.bounds = bounds;
     this.group = new THREE.Group();
     this.list = [];
     this.shown = false;
-    this.showCircles = false;
   }
 
   get count() { return this.list.length; }
@@ -140,10 +165,6 @@ export class Ghosts {
   // passed in rather than read off the vehicle because by this instant the
   // wheel is already turning towards the next stroke's lock (see the note at
   // the call site).
-  //
-  // The steering angle is part of the pose and not a detail of it: it is what
-  // the wheels are drawn at and what the circles are computed from, and the
-  // circle a stroke ran on is the thing that explains the stroke.
   //
   // The pose is recorded whether or not anything is being drawn. It is five
   // numbers, and keeping them means a player who turns the setting on halfway
@@ -158,31 +179,49 @@ export class Ghosts {
       steer,
       body: null,
       trailer: null,
-      circles: null,
+      material: null,
     };
     if (this.list.length >= MAX) this.drop(this.list.shift());
     this.list.push(g);
-    if (this.shown) this.build(g);
+    if (this.shown) { this.build(g); this.refade(); }
   }
 
   // Everything after shunt `n` never happened: the tape was wound back past
   // the direction change that scored it (DESIGN.md 18). Called for every frame
   // the rewind pops, so the common case has to be the cheap one.
   truncate(n) {
+    let cut = false;
     while (this.list.length && this.list[this.list.length - 1].at > n) {
       this.drop(this.list.pop());
+      cut = true;
+    }
+    // A rewind makes the survivors younger, and the newest of them has to
+    // become the firm one again, or the trail leads back from a pose that is
+    // no longer there.
+    if (cut) this.refade();
+  }
+
+  // Opacity by position from the newest, on every change to the list. Each
+  // ghost owns its material for exactly this reason: a shared one could only
+  // ever say one thing about age.
+  refade() {
+    const n = this.list.length;
+    for (let i = 0; i < n; i++) {
+      const g = this.list[i];
+      if (g.material) g.material.opacity = fade(n - 1 - i);
     }
   }
 
   build(g) {
     if (g.body) return;
     const map = new Map();
-    g.body = copyOf(this.mesh.group, map, MATERIAL);
+    g.material = material(COLOUR, TOP);
+    g.body = copyOf(this.mesh.group, map, g.material);
     g.body.position.set(g.x, 0, g.z);
     g.body.rotation.y = g.yaw;
     this.group.add(g.body);
     if (this.mesh.trailerGroup) {
-      g.trailer = copyOf(this.mesh.trailerGroup, map, MATERIAL);
+      g.trailer = copyOf(this.mesh.trailerGroup, map, g.material);
       const axle = trailerAxle(this.spec, g);
       g.trailer.position.set(axle.x, 0, axle.z);
       g.trailer.rotation.y = g.trailerYaw;
@@ -193,18 +232,6 @@ export class Ghosts {
     // thirty seconds ago has to show that pose, and the copy came off a mesh
     // that has moved on since.
     for (const w of this.mesh.wheels.front) map.get(w)?.rotation.set(0, g.steer, 0);
-    if (this.showCircles) this.addCircles(g);
-  }
-
-  // The figure the vehicle was standing on, frozen. It is drawn once and never
-  // updated, which is what the live one already claims to be: hold the wheel
-  // and the circles do not move (DESIGN.md 10), so the circles of a pose are a
-  // property of the pose and outlive it.
-  addCircles(g) {
-    if (g.circles) return;
-    g.circles = new TurnCircles({ opacity: CIRCLE_OPACITY, rings: 'rear' });
-    g.circles.update(this.spec, g, this.bounds);
-    this.group.add(g.circles.group);
   }
 
   // A ghost the vehicle is standing in is not drawn, and this is constraint 8
@@ -217,9 +244,7 @@ export class Ghosts {
   // Hiding them costs nothing, because a ghost of where you are standing is
   // the one place you can already see the vehicle. Drive off it and it is
   // there again. The test is the game's own overlap test on the body
-  // rectangle, so "standing in it" means what it means everywhere else. The
-  // circles stay: they lie on the ground, they veil nothing, and the centre a
-  // stroke turned about is the half of the record the tyre marks do not draw.
+  // rectangle, so "standing in it" means what it means everywhere else.
   occlude(state) {
     const live = bodyRect(this.spec, state);
     for (const g of this.list) {
@@ -240,38 +265,21 @@ export class Ghosts {
       if (on) this.build(g);
       else this.unbuild(g);
     }
-  }
-
-  // Built when they are first wanted rather than at capture: a player with the
-  // circles off is not paying for ring buffers per ghost, and turning them on
-  // reaches the ghosts already standing, not just the next one.
-  setCircles(on) {
-    if (on === this.showCircles) return;
-    this.showCircles = on;
-    for (const g of this.list) {
-      if (!g.body) continue;
-      if (on) this.addCircles(g);
-      else this.dropCircles(g);
-    }
-  }
-
-  dropCircles(g) {
-    if (!g.circles) return;
-    this.group.remove(g.circles.group);
-    g.circles.dispose();
-    g.circles = null;
+    if (on) this.refade();
   }
 
   unbuild(g) {
     if (g.body) this.group.remove(g.body);
     if (g.trailer) this.group.remove(g.trailer);
+    g.material?.dispose();
     g.body = null;
     g.trailer = null;
-    this.dropCircles(g);
+    g.material = null;
   }
 
-  // Only the circles own geometry; a ghost body shares the live vehicle's,
-  // which belongs to the mesh it was copied from.
+  // A ghost body shares the live vehicle's geometry, which belongs to the mesh
+  // it was copied from; the material is the one thing of its own it holds, and
+  // `unbuild` releases it.
   drop(g) { this.unbuild(g); }
 
   clear() {

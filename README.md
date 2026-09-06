@@ -182,13 +182,25 @@ shows you the manoeuvre you just drove. The moment is picked by the game rather
 than by your thumb: a direction change is the thing the game already counts,
 because counting them is the score.
 
+Each one is fainter than the one left after it, so the order they were left in
+is on the floor too and the firmest ghost is always the last reversal. It
+levels off rather than fading away — the oldest is still a shape against the
+ground, because the whole manoeuvre is the point. In practice the picture
+orders the newest four or so clearly and the rest read as "older than those",
+which is about all the screen has room to say.
+
+A ghost is a pose and nothing more: nothing is drawn on the ground for it. An
+earlier version gave each one the turning circles of the lock it was captured
+at, and it came off, because the wheel at a reversal often has nothing to do
+with the stroke that just ended — reverse straight back and swing forward, and
+the captured lock is a claim about a turn you never made.
+
 Ghosts are grey rather than your car's colour, so the saturated shape on screen
-is still the one you are driving. With turning circles switched on, each ghost
-brings the circles of the lock it was standing at — the rear ones and the
-centre they turn about, which is the part the tyre marks do not already draw.
-They are not drawn from the driver's seat, where the eye would be inside them.
-Rewind takes them with it: wind back past a reversal and its ghost goes, the
-same way the direction change itself goes off the counter.
+is still the one you are driving. They are not drawn from the driver's seat,
+where the eye would be inside them, and a ghost you are standing in is hidden
+until you drive off it. Rewind takes them with it: wind back past a reversal
+and its ghost goes, the same way the direction change itself goes off the
+counter.
 
 **Switch on first contact and one more copy stands where this lock runs out** —
 the pose the vehicle would first touch something at, driving on at the steering

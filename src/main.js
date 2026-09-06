@@ -111,13 +111,10 @@ class Game {
         // The aids are display state held in three different places, so the
         // one that changed is pushed out here rather than read every frame.
         if (this.traces) this.traces.group.visible = this.settings.traces === 'on';
-        if (this.ghosts) {
-          // Both of these reach the ghosts already standing rather than only
-          // the next one: the poses are recorded whether or not they are being
-          // drawn, so turning either on mid-manoeuvre shows the manoeuvre.
-          this.ghosts.setShown(this.settings.ghosts === 'on');
-          this.ghosts.setCircles(this.settings.turnCircles === 'on');
-        }
+        // This reaches the ghosts already standing rather than only the next
+        // one: the poses are recorded whether or not they are being drawn, so
+        // turning it on mid-manoeuvre shows the manoeuvre.
+        if (this.ghosts) this.ghosts.setShown(this.settings.ghosts === 'on');
         this.hud.renderSettings(this.settings);
         this.hud.setSteerMode(this.settings.steering);
       },
@@ -201,9 +198,8 @@ class Game {
     // A ghost is a copy of the mesh above, so it is built after it and thrown
     // away with it: a pose of a hatchback means nothing in a level driven by a
     // bus (DESIGN.md 23).
-    this.ghosts = new Ghosts(this.spec, this.carMesh, this.level.bounds);
+    this.ghosts = new Ghosts(this.spec, this.carMesh);
     this.ghosts.setShown(this.settings.ghosts === 'on');
-    this.ghosts.setCircles(this.settings.turnCircles === 'on');
     this.scene.add(this.ghosts.group);
     this.contactGhost = new ContactGhost(this.spec, this.carMesh);
     this.scene.add(this.contactGhost.group);
