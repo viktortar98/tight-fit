@@ -11,6 +11,7 @@ import { Pad, BTN } from './gamepad.js';
 import { Hud } from './hud.js';
 import { Panels } from './panels.js';
 import { Tape } from './rewind.js';
+import { Traces } from './traces.js';
 import { load as loadSettings, save as saveSettings, gains } from './settings.js';
 import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.js';
 
@@ -95,6 +96,7 @@ class Game {
     this.padSeen = true;
     this.padWasConnected = false;
     this.carMesh = null;
+    this.traces = null;
     this.vehicle = null;
     this.clock = new THREE.Clock();
     this.accum = 0;
@@ -136,6 +138,12 @@ class Game {
       this.scene.remove(this.carMesh.group);
       if (this.carMesh.trailerGroup) this.scene.remove(this.carMesh.trailerGroup);
     }
+    if (this.traces) {
+      this.scene.remove(this.traces.group);
+      this.traces.dispose();
+    }
+    this.traces = new Traces(this.spec);
+    this.scene.add(this.traces.group);
     this.carMesh = createVehicleMesh(this.spec);
     this.scene.add(this.carMesh.group);
     if (this.carMesh.trailerGroup) this.scene.add(this.carMesh.trailerGroup);
@@ -158,6 +166,7 @@ class Game {
     this.inside = false;
     this.touching = false;
     this.tape.clear();
+    this.traces.clear();
     this.rewinding = false;
     this.rig.reset(this.level.theme, this.spec);
     this.hud.update(this.telemetry(this.nearestGap()));
@@ -232,6 +241,7 @@ class Game {
       speed: car.speed, steer: car.steer, wheelSpin: car.wheelSpin,
       shunts: this.shunts, bumps: this.bumps, lastDir: this.lastDir,
       touching: this.touching, hold: this.hold, inside: this.inside,
+      trace: this.traces.count,
     });
   }
 
@@ -252,6 +262,7 @@ class Game {
     this.touching = f.touching;
     this.hold = f.hold;
     this.inside = f.inside;
+    this.traces.truncate(f.trace);
     return true;
   }
 
@@ -310,6 +321,7 @@ class Game {
       break;
     }
     this.touching = hit;
+    this.traces.follow(car.state);
   }
 
   // A crash is entering contact, not being in it — see DESIGN.md 5. Touching

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { centerOffset, trailerCenterOffset, trailerLength } from './vehicle.js';
+import { axleRows, centerOffset, trailerBogie, trailerCenterOffset, trailerLength } from './vehicle.js';
 
 // Vehicle groups have their origin at the physics reference point: the centre
 // of the rear axle for a tractor, the axle for a trailer. Placing one is then
@@ -37,11 +37,6 @@ const GLAZE = new THREE.MeshStandardMaterial({
   color: 0x9fc4dc, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.22,
 });
 const STEEL = new THREE.MeshStandardMaterial({ color: 0x8d939c, roughness: 0.5, metalness: 0.5 });
-
-function axleLayout(spec) {
-  const rear = spec.id === 'semi' ? [0, -1.35] : [0];
-  return { rear, front: [spec.wheelbase] };
-}
 
 function addWheels(group, positions, r, w, track, store) {
   const wg = wheelGeometry(r, w);
@@ -307,7 +302,7 @@ export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
   else buildCarBody(g, spec, paint, lights);
 
   const wheels = { front: [], rear: [], trailer: [] };
-  const axles = axleLayout(spec);
+  const axles = axleRows(spec);
   addWheels(g, axles.rear, spec.wheelRadius, spec.wheelWidth, spec.trackWidth, wheels.rear);
   addWheels(g, axles.front, spec.wheelRadius, spec.wheelWidth, spec.trackWidth, wheels.front);
 
@@ -349,7 +344,7 @@ export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
       }
     }
 
-    const bogie = t.drawbar ? [0] : [0.7, -0.7];
+    const bogie = trailerBogie(t);
     addWheels(trailerGroup, bogie, t.wheelRadius, t.wheelWidth, t.trackWidth, wheels.trailer);
     trailerGroup.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   }

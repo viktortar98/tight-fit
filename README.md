@@ -142,7 +142,17 @@ back the crashes and the direction changes with it, because the score is
 recorded step by step alongside the vehicle's position rather than tallied
 beside it — so a rewind past a crash also puts you back before the crash, and
 you have to drive that stretch again. What it removes is the half minute of
-driving back to the interesting part, which was never the difficulty. There are no hints anywhere: what a level is about is in
+driving back to the interesting part, which was never the difficulty.
+
+**The tyres leave marks, and they stay for the level.** Faint, but enough to
+see afterwards whether the swing into the bay was one arc or three
+corrections, and how much wider the front wheels ran than the rear ones — the
+one thing you cannot see from the driver's seat while you are doing it. They
+are laid by distance rather than by time, so sitting still with the wheel
+turned writes nothing. Rewind takes them back with it: wind a run to the start
+and the asphalt is clean.
+
+There are no hints anywhere: what a level is about is in
 its geometry, and finding it is the level.
 
 ## Vehicles
@@ -248,6 +258,7 @@ the number is the level's; if the count is still falling, it is the lattice's.
 | `src/camera.js` | chase / inside / overhead, body-relative |
 | `src/panels.js` | the three mirrors and the reverse camera, as screen panels |
 | `src/rewind.js` | the tape the run plays backwards through |
+| `src/traces.js` | the marks the tyres leave, one ribbon per wheel |
 | `src/gamepad.js` | Xbox mapping, analog triggers, rumble |
 | `src/main.js` | game loop, collision resolution, progression |
 | `tools/validate.js` | the solvability prover |

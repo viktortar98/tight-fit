@@ -719,6 +719,11 @@ being the removed feature under another name, and all four are load-bearing:
   and not an artist's idea of it — and they say nothing about where the bay is
   or how to get into it, which is what constraint 12 forbids.
 
+**The tyre traces are not an exception, because they are not a prediction.**
+They record where the vehicle has already been (constraint 19). A player can
+read a bad line off them afterwards, which is the point; nothing on the ground
+says where to go next.
+
 *Held by:* this paragraph, and `Panels.draw` in `src/panels.js` for the
 visibility flip.
 
@@ -1098,6 +1103,40 @@ anyway.
 
 *Held by:* `src/rewind.js` and `Game.record`/`Game.restore`.
 
+## 19. The tyres write down what the driver did
+
+Every wheel lays a faint mark where it rolled, and the marks stay for the
+level. Requested as "a light trace of all the wheels that they traveled...
+not forever, but for the level duration".
+
+**It is a record of the past, so it does not touch constraint 10.** The line
+into a bay only becomes visible after it has been driven; nothing about the
+next metre is drawn. What it gives the player is the thing that is otherwise
+impossible to see from inside a car — whether the swing was one continuous arc
+or three corrections, and how much wider the front wheels ran than the rear
+ones.
+
+**Sampled by distance, not by time.** A cross-section is laid every 6 cm of
+travel, so the mark is a property of the path and not of the frame rate:
+holding full lock while stationary writes nothing, because nothing rolled. The
+same choice bounds the cost — 6000 samples per wheel is 360 m of driving, and a
+level that outruns that is one where the trace stopped being readable a long
+way back.
+
+**One count for the whole vehicle, which is what makes rewind work.** Every
+wheel is sampled on the same tick, so the trace is a single integer, and that
+integer is on the tape with the rest of the step (constraint 18). Rewinding
+truncates it. Wind a run back to the start and the asphalt is clean again —
+without which the rewind would leave behind a picture of a run that no longer
+happened.
+
+The wheel positions come from `wheelPoints()` in `src/vehicle.js`, the same
+function the mesh builder's axle rows come from, so a trace cannot drift from
+the wheel that is drawn. Steering is deliberately not in it: a steered wheel
+touches the ground in the same place whichever way it points.
+
+*Held by:* `src/traces.js`, and `Game.record`/`Game.restore` for the rewind.
+
 ## Where the rules are enforced
 
 | Constraint | Enforced by | Fails how |
@@ -1111,9 +1150,9 @@ anyway.
 | 15 — settings are timing, not geometry | review; `gains()` scales only rates, and `maxSteer` / dimensions are not in it | silent |
 | 16 — every wheel rolls | no-slip check in the validator, whole roster | exit 1, names the vehicle and the slide |
 | 17 — nothing drawn outside a rectangle | a script, run by hand | silent between runs |
-| 2, 5, 6, 8, 9, 10, 11, 12, 14, 18 | nothing | silent |
+| 2, 5, 6, 8, 9, 10, 11, 12, 14, 18, 19 | nothing | silent |
 
-Nine of fourteen are held by reading. That is the honest state of it: the
+Fourteen of nineteen are held by reading. That is the honest state of it: the
 solvability gate and the dead-code sweep are machine-checked because both are
 invisible until someone trips over them, and the rest are cheap for a person to
 notice and expensive to automate. This file is what a reviewer checks a change

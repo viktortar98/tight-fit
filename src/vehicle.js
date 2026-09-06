@@ -178,6 +178,46 @@ export function trailerRect(spec, s) {
   };
 }
 
+// Where the wheels are. A semi has a twin drive axle; everything else has one
+// of each. Shared by the mesh builder, which draws them, and the tyre traces,
+// which need the ground point rather than the drawing.
+export function axleRows(spec) {
+  return { rear: spec.id === 'semi' ? [0, -1.35] : [0], front: [spec.wheelbase] };
+}
+
+export function trailerBogie(t) {
+  return t.drawbar ? [0] : [0.7, -0.7];
+}
+
+// Every wheel's contact patch, in world XZ, with the heading its tread is
+// laid down along. Steering is not in it: a steered wheel touches the ground
+// in the same place whichever way it points.
+export function wheelPoints(spec, s) {
+  const out = [];
+  const c = Math.cos(s.yaw);
+  const sn = Math.sin(s.yaw);
+  const rows = axleRows(spec);
+  for (const z of [...rows.rear, ...rows.front]) {
+    for (const sx of [-1, 1]) {
+      const lx = (sx * spec.trackWidth) / 2;
+      out.push({ x: s.x + lx * c + z * sn, z: s.z - lx * sn + z * c, w: spec.wheelWidth, rot: s.yaw });
+    }
+  }
+  if (spec.trailer) {
+    const t = spec.trailer;
+    const a = trailerAxle(spec, s);
+    const tc = Math.cos(s.trailerYaw);
+    const ts = Math.sin(s.trailerYaw);
+    for (const z of trailerBogie(t)) {
+      for (const sx of [-1, 1]) {
+        const lx = (sx * t.trackWidth) / 2;
+        out.push({ x: a.x + lx * tc + z * ts, z: a.z - lx * ts + z * tc, w: t.wheelWidth, rot: s.trailerYaw });
+      }
+    }
+  }
+  return out;
+}
+
 // Every rectangle the world has to collide against.
 export function bodyRects(spec, s) {
   return spec.trailer ? [bodyRect(spec, s), trailerRect(spec, s)] : [bodyRect(spec, s)];
