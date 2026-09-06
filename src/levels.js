@@ -192,7 +192,7 @@ export const LEVELS = [
 
   // Asks: which of two tight things do you do first? The 2.3 m slot and the
   // 90 degrees inside a 2.6 m corridor are each survivable; only one order of
-  // them is. The series finale, and the only level about sequence.
+  // them is. The only level in the series about sequence.
   {
     id: 'impossible-gap',
     name: 'The Impossible Gap',
@@ -245,48 +245,6 @@ export const LEVELS = [
       cone(1.2, -11.5),
     ],
     paint: bayPaint(4.2, -3, 2.6, 5, P2),
-  },
-
-  // Asks: how do you aim the reverse-in First Bay handed you, at a bay barely
-  // wider than the car? Same 2.9 m lane; 0.64 m of slack rather than 0.74, and
-  // a wall opposite rather than a row of cars, so there is nothing to line up
-  // against.
-  //
-  // Last of the seven on purpose. This level introduces nothing — its
-  // manoeuvre is First Bay's and its only new difficulty is precision — and
-  // that is why it sits at the end rather than at position 2, where it was.
-  // Every idea in the series has been handed over by the time you arrive, so
-  // the level is the exam and not a lesson, which is the one job a level with
-  // no idea of its own can hold honestly.
-  //
-  // It was moved rather than loosened. The window in which a perpendicular bay
-  // costs a direction change at all is a lane between 2.83 m — below it
-  // nothing can turn — and 3.04 m, above which a nose-first swing fits. That
-  // is 0.21 m wide, so lane width cannot separate two levels and slack is the
-  // only lever left, and it is a steep one: at this lane the search needs 5
-  // direction changes for 0.64 m of slack, 4 for 0.69, 3 for 0.79. Loosening
-  // to 0.79 would have cost 3 and made this bay roomier than First Bay's,
-  // which is the drift the rename was meant to end. At the end of the series
-  // the 5 is a finale rather than a spike.
-  {
-    id: 'tight-lane',
-    name: 'Tight Lane',
-    vehicle: 'hatch',
-    theme: 'lot',
-    record: 5,
-    bounds: { minX: -14, maxX: 17, minZ: -15.5, maxZ: -6.0 },
-    start: { x: 10, z: -9.05, yaw: -P2 },
-    target: { x: 0, z: -13, w: 2.4, d: 5, rot: 0 },
-    obstacles: [
-      wall(1.5, -7.0, 31, 1.2, { h: 1.5 }),
-      parked(-2.4, -14.125, 0, 'hatch', pick(1)),
-      parked(2.4, -11.675, Math.PI, 'hatch', pick(5)),
-      parked(-7.2, -14.125, 0, 'hatch', pick(2)),
-      parked(7.2, -14.125, 0, 'hatch', pick(3)),
-      parked(-12, -11.675, Math.PI, 'hatch', pick(6)),
-      parked(12, -14.6, 0, 'van', pick(0)),
-    ],
-    paint: bayRow(0, -13, 11, 2.4, 5),
   },
 
   {
@@ -384,6 +342,36 @@ export const LEVELS = [
     paint: bayRow(0, -13.9, 9, 3, 4.3),
   },
 
+  // Asks: where is the *cab* going to live? The trailer is what has to end up
+  // in the bay, and the cab has to end up somewhere legal too. A slab behind
+  // the bay means it cannot rest in line; a building alongside means it cannot
+  // rest on that side either. So which way the rig folds is settled 20 m away,
+  // before the reverse begins, and nothing at that moment points at it. The
+  // only level about where the part you are not parking ends up.
+  //
+  // Holds its direction change at δ = 0, 0.15 and 0.30 under the difference
+  // probe (constraint 1) with a different route at each, and `nearest` is
+  // 1.55 m — more than double any other level's. There is no tolerance in it
+  // at all; the cost is entirely the shape of the free space. An earlier
+  // version used a small blocker instead of the building and collapsed at
+  // δ = 0.15, because a blocker that is merely narrow is a clearance. The fix
+  // was to forbid the placement outright.
+  {
+    id: 'fold',
+    name: 'Fold',
+    vehicle: 'towcar',
+    theme: 'garage',
+    record: 1,
+    bounds: { minX: -18, maxX: 18, minZ: -14.0, maxZ: 2.0 },
+    start: { x: 10, z: -2.0, yaw: -P2 },
+    target: { x: 0, z: -11.6, w: 2.9, d: 4.1, rot: 0, part: 'trailer' },
+    obstacles: [
+      wall(0, -6.0, 4.0, 1.6),
+      wall(4.5, -10.0, 3.0, 6.0, { h: 3.4, color: 0xd9cfc2 }),
+    ],
+    paint: bayPaint(0, -11.6, 2.9, 4.1),
+  },
+
   {
     id: 'artic-dock',
     name: 'Artic Dock',
@@ -443,6 +431,7 @@ export const LEVELS = [
     ],
     paint: [...bayPaint(8.1, -17.1, 3.9, 15.0), { x: 0, z: -4, w: 44, d: 0.16, rot: 0 }],
   },
+
 
   // ---- CANDIDATES (under test) ----------------------------------------
 ];

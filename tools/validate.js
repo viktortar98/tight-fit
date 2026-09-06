@@ -17,8 +17,22 @@ import { overlaps, rectInsideRect, rectDistance, normalizeAngle } from '../src/g
 
 const TAU = Math.PI * 2;
 
+// The difference probe, for constraint 1. `SHRINK=δ` trims δ metres off every
+// side of every rectangle belonging to the *vehicle* — body, trailer, and the
+// rectangle the bay has to contain. Nothing kinematic changes: wheelbase,
+// lock, turning radius and swept path are identical, so every route keeps its
+// shape and every gap in the level gets δ wider.
+//
+// So: **if a level's direction-change count falls when it is run this way,
+// that count was a clearance.** If it holds, the cost is the shape of the free
+// space, which is what constraint 1 says a level is allowed to be made of.
+// The enforcement table listed constraint 1 as held by nothing until this.
+const SHRINK = Number(process.env.SHRINK ?? 0);
+const shrink = (r) => (SHRINK ? { ...r, w: r.w - 2 * SHRINK, d: r.d - 2 * SHRINK } : r);
+const rects = (spec, s) => bodyRects(spec, s).map(shrink);
+
 function blocked(spec, s, colliders, arena) {
-  for (const body of bodyRects(spec, s)) {
+  for (const body of rects(spec, s)) {
     if (!rectInsideRect(body, arena)) return true;
     for (const c of colliders) if (overlaps(body, c)) return true;
   }
@@ -26,7 +40,7 @@ function blocked(spec, s, colliders, arena) {
 }
 
 function parkRect(spec, target, s) {
-  return target.part === 'trailer' ? trailerRect(spec, s) : bodyRect(spec, s);
+  return shrink(target.part === 'trailer' ? trailerRect(spec, s) : bodyRect(spec, s));
 }
 
 // The search's objective is the game's score. Direction changes come first and
@@ -174,7 +188,19 @@ function solve(level, opts = {}) {
     if (inGoal(cur)) {
       let moves = 0;
       for (let n = cur; n; n = n.prev) moves++;
-      return { ok: true, expanded, moves, shunts: cur.shunts, length: cur.dist };
+      // The route as direction-legs, for `ROUTE=1`. A count says a level costs
+      // two changes; the legs say where they were, which is what tells a
+      // designer whether the level is being solved the way it was built.
+      const path = [];
+      for (let n = cur; n; n = n.prev) path.push(n);
+      path.reverse();
+      const legs = [];
+      for (const n of path) {
+        const last = legs[legs.length - 1];
+        if (!last || last.dir !== n.dir) legs.push({ dir: n.dir, from: n, to: n });
+        else last.to = n;
+      }
+      return { ok: true, expanded, moves, shunts: cur.shunts, length: cur.dist, legs };
     }
     if (heuristic(cur) < 30) for (const n of straightRuns(cur)) push(n);
 
@@ -208,18 +234,18 @@ function solve(level, opts = {}) {
   return { ok: false, reason: `exhausted (${expanded} nodes)` };
 }
 
-const only = process.argv[2];
+const only = process.argv[2] ? process.argv[2].split(',') : null;
 let failures = 0;
 
 for (const level of LEVELS) {
-  if (only && level.id !== only) continue;
+  if (only && !only.includes(level.id)) continue;
   const spec = VEHICLES[level.vehicle];
   const colliders = levelColliders(level);
   const arena = boundsRect(level);
   const issues = [];
 
   const start = { x: level.start.x, z: level.start.z, yaw: level.start.yaw, trailerYaw: level.start.yaw };
-  for (const body of bodyRects(spec, start)) {
+  for (const body of rects(spec, start)) {
     if (!rectInsideRect(body, arena)) issues.push('start is outside the arena');
     for (const c of colliders) if (overlaps(body, c)) issues.push(`start overlaps a ${c.kind}`);
   }
@@ -272,6 +298,14 @@ for (const level of LEVELS) {
     + ` slack ${slackW.toFixed(2)}x${slackD.toFixed(2)} | nearest ${nearest.toFixed(2)} m |`
     + ` swept ${sw.width.toFixed(2)} m | record ${String(level.record ?? '-').padStart(2)} | ${solved} (${(ms / 1000).toFixed(1)} s)`,
   );
+  if (res.ok && res.legs && process.env.ROUTE) {
+    const deg = (a) => ((((a * 180) / Math.PI) % 360 + 360) % 360).toFixed(0);
+    for (const l of res.legs) {
+      const dir = l.dir > 0 ? 'fwd ' : l.dir < 0 ? 'rev ' : 'stop';
+      console.log(`     ${dir} (${l.from.x.toFixed(1)}, ${l.from.z.toFixed(1)}) ${deg(l.from.yaw)}\u00b0`
+        + ` -> (${l.to.x.toFixed(1)}, ${l.to.z.toFixed(1)}) ${deg(l.to.yaw)}\u00b0`);
+    }
+  }
   for (const i of issues) {
     failures++;
     console.log(`   !! ${i}`);

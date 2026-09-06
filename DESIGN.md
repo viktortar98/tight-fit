@@ -26,6 +26,39 @@ centring score, no angle tolerance, no "4 cm off" penalty. The containment test
 is a plain rectangle-inside-rectangle with a 2 cm shrink, held for 0.6 s below
 0.25 m/s (`Game.checkParked`, `src/main.js`).
 
+**Levels differ in kind, not in tolerance.** The user's statement of this, which
+is the sharper form and the one to design against:
+
+> "they should feel different from each other, not just same layout, tighter
+> spaces... not optimized for final positioning of the car inside the parking
+> area... not easy, just hard to do fast..."
+
+Three rules come out of it. Two levels posing the same problem at different
+clearances are one level, so **the same layout with a tighter gap is not a new
+level**. The hard part may not live in the last metre, so **the bay is not the
+puzzle** — `slack` and `nearest` are consequences of a level's geometry and not
+levers to tune it by. And a level that is easy to understand but demanding to
+perform is the failure mode named outright: **hard to work out, not hard to
+execute.** There is no clock in this game, so "hard to do fast" cannot be about
+speed; it names execution difficulty standing in for comprehension difficulty.
+
+**A bigger vehicle is not a tighter gap.** The user's ruling, and the boundary
+of the rule above: "same level with bigger vehicle / worse steering vehicle is
+more challenging." Shrinking a gap leaves the vehicle able to do everything it
+could before, only with less room. Changing the vehicle changes the wheelbase,
+the lock, the turning radius and the swept band together, so the set of routes
+that exist is different rather than narrower. The two look alike on a plan and
+are not alike in the car. See "The vehicle roster is a content axis" under Open
+decisions for what follows from it.
+
+This is expensive, and it should be. It rules out the two quantities the level
+set had been varying — direction-change count, which constraint 4 found to be a
+0.21 m window on a perpendicular bay, and bay slack, which is what the set fell
+back on when the first ran out. What is left is the only thing that was ever
+the point: what the player has to work out. It cost a level immediately:
+Tight Lane was cut against it, not re-tuned. See "The set against the
+difference rule" under Open decisions for where the rest stands.
+
 *Held by:* nothing automatic. Any scoring that reads the final pose beyond
 "inside and stopped" violates this.
 
@@ -84,8 +117,10 @@ data, it is a memory of an abandoned decision, so when the unit changes the key
 changes and there is nothing to migrate. The migration loop that used to strip
 old time-based bests is gone with it. The order counts for the same reason:
 bests are keyed by level id and survive anything, but `progress.unlocked` is an
-index into `LEVELS`, so re-ordering the series makes a stored index a statement
-about different levels than the one it was written for. v4 is that re-order.
+index into `LEVELS`, so changing the series makes a stored index a statement
+about different levels than the one it was written for. v4 covers every such
+change in this run: the re-order, the cut of Tight Lane, and the addition of
+Fold.
 
 *Held by:* the reader. Re-introducing a timer would satisfy every test.
 
@@ -134,19 +169,98 @@ lattice, which they are. A pose that is already parked is exempt from the
 collapse, because a cell holds parked and unparked states alike and dropping
 the parked one is how a minimising search reports a number that is too high.
 
+**The solver and the game do not play by the same rules.** `integrate()` clamps
+the hitch at `maxAngle` and sets `jackknifed` (`src/vehicle.js:192`). Only the
+validator reads it (`tools/validate.js:158` and `:188`), where grinding the
+stop is treated as a mistake rather than a manoeuvre. The game reads it
+nowhere — `Game.showHud` passes `maxArticulation` to the HUD gauge and that is
+all — so the player may grind the stop freely and the solver may not. The
+search is therefore conservative, which is the safe direction for constraint 3:
+a route it finds is a route the player can drive. It is the wrong direction for
+`record`, which is defined below as the fewest direction changes *anything* has
+achieved: on the two articulated levels a player is playing a game the solver
+never searched, and a record beaten that way would not be a stale record but a
+different game. Whether the game should enforce the stop is in Open decisions.
+
 So `record` on a level means **the fewest direction changes anything has
 achieved on that geometry**. It is a record, not an optimum, and the validator
 checks it in one direction only: finding fewer fails the level, because the
 number is stale and the level is easier than its design believes. Finding more
 is not a failure — it is the lattice.
 
+**The difference probe.** `SHRINK=δ` (an environment variable, default 0)
+trims δ metres off every side of every rectangle belonging to the vehicle —
+body, trailer, and the rectangle the bay has to contain. Nothing kinematic
+changes: wheelbase, lock, turning radius and swept path are identical, so every
+route keeps its shape and every gap in the level gets δ wider. **If a level's
+direction-change count falls under it, that count was a clearance.** If it
+holds, the cost is the shape of the free space, which is what constraint 1 says
+a level is allowed to be made of. Three lines in the validator, and it is the
+only thing that has ever held constraint 1 — the enforcement table listed that
+row as held by nothing.
+
+**The failing condition.** Run at δ = 0.15 per side, and read three outcomes.
+*Structural*: the count does not fall, and the level's comment may say so.
+*Mixed*: it falls but not to zero — part idea, part clearance, which is normal
+and often correct. *Clearance*: it falls to **zero**, and only this fails. A
+level whose count reaches zero on a 15 cm trim has no route structure at all;
+every direction change in it existed because something did not quite fit.
+
+δ = 0.15 rather than another number because it is about 9% of a hatchback's
+width, smaller than every level's stated `slack` in both axes, and because it
+is where the set actually separates. At δ = 0.30 almost everything collapses,
+including the levels that are supposed to collapse last, and a test that fails
+everything discriminates nothing — so 0.30 is a stress reading to quote, not a
+pass mark to set.
+
+**The probe must not become a target.** A level tuned to survive δ = 0.15 by
+adding 0.3 m everywhere has not become structural, it has become loose. The
+probe detects clearance-dependence and cannot detect that a level is boring.
+
+**The ban is not on numbers, it is on numbers whose neighbourhood matters.** A
+threshold — the swept band, the bay-entry envelopes of constraint 7 — switches
+which routes exist and then plays the same anywhere on one side of it. A
+tolerance has a knife edge. **The operational test is the width of the basin:**
+sweep the dimension that carries the level's cost and look at the neighbourhood
+of the shipped value. Flat for a metre either side is a plateau and a
+threshold; changed by a quarter-metre step is a spike and a tolerance, whatever
+it looks like in the file.
+
+**Threshold-ness is necessary and not sufficient, and this is the trap.** A
+number can be a genuine threshold and still be a clearance. A bus needs 6.5 m
+of street to turn through a 6 m gate for 3 direction changes, 7–8 m for 1, and
+9 m for none: a real plateau, a metre wide. The whole ladder slides half a
+metre sideways at δ = 0.15, because the threshold *is* the swept band and the
+band *is* the body. So the two tests are independent and a level should pass
+both — **basin width** answers "is this a tolerance?", **δ-invariance** answers
+"is this clearance?".
+
+What comes out the other side is the sentence to design against:
+
+> A constraint built against the shape of the free space survives shrinking the
+> vehicle. A constraint built against the size of the vehicle does not. Walls
+> that forbid a *placement* hold at any clearance; gaps that forbid a *sweep*
+> hold only at the clearance you tuned them to.
+
+**Making a weak level harder by tightening it makes it worse by this measure,
+every time.** Counter-intuitive, and the specific mistake the probe exists to
+catch. The Short Side's closing wall was swept: flush with the bay it costs 11
+direction changes at full size and 1 at δ = 0.15. Shaving an envelope buys
+hardness by standing as close to the cliff as possible, which is the most
+clearance-dependent place a level can be.
+
+The results are under Open decisions, "The set against the difference rule".
+
 **What this measurement found.** On the objective that is actually the score,
-ten of the thirteen levels wanted 0 or 1 direction change. The game's own
+ten of the thirteen levels then in the set wanted 0 or 1 direction change. The game's own
 scoring unit was, in almost every level, not being asked for. That is a fact
 about the levels and not about the tool, and it is what the tool is for. Three
 levels were re-cut in response — First Bay to 2, Tight Lane to 5, The Alcove to
-2 — and the remaining 1-shunt levels are the six large-vehicle ones, where the
-vehicle rather than the geometry is the problem the level poses.
+2 — though Tight Lane was cut shortly afterwards under constraint 1's
+difference rule, because 5 direction changes bought with 0.1 m of bay slack is
+the anti-pattern that rule names. That is the shape of the whole finding: the
+solver can tell you a level is not asking for the score, and it cannot tell you
+the level has an idea.
 
 The lever that moved them is narrow. A perpendicular bay costs a direction
 change only while the lane in front of it is between the hatchback's swept
@@ -321,11 +435,22 @@ do not cover, in a game with no mirrors. What the level actually has is a yard
 with two pillars in it, so a single long arc does not fit, and that is now what
 it says.
 
-The rule cuts the other way too, and this is the more useful half. Height is
-the one dimension an outside view reads *better* than a plan view: an overhang,
-a canopy, a low bar across a doorway is legible from the chase camera and
-invisible from above. `wall()` already takes an `h`. That is the axis this
-decision opens, in exchange for the one it closes.
+When this was first written it claimed the rule bought something back — that
+height was the axis an outside view opens, since an overhang is legible from
+the chase camera and invisible from above, and `wall()` already takes an `h`.
+**That was wrong, and the engine says so.** Collision is two-dimensional on
+XZ. `collidersOf()` (`src/colliders.js`) emits `{x, z, w, d, rot, kind}` and
+drops `h` for every obstacle; `overlaps()` is a separating-axis test on those
+rectangles; nothing in `Game.isFree` or the validator's `blocked()` reads a
+height. The only readers of `h` are the mesh builders in `src/world.js` and the
+camera's look-at target. **A 0.15 m kerb is exactly as solid as a 5 m
+building**, and Kerbside and Bus Stop already depend on that being true.
+
+So the rule closes an axis and opens nothing. Height becomes available only by
+building it: an obstacle `clearance` compared against a vehicle height in the
+two containment tests, which is roughly a dozen lines and a new rule about what
+a vehicle may pass under. That is a decision, not a discovery, and it is in
+Open decisions rather than assumed here.
 
 *Held by:* the reader, and `src/camera.js` for the two modes.
 
@@ -468,16 +593,25 @@ defaults worth suppressing are — arrows and space scroll the page.
 | 3 — proved solvable | `tools/validate.js` | exit 1, names the level |
 | 4 — record not stale | stale-record check in the validator | exit 1, prints the shorter answer |
 | 13 — no dead code | `pnpm knip`, `pnpm lint` | exit 1, names the export |
+| 1 — route, not measurement | `SHRINK=0.15` difference probe | count collapses |
 | 7 — swept ring | printed per level by the validator | visible drift |
-| 1, 2, 5, 6, 8, 9, 10, 11, 12, 14 | nothing | silent |
+| 2, 5, 6, 8, 9, 10, 11, 12, 14 | nothing | silent |
 
-Ten of fourteen are held by reading. That is the honest state of it: the
+Nine of fourteen are held by reading. That is the honest state of it: the
 solvability gate and the dead-code sweep are machine-checked because both are
 invisible until someone trips over them, and the rest are cheap for a person to
 notice and expensive to automate. This file is what a reviewer checks a change
 against.
 
-Two entries here are weaker than they look. The swept-ring row prints a number
+Constraint 1's row is new and is not yet a gate. The probe produces the number
+and a person reads it; nothing exits 1. Making it a gate needs a failing
+condition, and the honest one is not obvious — "the count must not fall at all"
+would fail First Bay, which is a legitimate first level, and "must not fall to
+zero" passes a level that goes 5 to 1. It is listed here because it is the
+first thing that measures constraint 1 at all, not because it decides anything
+on its own yet.
+
+Two other entries are weaker than they look. The swept-ring row prints a number
 that is constant per vehicle, so it cannot show drift in anything a level does
 — constraint 7 says what actually governs bay entries. And the stale-record row
 only catches a level getting *easier*; nothing checks that a level still asks
@@ -491,6 +625,145 @@ Not constraints — questions that are known, deliberately unanswered, and would
 otherwise be lost. Each says who it belongs to.
 
 ### Core, and the user's
+
+**The vehicle roster is a content axis.** Decided by the user, and it overrides
+the repetition charge that the audit above was built on: "same level with
+bigger vehicle / worse steering vehicle is more challenging", and "i'm open to
+add even more vehicles with different wheel positioning / shape that makes the
+manouvering feel different, makes the movement of the vehicle different." So a
+level is not disqualified for reposing an earlier level's geometry to a heavier
+or worse-steering vehicle, and **no level is cut for repetition**. What is
+still owed is a measurement: the difference probe cannot tell whether a vehicle
+substitution changes which routes exist or only how much room they have, and
+that measurement is what would decide whether Van Life and Bus Stop are earning
+their place or merely occupying it. Being designed.
+
+The corollary the roster already supports and no level uses: the vehicles are
+not a size ladder. Steady-state articulation in a full-lock forward turn is
+**+15.1° for the tow car and −5.5° for the semi** — opposite signs, because the
+drawbar hitch sits 1.10 m *behind* the tow car's rear axle and the fifth wheel
+sits 0.45 m *ahead* of the semi's. Reverse response distance (`axleFromHitch`)
+is 2.90 m against 7.60 m. The tow car is twitchy and correctable; the semi is
+slow and unforgiving. And the bus is the only vehicle with a tail: rear
+overhang swing at full lock is 0.67 m against 0.07–0.09 m for everything else.
+Bus Stop does not use it. A tail that swings outboard on the side opposite the
+turn is a placement property, not a width property, which is the class the
+probe says survives.
+
+**Whether obstacles get a height.** Found by measurement, not assumed: collision
+is two-dimensional. `collidersOf()` drops `h`, `overlaps()` is a separating-axis
+test on flat rectangles, and neither `Game.isFree` nor the validator's
+`blocked()` reads a height — so a 0.15 m kerb stops a semi exactly as a 5 m
+building does, and Kerbside and Bus Stop depend on that. Giving obstacles a
+`clearance` compared against a vehicle height in those two tests is about a
+dozen lines. It would open overhangs, canopies and low bars as level material,
+which is the one class of obstacle an outside camera reads better than a plan
+view. It also adds a rule the player must learn without being told (constraint
+12 forbids telling them), and a vehicle that fits under one thing and not
+another is a *measurement* difficulty unless the level is built so the height
+changes the route. Not decided.
+
+**Whether the game should enforce the jackknife stop.** The solver treats
+grinding it as a failed move; the game permits it. Enforcing it in the game —
+a contact, a refusal to steer further, or a void — would make the two agree and
+would make an articulation budget a thing a level can be built on. Leaving it
+permits a player to beat a record by a route the tool cannot search. Not
+decided.
+
+**The set against the difference rule.** No longer a hand audit. Constraint 1
+is now measured, by the probe described under constraint 4: shrink every
+rectangle belonging to the vehicle by δ per side, change nothing kinematic, and
+see whether the level still costs what it cost. Every number below was produced
+by `SHRINK=δ node tools/validate.js <level>` and reproduced independently of
+the peer who proposed the method.
+
+| level | δ=0 | δ=0.15 | δ=0.30 | reading |
+|---|---|---|---|---|
+| Loading Dock | 3 | 3 | 3 | structural outright |
+| Kerbside | 1 | 1 | 1 | structural outright |
+| Bus Stop | 1 | 1 | 1 | structural outright |
+| Trailer Trouble | 1 | 1 | 1 | structural outright |
+| The Impossible Gap | 3 | 3 | 0 | structural, narrow basin |
+| The Alcove | 2 | 2 | 0 | structural, narrow basin |
+| Dead End | 5 | 2 | 0 | survives 15 cm, dies at 30 |
+| First Bay | 2 | 1 | 0 | half of it is clearance |
+| Van Life | 1 | 1 | 0 | holds at the honest line |
+| The Short Side | 2 | 0 | 0 | **all of it is clearance** |
+| Tight Lane (cut) | 5 | 0 | — | all of it is clearance |
+
+Read it with two cautions. The solver is an upper bound, so ±1 is noise and
+only a collapse is signal. And δ=0.30 makes the hatchback 1.16 × 3.35 m, which
+is smaller than a real car — it is a stress test for separating survivors, not
+a fair pass. **δ=0.15 is the honest line.**
+
+What it establishes:
+
+- **Tight Lane's cut is confirmed mechanically**, 5 → 0. Its entire cost was
+  clearance, and its README line said so in its own voice: "Now aim it, with
+  0.64 m of slack."
+- **The Short Side is mislabelled, and the hand audit had it in the holds
+  column.** It is 2 → 0 at the honest line. Sweeping the wall that closes the
+  aisle west of the bay shows why: flush with the bay costs 11 direction
+  changes, the shipped position costs 2, and 0.75 m further west costs 0. The
+  level stands on a spike about half a metre wide with a cliff on one side and
+  a chasm on the other — a tolerance in the purest form the game contains.
+  And the constant it is tuned against is the wrong one. Its comment reasons
+  about the reverse-in envelope (6.54 m past the bay); the bay has 1.45 m,
+  which was never close, so the reverse-in is not what the wall decides. What
+  the wall decides is the **nose-first** entry, which wants 1.95 m. The level
+  ships half a metre short of it, and that half-metre is the whole level —
+  which is exactly why 0.15 m a side hands back enough to collapse it.
+  Constraint 7 says a level must be measured against the right constant; this
+  one is measured against 6.54 when 1.95 is binding. So the class it claims —
+  *the room is not on the side you arrived from* — is not built by anything in
+  the game, and it is buildable: by making the wrong approach **absent**, not
+  narrow. Shortening an aisle is a clearance, and clearances are what the probe
+  eats. Being re-cut.
+- **Kerbside is the soundest level in the game, not an at-risk one.** It holds
+  at 30 cm of relief per side because a parallel park is non-holonomy in its
+  pure form: a car cannot translate sideways, so a lateral displacement costs a
+  manoeuvre at *any* clearance. Its 0.05 m `nearest` is a real fault and a
+  separate one — the idea is structural and the execution is knife-edge. Two
+  faults were being conflated. Loosen the gap, keep the level.
+- **Loading Dock is the other structural survivor**, holding 3 through 30 cm,
+  and it was the level with no stated idea at all. It has one; nobody had
+  written it down.
+- **First Bay's two direction changes are a 0.45 m nudge.** Found by the
+  `ROUTE=1` leg dump the moment it was added: forward 7 m, reverse one step,
+  forward into the bay. The count is real and the manoeuvre is not, which is
+  the same shuffle-at-the-bay-mouth behaviour the old cost function was
+  criticised for — except the number is now honest about it. Acceptable in the
+  one level that exists to teach the reverse-in, and it would not be acceptable
+  anywhere else. A count without its legs is not evidence about a route.
+- **Bus Stop and Van Life are not answered by this probe**, because their
+  charge was repetition rather than tolerance and no clearance measurement can
+  speak to it. **That charge has since been rejected** — see the vehicle-roster
+  entry below. Both stay.
+- **Artic Dock and Yard Full hold** at 1 direction change through δ = 0.30.
+  Measured after the table above was first written. Neither is a tolerance
+  level.
+
+**What this probe cannot see, and what was concluded from it anyway.** `SHRINK`
+trims the vehicle's rectangles and leaves the kinematics untouched, which is
+exactly what makes it a clean test of clearance — and exactly why it says
+nothing about putting a *different vehicle* in the same geometry. A δ-shrunk
+hatchback is a hatchback with more room. A van is not a hatchback with less
+room. On the strength of the probe plus a taxonomy that counted five available
+problem classes, a recommendation was put to the user to cut The Short Side,
+Van Life, Bus Stop, Yard Full and Artic Dock — a third of the game. The user
+rejected it, on the grounds recorded below, and was right to: the measurement
+did not support the part of the conclusion that mattered. Nothing was cut.
+Tight Lane, cut earlier, stays cut; that one was confirmed mechanically at
+5 → 0 and does not depend on this reasoning.
+
+**Only the first level is exempt from asking something.** Decided. First Bay
+teaches the reverse-in and the controls, and a level doing that is allowed to
+have no puzzle. By the time a player reaches the van they know how to park, so
+introducing a vehicle is not on its own a reason for a level to exist. The
+alternative considered was one handover level per vehicle, which would have
+exempted five of twelve levels — most of the way to the rule not being a rule.
+The consequence is recorded above: Van Life and Artic Dock need ideas they do
+not have.
 
 **Which manoeuvre First Bay should teach.** Re-cutting it to cost a direction
 change made it a two-row car park with a 2.9 m aisle, so level 1 now hands the

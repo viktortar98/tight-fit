@@ -101,11 +101,11 @@ did not — a new kind of problem rather than a tighter version of the last one.
 | 4 | The Alcove | Hatchback | 4.6 m each side. Reversing in wants 6.5. |
 | 5 | The Impossible Gap | Hatchback | Can you tell it fits before you commit? |
 | 6 | Dead End | Hatchback | The room you need is behind you, going nowhere. |
-| 7 | Tight Lane | Hatchback | Every idea is behind you. Now aim it, with 0.64 m of slack. |
-| 8 | Van Life | Van | Same puzzle, half a metre more vehicle. |
-| 9 | Loading Dock | Van | A right-angle turn out of a corridor, into a bay between two vans. |
-| 10 | Bus Stop | Bus | Parallel park 11 m of bus into a 13.5 m gap. |
-| 11 | Trailer Trouble | Car + trailer | Reverse a drawbar trailer into a bay row. |
+| 7 | Van Life | Van | Same puzzle, half a metre more vehicle. |
+| 8 | Loading Dock | Van | A right-angle turn out of a corridor, into a bay between two vans. |
+| 9 | Bus Stop | Bus | Parallel park 11 m of bus into a 13.5 m gap. |
+| 10 | Trailer Trouble | Car + trailer | Reverse a drawbar trailer into a bay row. |
+| 11 | Fold | Car + trailer | The trailer goes in the bay. Where does the cab go? |
 | 12 | Artic Dock | Semi | 16.6 m, hinged, into a dock between two others. |
 | 13 | Yard Full | Semi | The same dock from the far side, in a yard with pillars in it. |
 
