@@ -20,11 +20,19 @@ vehicles do it for you — the throttle is analog, but first gear is all there i
 
 ## Play it
 
-- [v3 — the current build](https://viktortar98.github.io/tight-fit/v3/): v2's
-  fourteen levels with the handling opened up — two steering modes, two
-  throttle modes, and four multipliers to tune them at play time (commit
-  `cbe01a6`). The [root URL](https://viktortar98.github.io/tight-fit/) serves
-  the newest version, which is v3 today.
+- [v6 — the current build](https://viktortar98.github.io/tight-fit/v6/): v5
+  with a cabin you can see from the driver's seat, a reversing panel that stays
+  in that seat, fainter tyre marks, and turning circles you can switch on
+  (commit `dfdcaf0`). The [root URL](https://viktortar98.github.io/tight-fit/)
+  serves the newest version, which is v6 today.
+- [v5](https://viktortar98.github.io/tight-fit/v5/): thirteen vehicles instead
+  of six, every body drawn from its own silhouette, and the four driving aids
+  switchable (commit `c3eaf36`).
+- [v4](https://viktortar98.github.io/tight-fit/v4/): the levels rebuilt against
+  what the vehicles can actually do (commit `ed881f6`).
+- [v3](https://viktortar98.github.io/tight-fit/v3/): v2's fourteen levels with
+  the handling opened up — two steering modes, two throttle modes, and four
+  multipliers to tune them at play time (commit `cbe01a6`).
 - [v2](https://viktortar98.github.io/tight-fit/v2/): fourteen levels, six
   vehicles, scored on direction changes, one fixed way to steer and one fixed
   way to accelerate (commit `13de828`).
@@ -32,9 +40,9 @@ vehicles do it for you — the throttle is analog, but first gear is all there i
   original ten levels and two vehicles, scored on time and bumps, before
   direction changes became the score. Kept as it was (commit `e59328a`).
 
-All three are static builds of this repo on the `gh-pages` branch. v2 and v3
+All of them are static builds of this repo on the `gh-pages` branch. v2 onwards
 score in the same unit and share a save key, so a best set in one shows up in
-the other; v1 scored in a different unit and keeps its own key.
+the others; v1 scored in a different unit and keeps its own key.
 
 The rules this game is held to — what is scored, what is never scored, what a
 level has to prove before it ships — are in [DESIGN.md](DESIGN.md). Read that
