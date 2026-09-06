@@ -70,6 +70,16 @@ guess and must never be typed by hand.
 The validator fails a level whose search finds a shorter answer than the record
 claims, which means the number on screen has always been proved reachable.
 
+**Reachable is not optimal, and the gap is not random.** The search is a
+weighted A* on distance-to-goal, so it will shuffle at a bay mouth for four
+direction changes rather than drive 6 m away and come back for one — driving
+away raises the heuristic. Records are therefore upper bounds biased *against*
+the elegant route, `parOf` inherits the inflation, and par is most generous
+exactly on the levels that best reward the good line. The consequence that
+matters for design: **a level whose identity is a particular route cannot
+currently be proved to have that route** — only to be solvable by some route.
+The Short Side ships with that caveat.
+
 Par — the bar for a "flawless" rating — is `record + PAR_ALLOWANCE`, computed
 in one place (`parOf`, `src/levels.js`). Levels carry no `par` field, so pars
 cannot drift level by level.
@@ -112,16 +122,43 @@ above the one you start in.
 
 *Held by:* `maxSpeed` / `maxReverse` in the vehicle specs, `src/vehicle.js`.
 
-## 7. Level geometry is designed against the swept ring
+## 7. Level geometry is measured, not eyeballed — against the right constant
 
-A vehicle at full lock sweeps a ring of fixed width — 2.83 m for the hatchback,
-6.60 m for the bus. A corridor narrower than that cannot be turned out of in
-one arc, which is the line between "drive in" and "shunt it in". Every number
-in a level is chosen against that constant for its vehicle, not by eye.
+There are two kinds of level here and they are decided by different numbers.
+This constraint used to name only the first and claim it governed both.
 
-*Enforced by:* `sweptWidth()` is printed for every level by the validator, next
-to the real clearances, so a level whose numbers stopped making sense is
-visible in the same output that proves it.
+**A corridor turn** is decided by the swept ring. A vehicle at full lock sweeps
+a band of fixed width — 2.83 m for the hatchback, 6.60 m for the bus — and a
+corridor narrower than that cannot be turned out of in one arc. That is the
+line between "drive in" and "shunt it in", and two levels straddle it on
+purpose: The Impossible Gap pinches its corridor to 2.6 m, *below* the ring, so
+the 90° provably cannot be driven; Dead End's 3.0 m doorway is *above* it, so
+the arc exists and what is missing is the room to line it up.
+
+**A bay entry** is decided by longitudinal envelopes, and the swept ring says
+nothing about it. Measured by driving `integrate()` out of a bay at full lock:
+
+| hatchback | aisle depth | aisle before the bay | aisle past the bay |
+|---|---|---|---|
+| reverse in | 1.60 m | 0.95 m | **6.54 m** |
+| nose first | **3.04 m** | 4.09 m | 1.95 m |
+
+Loosening the lock worsens both numbers in both dimensions, so these are
+minima, not a trade to tune. The table lives in the header of `src/levels.js`,
+next to what it generates.
+
+Why the old wording survived so long without being contradicted: 2.83 m is a
+*width*, so it reads as a floor on how narrow an aisle may be — but a reverse-in
+needs only 1.60 m of aisle depth, less than the car's own width plus paint. It
+never binds. Any aisle you can drive down is wide enough to reverse into a bay
+from. What decides a bay level is a *length*, and the swept ring has nothing to
+say about it. The constant was not wrong; it was not load-bearing there.
+
+*Enforced by:* `sweptWidth()` is printed per level by the validator, which is
+worth keeping — it is what makes the two corridor levels legible in the output.
+**It is not an enforcement of this constraint.** It is constant per vehicle, so
+the column reads 2.83 on every hatchback row and cannot make drift visible. A
+bay level's real constraint is not printed at all.
 
 ## 8. The player's vehicle is the only saturated colour
 
@@ -355,11 +392,21 @@ the three street-canyon levels. Deliberately not collapsed: the themes are
 expected to be replaced wholesale, and optimising a thing on its way out is
 waste. Whatever replaces them should keep that one distinction.
 
-**Levels per vehicle.** The bus and the tow car carry one level each, and
-levels 7/8 are one route driven by two vehicles. More levels per vehicle are
-wanted — but what each new level should be *about* has had no thought yet and
-has not been discussed. *Design session first, with the user; do not invent
-levels to fill a table.*
+**Levels per vehicle.** Answered for the hatchback: eight levels, each with the
+question it asks written as a comment on the level itself, cut against the
+envelopes in constraint 7. The spine is Back In → The Short Side → The Alcove:
+establish the reverse-in, make the belief *more specific and still wrong*, then
+break it. Kerbside and Pillar Problem sit between as lateral-fit levels so the
+habit can set — a realisation on the very next level is a puzzle chapter with
+the answer printed underneath.
+
+Still open for the van, bus, tow car and semi, on the same terms: *design
+session first, with the user; do not invent levels to fill a table.*
+
+**The solver's search bias** (constraint 4). Fixing it is the single change that
+would most improve level design here — it would make records true minima, make
+par honest, and make a level's intended route provable rather than asserted.
+`tools/validate.js` is untouched pending that decision.
 
 **Code-quality tooling.** `knip` and an eslint config would machine-catch the
 dead-export class that this session cleared by hand, which is the class most

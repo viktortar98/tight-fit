@@ -1,8 +1,20 @@
-// Level geometry, in metres. Every number here is tuned against two figures
-// from vehicle.js: the hatchback sweeps a 2.83 m ring at full lock and is
-// 1.76 m wide; the van sweeps 3.41 m and is 2.02 m wide. A corridor narrower
-// than the swept width cannot be turned out of in a single arc — which is
-// what turns a level from "drive in" into "shunt your way in".
+// Level geometry, in metres. Every number here is tuned against vehicle.js.
+//
+// The constant the swept ring gives you (2.83 m for the hatchback, 3.41 for
+// the van) is the width of the band a FULL-LOCK turn sweeps. It says whether a
+// corridor can be turned out of; it does not say what a bay entry costs. The
+// two numbers that decide that, measured for the hatchback by driving the
+// game's own integrate() out of a bay at full lock, are:
+//
+//   reverse in    1.60 m of aisle depth,  6.54 m of aisle past the bay,
+//                                         0.95 m short of it
+//   nose first    3.04 m of aisle depth,  4.09 m of run-up before the bay,
+//                                         1.95 m past it
+//
+// Loosening the lock makes both numbers worse, so those are minima. They are
+// what the levels below are cut against: a wall closer than 1.95 m past a bay
+// forbids driving in, a yard shorter than 6.54 m past it forbids backing in,
+// and a level is the choice of which of those two you take away.
 //
 // Run `node tools/validate.js` after editing: it checks that nothing blocks a
 // target, that the car starts clear, and prints the real clearances.
@@ -55,6 +67,8 @@ const PASTEL = [0xcfe0ef, 0xeadfd0, 0xdcead8, 0xf2dee1, 0xe3dded, 0xd7e9e8, 0xef
 const pick = (i) => PASTEL[i % PASTEL.length];
 
 export const LEVELS = [
+  // Asks: where is the bay, and what counts as parked? Open lot, wide aisle,
+  // nothing to work around. The only level whose answer is just to drive.
   {
     id: 'first-bay',
     name: 'First Bay',
@@ -78,10 +92,13 @@ export const LEVELS = [
     paint: bayRow(0, -13, 11, 2.5, 5),
   },
 
+  // Asks: how do you aim an entry the bay is barely wider than? First level
+  // with a lane instead of a lot, and with 0.64 m of slack rather than a bay
+  // you can miss the middle of.
   {
     id: 'back-in',
     name: 'Back In',
-    hint: 'The lane is 4.4 m wide — too tight to swing in nose-first. Drive past, then reverse.',
+    hint: 'A 4.4 m lane between the wall and the row, and 0.64 m of slack in the bay. Aim it, do not swing it.',
     vehicle: 'hatch',
     theme: 'lot',
     // proven possible in this many direction changes by tools/validate.js
@@ -101,6 +118,50 @@ export const LEVELS = [
     paint: bayRow(0, -13, 11, 2.4, 5),
   },
 
+  // Asks: where does the room for the manoeuvre come from, when it is not on
+  // the side you arrived from? Reversing in sweeps 6.5 m of aisle past the bay
+  // and 0.95 m short of it; this bay has 1.45 m on its far side and 15 m on
+  // the near one, so the only reverse-in is the one driven the other way up
+  // the aisle. Nothing else in the series asks you to arrive from elsewhere.
+  {
+    id: 'short-side',
+    name: 'The Short Side',
+    hint: 'The wall is 1.45 m past the bay. Reversing in sweeps 6.5 m of aisle, and all of it is behind you.',
+    vehicle: 'hatch',
+    theme: 'garage',
+    // proven possible in this many direction changes by tools/validate.js
+    record: 4,
+    bounds: { minX: -1.6, maxX: 15.7, minZ: -14.5, maxZ: 1.1 },
+    start: { x: 13, z: -6.3, yaw: -P2 },
+    target: { x: 0, z: -11, w: 2.4, d: 5, rot: 0 },
+    obstacles: [
+      // the aisle is closed at both ends: 1.45 m past the bay, 15.6 m the other way
+      wall(-2.15, -6.5, 1.4, 17, { h: 3.2, color: 0xd0d2d6 }),
+      wall(16.3, -6.5, 1.4, 17, { h: 3.2, color: 0xd0d2d6 }),
+      wall(7, -14.15, 20, 1.0, { h: 3.2, color: 0xd0d2d6 }),
+      wall(7, 0.6, 20, 1.0, { h: 3.2, color: 0xd0d2d6 }),
+      parked(2.4, -12.225, 0, 'hatch', pick(0)),
+      parked(4.8, -12.225, 0, 'hatch', pick(1)),
+      parked(7.2, -12.225, 0, 'van', pick(2)),
+      parked(9.6, -12.225, 0, 'hatch', pick(3)),
+      parked(12.0, -12.225, 0, 'hatch', pick(4)),
+      parked(14.4, -12.225, 0, 'hatch', pick(5)),
+      // the row opposite is full but for one bay: 6.9 m of aisle is already
+      // enough to turn in, so the gap is not the turntable, it is the slack
+      // that keeps the turn from costing two extra shunts (measured: 4 vs 6)
+      parked(0, -1.375, Math.PI, 'hatch', pick(0)),
+      parked(2.4, -1.375, Math.PI, 'hatch', pick(1)),
+      parked(4.8, -1.375, Math.PI, 'hatch', pick(2)),
+      parked(9.6, -1.375, Math.PI, 'hatch', pick(3)),
+      parked(12.0, -1.375, Math.PI, 'hatch', pick(4)),
+      parked(14.4, -1.375, Math.PI, 'hatch', pick(5)),
+    ],
+    paint: [...bayRow(7.2, -11, 7, 2.4, 5), ...bayRow(7.2, -2.6, 7, 2.4, 5)],
+  },
+
+  // Asks: what changes when the bay is beside the aisle instead of across it?
+  // The car has to rotate into a gap rather than turn towards one, and the
+  // pivot is the rear axle, not the middle of the car.
   {
     id: 'parallel',
     name: 'Kerbside',
@@ -125,54 +186,9 @@ export const LEVELS = [
     paint: [{ x: 0.2, z: -5, w: 0.14, d: 32, rot: 0 }],
   },
 
-  {
-    id: 'squeeze',
-    name: 'The Squeeze',
-    hint: '4.85 m of kerb for a 3.95 m car, with a wall 4.6 m behind you. Expect three or four shunts.',
-    vehicle: 'hatch',
-    theme: 'street',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 8,
-    bounds: { minX: -6, maxX: 9, minZ: -20, maxZ: 10 },
-    start: { x: -0.2, z: -13.5, yaw: 0 },
-    target: { x: 2.85, z: -1.65, w: 2.2, d: 4.6, rot: 0 },
-    obstacles: [
-      kerb(4.2, -5, 0.4, 28),
-      wall(6.6, -5, 4, 28, { h: 5, color: 0xd9cfc2 }),
-      wall(-3.4, -5, 1.6, 28, { h: 3.2, color: 0xd9cfc2 }),
-      parked(2.9, -7.275, 0, 'hatch', pick(4)),
-      parked(2.9, 1.525, 0, 'hatch', pick(1)),
-      parked(2.9, -13.2, 0, 'van', pick(2)),
-      cone(-1.9, -9),
-      cone(-1.9, 7),
-    ],
-    paint: [],
-  },
-
-  {
-    id: 'dead-end',
-    name: 'Dead End',
-    hint: 'A 3.4 m alley into a 3.0 m doorway. No single arc fits — borrow the dead end behind you.',
-    vehicle: 'hatch',
-    theme: 'alley',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 4,
-    bounds: { minX: -4.5, maxX: 8, minZ: -13, maxZ: 13 },
-    start: { x: 0, z: 6, yaw: Math.PI },
-    target: { x: 4.2, z: -3, w: 2.6, d: 5, rot: P2 },
-    obstacles: [
-      wall(-2.35, 0, 1.3, 26, { h: 4.2, color: 0xd6c9bb }),
-      wall(2.35, -8.75, 1.3, 8.5, { h: 4.2, color: 0xd6c9bb }),
-      wall(2.35, 5.75, 1.3, 14.5, { h: 4.2, color: 0xd6c9bb }),
-      wall(4.35, -4.65, 5.3, 0.3, { h: 3.4, color: 0xe1d7c9 }),
-      wall(4.35, -1.35, 5.3, 0.3, { h: 3.4, color: 0xe1d7c9 }),
-      wall(6.95, -3, 0.3, 3.3, { h: 3.4, color: 0xe1d7c9 }),
-      cone(-1.2, -10),
-      cone(1.2, -11.5),
-    ],
-    paint: bayPaint(4.2, -3, 2.6, 5, P2),
-  },
-
+  // Asks: what happens when the thing in the way is a point rather than a
+  // wall? A pillar on the bay corner has to be gone round, not squeezed past,
+  // so the entry has to start from somewhere specific.
   {
     id: 'pillars',
     name: 'Pillar Problem',
@@ -198,27 +214,94 @@ export const LEVELS = [
     paint: bayRow(0, -11, 10, 2.5, 5),
   },
 
+  // Asks: what do you do when there is no room to pull past on either side?
+  // The yard is 11.6 m long, and a reverse-in needs 6.5 m of it on one side of
+  // the bay; a nose-first entry needs 4.1 m of run-up and 1.95 m beyond, and
+  // 3.04 m of depth. The yard is 5.2 m deep. The answer the series has taught
+  // for five levels is the one that does not fit here.
   {
-    id: 'threading',
-    name: 'Threading',
-    hint: 'Three 2.25 m gates, each offset 3 m from the last. Straighten before every one.',
+    id: 'alcove',
+    name: 'The Alcove',
+    hint: 'A yard 11.6 m long and 5.2 m deep. Reversing in wants 6.5 m of it on one side, and there is 5.8 m.',
     vehicle: 'hatch',
-    theme: 'lot',
+    theme: 'garage',
     // proven possible in this many direction changes by tools/validate.js
-    record: 7,
-    bounds: { minX: -6, maxX: 6, minZ: -30, maxZ: 11 },
-    start: { x: -1.8, z: 4, yaw: Math.PI },
-    target: { x: 0, z: -26.5, w: 2.5, d: 5, rot: 0 },
+    record: 0,
+    bounds: { minX: -6.3, maxX: 6.3, minZ: -14.2, maxZ: -2.9 },
+    start: { x: 4.4, z: -5.9, yaw: -P2 },
+    target: { x: 0, z: -11, w: 2.6, d: 5, rot: 0 },
     obstacles: [
-      ...gate(-4, -1.8, 2.25, -6, 6),
-      ...gate(-12, 1.2, 2.25, -6, 6),
-      ...gate(-20, -1.8, 2.25, -6, 6),
-      wall(-3.35, -26.5, 3.3, 5.2, { h: 1.8, color: 0xd7d9dd }),
-      wall(3.35, -26.5, 3.3, 5.2, { h: 1.8, color: 0xd7d9dd }),
-      cone(-4.8, -8),
-      cone(4.8, -16),
+      // 5.8 m of yard each side of the bay: past 5.47 (a nose-first swing),
+      // short of 6.54 (a reverse-in swing). That one number is the level.
+      wall(-6.5, -8.6, 1.4, 12, { h: 3.2, color: 0xd0d2d6 }),
+      wall(6.5, -8.6, 1.4, 12, { h: 3.2, color: 0xd0d2d6 }),
+      wall(0, -14.15, 15, 1.0, { h: 3.2, color: 0xd0d2d6 }),
+      wall(0, -2.8, 15, 1.0, { h: 3.2, color: 0xd0d2d6 }),
+      parked(-2.6, -12.225, 0, 'hatch', pick(1)),
+      parked(2.6, -12.225, 0, 'hatch', pick(4)),
     ],
-    paint: bayPaint(0, -26.5, 2.5, 5),
+    paint: bayRow(0, -11, 3, 2.6, 5),
+  },
+
+  // Asks: what do you do when neither entry fits at all? A 3.4 m alley into a
+  // 3.0 m doorway leaves no single arc; the answer is the empty alley behind
+  // you, which is the first level where space you are not aiming at is the
+  // resource.
+  {
+    id: 'dead-end',
+    name: 'Dead End',
+    hint: 'A 3.4 m alley into a 3.0 m doorway. No single arc fits — borrow the dead end behind you.',
+    vehicle: 'hatch',
+    theme: 'alley',
+    // proven possible in this many direction changes by tools/validate.js
+    record: 4,
+    bounds: { minX: -4.5, maxX: 8, minZ: -13, maxZ: 13 },
+    start: { x: 0, z: 6, yaw: Math.PI },
+    target: { x: 4.2, z: -3, w: 2.6, d: 5, rot: P2 },
+    obstacles: [
+      wall(-2.35, 0, 1.3, 26, { h: 4.2, color: 0xd6c9bb }),
+      wall(2.35, -8.75, 1.3, 8.5, { h: 4.2, color: 0xd6c9bb }),
+      wall(2.35, 5.75, 1.3, 14.5, { h: 4.2, color: 0xd6c9bb }),
+      wall(4.35, -4.65, 5.3, 0.3, { h: 3.4, color: 0xe1d7c9 }),
+      wall(4.35, -1.35, 5.3, 0.3, { h: 3.4, color: 0xe1d7c9 }),
+      wall(6.95, -3, 0.3, 3.3, { h: 3.4, color: 0xe1d7c9 }),
+      cone(-1.2, -10),
+      cone(1.2, -11.5),
+    ],
+    paint: bayPaint(4.2, -3, 2.6, 5, P2),
+  },
+
+  // Asks: which of two tight things do you do first? The 2.3 m slot and the
+  // 90 degrees inside a 2.6 m corridor are each survivable; only one order of
+  // them is. The series finale, and the only level about sequence.
+  {
+    id: 'impossible-gap',
+    name: 'The Impossible Gap',
+    hint: 'A 2.3 m slot, then ninety degrees inside a 2.6 m corridor. It fits. Barely.',
+    vehicle: 'hatch',
+    theme: 'alley',
+    // proven possible in this many direction changes by tools/validate.js
+    record: 3,
+    bounds: { minX: -16, maxX: 11.5, minZ: -9.5, maxZ: 11 },
+    start: { x: -9, z: 0, yaw: P2 },
+    target: { x: 8.1, z: -5.5, w: 2.5, d: 4.6, rot: 0 },
+    obstacles: [
+      // The wall, with a 2.3 m slot at z = 0
+      wall(2, -5.325, 0.5, 8.35, { h: 3.6, color: 0xd6c9bb }),
+      wall(2, 6.075, 0.5, 9.85, { h: 3.6, color: 0xd6c9bb }),
+      // The bay slot inside the chamber
+      wall(6.4, -5.45, 0.4, 8.1, { h: 3, color: 0xe1d7c9 }),
+      wall(9.8, -5.45, 0.4, 8.1, { h: 3, color: 0xe1d7c9 }),
+      // Cars pinching the chamber corridor down to 2.6 m
+      parked(3.9, 1.975, 0, 'hatch', pick(1)),
+      parked(9.4, 1.975, 0, 'hatch', pick(4)),
+      // The approach outside
+      parked(-3.225, -2.8, P2, 'hatch', pick(2)),
+      parked(-3.7, 2.8, P2, 'van', pick(0)),
+      cone(-6, -2.4),
+      cone(-6, 2.4),
+    ],
+    paint: bayPaint(8.1, -5.5, 2.5, 4.6),
   },
 
   {
@@ -271,35 +354,6 @@ export const LEVELS = [
     ],
   },
 
-  {
-    id: 'impossible-gap',
-    name: 'The Impossible Gap',
-    hint: 'A 2.3 m slot, then ninety degrees inside a 2.6 m corridor. It fits. Barely.',
-    vehicle: 'hatch',
-    theme: 'alley',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 3,
-    bounds: { minX: -16, maxX: 11.5, minZ: -9.5, maxZ: 11 },
-    start: { x: -9, z: 0, yaw: P2 },
-    target: { x: 8.1, z: -5.5, w: 2.5, d: 4.6, rot: 0 },
-    obstacles: [
-      // The wall, with a 2.3 m slot at z = 0
-      wall(2, -5.325, 0.5, 8.35, { h: 3.6, color: 0xd6c9bb }),
-      wall(2, 6.075, 0.5, 9.85, { h: 3.6, color: 0xd6c9bb }),
-      // The bay slot inside the chamber
-      wall(6.4, -5.45, 0.4, 8.1, { h: 3, color: 0xe1d7c9 }),
-      wall(9.8, -5.45, 0.4, 8.1, { h: 3, color: 0xe1d7c9 }),
-      // Cars pinching the chamber corridor down to 2.6 m
-      parked(3.9, 1.975, 0, 'hatch', pick(1)),
-      parked(9.4, 1.975, 0, 'hatch', pick(4)),
-      // The approach outside
-      parked(-3.225, -2.8, P2, 'hatch', pick(2)),
-      parked(-3.7, 2.8, P2, 'van', pick(0)),
-      cone(-6, -2.4),
-      cone(-6, 2.4),
-    ],
-    paint: bayPaint(8.1, -5.5, 2.5, 4.6),
-  },
   {
     id: 'bus-stop',
     name: 'Bus Stop',
@@ -408,6 +462,8 @@ export const LEVELS = [
     ],
     paint: [...bayPaint(8.1, -17.1, 3.9, 15.0), { x: 0, z: -4, w: 44, d: 0.16, rot: 0 }],
   },
+
+  // ---- CANDIDATES (under test) ----------------------------------------
 ];
 
 // Par is the record plus a working allowance. Matching a solver that can try

@@ -92,16 +92,21 @@ know which shape you are.
 
 | # | Level | Vehicle | The problem |
 |---|---|---|---|
-| 1 | First Bay | Hatchback | Drive in. The tutorial. |
-| 2 | Back In | Hatchback | 4.4 m lane — too narrow to swing in nose-first. |
-| 3 | Kerbside | Hatchback | Parallel park, 5.7 m gap. |
-| 4 | The Squeeze | Hatchback | Parallel park, 4.85 m gap, wall 4.6 m behind. |
-| 5 | Dead End | Hatchback | 3.4 m alley into a 3.0 m doorway. |
-| 6 | Pillar Problem | Hatchback | A pillar on the bay corner and one in the lane. |
-| 7 | Threading | Hatchback | Three 2.25 m gates, offset 3 m apart. |
-| 8 | Van Life | Van | Same puzzle, half a metre more vehicle. |
-| 9 | Loading Dock | Van | Reverse blind around a corner between two vans. |
-| 10 | The Impossible Gap | Hatchback | 2.3 m slot, then 90° inside a 2.6 m corridor. |
+The hatchback series is built so each level asks something the one before it
+did not — a new kind of problem rather than a tighter version of the last one.
+
+| # | Level | Vehicle | What it asks |
+|---|---|---|---|
+| 1 | First Bay | Hatchback | Where the bay is, and what counts as parked. |
+| 2 | Back In | Hatchback | How do you aim an entry, with 0.64 m of slack? |
+| 3 | The Short Side | Hatchback | The room is 1.45 m past the bay and 15 m behind it. |
+| 4 | Kerbside | Hatchback | The bay is beside the aisle, not across it. |
+| 5 | Pillar Problem | Hatchback | The obstruction is a point, so it is gone round. |
+| 6 | The Alcove | Hatchback | 5.8 m each side. Reversing in wants 6.5. |
+| 7 | Dead End | Hatchback | The room you need is behind you, going nowhere. |
+| 8 | The Impossible Gap | Hatchback | Can you tell it fits before you commit? |
+| 9 | Van Life | Van | Same puzzle, half a metre more vehicle. |
+| 10 | Loading Dock | Van | Reverse blind around a corner between two vans. |
 | 11 | Bus Stop | Bus | Parallel park 11 m of bus into a 13.5 m gap. |
 | 12 | Trailer Trouble | Car + trailer | Reverse a drawbar trailer into a bay row. |
 | 13 | Artic Dock | Semi | 16.6 m, hinged, into a dock between two others. |
@@ -112,7 +117,12 @@ know which shape you are.
 A vehicle at full lock sweeps a ring of a fixed width — 2.83 m for the
 hatchback, 6.60 m for the bus. Any corridor narrower than that cannot be turned
 out of in one arc, which is the line between "drive in" and "shunt it in", and
-every level number is chosen against it.
+the two corridor levels straddle it deliberately.
+
+Bay levels are cut against different numbers, measured by driving the physics
+out of a bay at full lock: reversing in needs 6.54 m of aisle past the bay,
+nose-first needs 1.95 m past it and 4.09 m before it. Which of those you take
+away *is* the level.
 
 Tight levels are easy to make impossible by accident, so they are checked
 rather than eyeballed:
