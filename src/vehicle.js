@@ -572,8 +572,9 @@ export class Vehicle {
       // The stick is the steering wheel's speed, not its angle. Let go and the
       // lock stays where you left it, so straightening out is a thing you do
       // rather than a thing that happens. Both modes reach every angle in
-      // [-maxSteer, maxSteer], which is why the solvability proofs in
-      // tools/validate.js hold for either (DESIGN.md 7).
+      // [-maxSteer, maxSteer], which is why the solvability proofs the levels
+      // were cut against covered both — the solver that produced them is gone
+      // (DESIGN.md 4), and the property is what remains of it (DESIGN.md 7).
       this.steer = clamp(this.steer + wheel * s.steerRate * g.steerSpeed * dt, -s.maxSteer, s.maxSteer);
     } else {
       const steerTarget = wheel * s.maxSteer;

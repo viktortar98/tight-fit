@@ -260,7 +260,7 @@ export const LEVELS = [
   // Measured honestly: the coach parks it in the same 2 the bus would. What the
   // tail buys is route, not direction changes: the coach needs 41.9 m and 67
   // degrees on the final reverse where the bus needs 36.6 m and 52. The score
-  // cannot see that; the bump counter can.
+  // cannot see that; the collision counter can.
   {
     id: 'tail-swing',
     name: 'Tail Swing',
