@@ -16,6 +16,17 @@ you hit it again is what makes it two.
 Nothing tops 2.9 m/s. Holding a steady creep is not the challenge, so the
 vehicles do it for you — the throttle is analog, but first gear is all there is.
 
+## Play it
+
+- [Play the current build](https://viktortar98.github.io/tight-fit/) — fourteen
+  levels, six vehicles.
+- [Play the first version](https://viktortar98.github.io/tight-fit/v1/) — the
+  original ten levels and two vehicles, scored on time and bumps, before
+  direction changes became the score. Kept as it was (commit `e59328a`).
+
+Both are static builds of this repo on the `gh-pages` branch; progress is saved
+per version, so playing one does not touch the other.
+
 The rules this game is held to — what is scored, what is never scored, what a
 level has to prove before it ships — are in [DESIGN.md](DESIGN.md). Read that
 before changing how a level or the scoring works.
