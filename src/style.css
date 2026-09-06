@@ -78,6 +78,9 @@ kbd {
 #wheel-rot { transition: transform 0.04s linear; transform-box: view-box; transform-origin: center; }
 
 .sensor { flex: 1; display: flex; align-items: center; gap: 10px; }
+/* With the proximity gauge gone in the inside view, the bar has no reason to
+   hold a 470px box open around a 42px wheel. */
+.gauges:has(#sensor.hidden) { width: auto; }
 .sensor-track, .artic-track {
   height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); position: relative;
 }

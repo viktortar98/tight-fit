@@ -691,7 +691,7 @@ Open decisions rather than assumed here.
 *Held by:* the reader, `src/camera.js` for the three modes, and
 `src/mirrors.js` for the panels.
 
-## 10. No path-prediction aids
+## 10. No path-prediction aids in the world
 
 The floor shows no predicted arcs, no ghost of where the vehicle will end up,
 no steering guide lines. Judging where the vehicle will go is the skill the
@@ -700,7 +700,27 @@ game is about; drawing the answer on the ground removes it.
 This was built once and deliberately removed. **Do not add it back** as a
 "helpful" overlay, an accessibility option, or a beginner mode.
 
-*Held by:* this paragraph, and nothing else.
+**The reverse camera is the one exception, and it is bounded by what a real car
+draws.** Requested as such: "the reverse camera should show the current
+trajectory of the car for about a meter distance". Four limits keep it from
+being the removed feature under another name, and all four are load-bearing:
+
+- **Only in the reverse camera panel.** The rails are a `Group` added to the
+  scene with `visible = false`, switched on for that one render pass and off
+  again. No other view can show them, including the overhead one, which is the
+  view that would turn them into a plan-view solution.
+- **Only while reversing.** Forwards, where the interesting judgement is,
+  there is nothing.
+- **Only one metre.** Long enough to know whether the bumper clears; far too
+  short to plan a shunt with. A real car's rails stop at about the same place
+  and for the same reason.
+- **Only what the vehicle would do now.** They are drawn by running the game's
+  own `integrate()` at the steering angle actually held, so they are the path
+  and not an artist's idea of it — and they say nothing about where the bay is
+  or how to get into it, which is what constraint 12 forbids.
+
+*Held by:* this paragraph, and `Panels.draw` in `src/panels.js` for the
+visibility flip.
 
 ## 11. The gamepad is the primary input
 
@@ -763,6 +783,15 @@ gauge showing something no camera angle reveals, and the articulation gauge is
 the only honest warning before a trailer folds. The speedometer and the gear
 letter were neither — they measured a quantity constraint 6 exists to make not
 matter, twice over, next to a scored number displayed smaller than either.
+
+**The proximity gauge is off in the inside view.** Both the bar and the beeps.
+The user's instruction — "In the first person view, the reverse radar should be
+turned off" — reads as the whole sensor system rather than only its display,
+which is the reading that makes the inside view coherent: from the driver's
+seat you get three mirrors, a reverse camera and your own eyes, which is what a
+real driver has, and no gauge counting down centimetres. The articulation gauge
+stays, because a folding trailer is not something a driver's seat reveals
+either.
 
 **The steering wheel came back, and the rule is why.** A steering-angle dot was
 removed here alongside them, when Direct was the only steering mode: the stick

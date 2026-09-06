@@ -9,7 +9,7 @@ import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { Pad, BTN } from './gamepad.js';
 import { Hud } from './hud.js';
-import { Mirrors } from './mirrors.js';
+import { Panels } from './panels.js';
 import { Tape } from './rewind.js';
 import { load as loadSettings, save as saveSettings, gains } from './settings.js';
 import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.js';
@@ -49,8 +49,9 @@ class Game {
     pmrem.dispose();
     this.camera = new THREE.PerspectiveCamera(52, 1, 0.1, 400);
     this.rig = new CameraRig(this.camera);
-    this.mirrors = new Mirrors();
+    this.panels = new Panels();
     this.world = new World(this.scene);
+    this.scene.add(this.panels.guides.group);
     this.input = new Input();
     this.pad = new Pad();
     this.sfx = new Sfx();
@@ -99,6 +100,7 @@ class Game {
     this.accum = 0;
     this.tape = new Tape();
     this.rewinding = false;
+    this.reversing = false;
 
     addEventListener('resize', () => this.resize());
     addEventListener('blur', () => { if (this.state === 'playing') this.setPaused(true); });
@@ -119,7 +121,7 @@ class Game {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.mirrors.resize(w, h, this.renderer.getPixelRatio());
+    this.panels.resize(w, h, this.renderer.getPixelRatio());
   }
 
   // --- level lifecycle -------------------------------------------------
@@ -348,6 +350,7 @@ class Game {
       steer: car.steer / this.spec.maxSteer,
       rewinding: this.rewinding,
       tape: this.tape.len / 120,
+      radar: this.rig.mode !== 'cockpit',
       hold: this.hold / 0.6,
       articulation: car.articulation,
       maxArticulation: this.spec.trailer ? this.spec.trailer.maxAngle : 0,
@@ -516,8 +519,13 @@ class Game {
         }
       }
 
+      // Reverse is a gear, not a speed: the panel comes up when you ask for
+      // reverse, before the vehicle has started moving.
+      this.reversing = this.vehicle.speed < -0.02 || drive.throttle < -0.1;
+
       const gap = this.nearestGap();
-      this.sfx.sensor(gap, performance.now() / 1000);
+      // The radar is off in the inside view, along with its gauge.
+      if (this.rig.mode !== 'cockpit') this.sfx.sensor(gap, performance.now() / 1000);
       this.hud.update(this.telemetry(gap));
     }
 
@@ -537,14 +545,17 @@ class Game {
         reversing: car.speed < -0.05,
       });
       this.rig.update(dt, car, this.spec, this.carMesh.view);
-      if (this.rig.mode === 'cockpit') this.mirrors.aim(car, this.carMesh.view);
+      this.anyPanel = this.panels.show({
+        cockpit: this.rig.mode === 'cockpit',
+        reversing: this.reversing,
+      });
+      if (this.anyPanel) this.panels.aim(this.spec, car, this.carMesh.view);
+      if (this.reversing) this.panels.guides.update(this.spec, car);
       this.world.animateTarget(performance.now() / 1000, this.inside);
     }
 
     this.renderer.render(this.scene, this.camera);
-    // Mirrors belong to the inside view: they answer the question the other
-    // two views answer by showing the vehicle from outside.
-    if (this.vehicle && this.rig.mode === 'cockpit') this.mirrors.draw(this.renderer, this.scene);
+    if (this.vehicle && this.anyPanel) this.panels.draw(this.renderer, this.scene);
     input.endFrame();
   }
 }

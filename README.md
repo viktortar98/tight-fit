@@ -118,8 +118,16 @@ trailer never drags your viewpoint with it, and a view you chose stays on the
 same corner of the vehicle as it turns. If a wall is in the way, it is in the
 way; the overhead view is one button away.
 
+**Reverse and a camera comes up**, in every view, showing the ground behind the
+bumper with two rails on it — the path the vehicle would actually take at the
+steering angle you are holding, one metre of it, red then amber then green.
+They are drawn by the same integrator the physics uses, they exist only inside
+that panel, and they go away the moment you stop reversing.
+
 The bar across the bottom is a parking sensor: the distance to the nearest
-thing in any direction, beeping faster as it closes. Articulated vehicles get a
+thing in any direction, beeping faster as it closes. It is switched off in the
+inside view, bar and beeps together — from the driver's seat you get the
+mirrors, the camera and your eyes, which is what a real driver has. Articulated vehicles get a
 second gauge showing the angle at the hitch, which is the only honest warning
 you get before it folds. Beside them is a steering wheel that mirrors your
 stick — in Rate mode the lock stays where you leave it, and from the inside
@@ -238,7 +246,7 @@ the number is the level's; if the count is still falling, it is the lattice's.
 | `src/world.js` | scene construction, themes, lighting |
 | `src/carMesh.js` | vehicle and trailer models, saturated or pastel |
 | `src/camera.js` | chase / inside / overhead, body-relative |
-| `src/mirrors.js` | the three mirror views, rendered as screen panels |
+| `src/panels.js` | the three mirrors and the reverse camera, as screen panels |
 | `src/rewind.js` | the tape the run plays backwards through |
 | `src/gamepad.js` | Xbox mapping, analog triggers, rumble |
 | `src/main.js` | game loop, collision resolution, progression |

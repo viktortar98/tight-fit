@@ -13,7 +13,7 @@ export class Hud {
       keysKb: $('keys-kb'), keysPad: $('keys-pad'),
       artic: $('artic'), articDot: $('artic-dot'), articLabel: $('artic-label'),
       shunts: $('stat-shunts'), bumps: $('stat-bumps'), best: $('stat-best'),
-      sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
+      sensor: $('sensor'), sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
       hold: $('hold'), holdFill: $('hold-fill'), toast: $('toast'), flash: $('flash'),
       wheelRot: $('wheel-rot'), rewind: $('rewind'), rewindLeft: $('rewind-left'),
       grid: $('level-grid'),
@@ -149,6 +149,11 @@ export class Hud {
     this.el.shunts.textContent = s.shunts;
     this.el.bumps.textContent = s.bumps;
     this.el.bumps.parentElement.classList.toggle('hot', s.bumps > 0);
+
+    // The proximity sensor is an aid the inside view deliberately does without
+    // (DESIGN.md 12): from the driver's seat you get the mirrors, the reverse
+    // camera and your own eyes, which is what a real driver has.
+    this.el.sensor.classList.toggle('hidden', !s.radar);
 
     const d = s.gap;
     const pct = Math.max(0, Math.min(1, 1 - d / 1.5));
