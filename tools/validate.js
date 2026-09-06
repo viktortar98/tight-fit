@@ -97,7 +97,7 @@ function parkRect(spec, target, s) {
 // what makes the answer a minimum, and it is also why this is slow.
 const better = (aS, aD, bS, bD) => (aS !== bS ? aS < bS : aD < bD);
 
-function solve(level, opts = {}) {
+export function solve(level, opts = {}) {
   const spec = tune(VEHICLES[level.vehicle]);
   const colliders = levelColliders(level);
   const arena = boundsRect(level);
@@ -270,10 +270,13 @@ function solve(level, opts = {}) {
   return { ok: false, reason: `exhausted (${expanded} nodes)` };
 }
 
+// Importable: a sweep script wants solve() without running the whole set, and
+// without the exit() below firing under it.
+const RUN = !process.env.NO_RUN;
 const only = process.argv[2] ? process.argv[2].split(',') : null;
 let failures = 0;
 
-for (const level of LEVELS) {
+for (const level of RUN ? LEVELS : []) {
   if (only && !only.includes(level.id)) continue;
   const spec = tune(VEHICLES[level.vehicle]);
   const colliders = levelColliders(level);
@@ -362,5 +365,7 @@ for (const level of LEVELS) {
   }
 }
 
-console.log(failures ? `\n${failures} problem(s).` : '\nAll levels clean and provably solvable.');
-process.exit(failures ? 1 : 0);
+if (RUN) {
+  console.log(failures ? `\n${failures} problem(s).` : '\nAll levels clean and provably solvable.');
+  process.exit(failures ? 1 : 0);
+}

@@ -306,6 +306,35 @@ ordering. A new vehicle is specified by its radius and its overhang, not by its
 length, and a level made harder by swapping in something longer has not
 necessarily been made harder at all.
 
+**The Tour Coach is what that specification produced.** It was added to test
+the wheel-position axis as a vehicle rather than as a knob: 12.0 m against the
+bus's 11.0, a minimum radius of 4.77 m against the bus's 4.70 — and a rear axle
+3.9 m forward of its tail, so **1.15 m of it swings outside its own turning
+circle**, against 0.67 m for the bus and 0.07 m for a hatchback. Same size
+class, same lock, different manoeuvre. It costs one spec entry and one `||` in
+the mesh dispatch, because `buildBus` was already parametric in length, height
+and `centerOffset`.
+
+**And it does not buy direction changes.** Five layout families were swept —
+a gated yard, an open depot with parked ranks, a solid-walled slot, an
+L-corridor bend, and pulling out of a bay into the rank opposite — at roughly
+140 solver runs. Every layout that made the coach cost more than the bus did it
+in one of two ways: by making it saw on the spot, or by standing at the edge of
+solvability, where the aisle basin was 0.5 m wide and `OVH=0.4` made the level
+*harder* rather than easier. Neither is a level. What the tail changes is the
+**route**: on the shipped Tail Swing the coach needs 41.9 m and 67° on its
+final reverse where the bus needs 36.6 m and 52°, for the same score of 2.
+
+The conclusion generalises, and it corrects the headline that started this
+line of work. `OVH=1.3` on Bus Stop moves the count from 1 to 12, which looked
+like the strongest design lever measured — but `ROUTE=1` shows eight of those
+twelve legs are one K-turn ground out in eighths. **Tail swing widens the swept
+band, and the swept band is a clearance.** Constraint 1 forbids building a
+level on a clearance, so it forbids building one on tail swing. The property is
+real and it belongs in the game; what it produces is bumps, which the game
+already scores, and not shunts, which it also scores. A vehicle can be worth
+adding for how it moves without being worth a level built on how it counts.
+
 **The substitution precondition.** A vehicle swap measures nothing in an arena
 that cannot admit the vehicle: the level comes back unsolvable, and that is a
 missing reading, not a zero. Trailer Trouble at `TRL=1.6` is exactly that
@@ -755,7 +784,8 @@ the peer who proposed the method.
 | The Alcove | 2 | 2 | 0 | structural, narrow basin |
 | Dead End | 5 | 2 | 0 | survives 15 cm, dies at 30 |
 | First Bay | 2 | 1 | 0 | half of it is clearance |
-| Van Life | 1 | 1 | 0 | holds at the honest line |
+| Van Life | 1 | 1 | 1 | structural outright, after re-cut |
+| Tail Swing | 2 | 2 | 2 | structural outright |
 | The Short Side | 2 | 0 | 0 | **all of it is clearance** |
 | Tight Lane (cut) | 5 | 0 | — | all of it is clearance |
 
@@ -807,6 +837,24 @@ What it establishes:
   charge was repetition rather than tolerance and no clearance measurement can
   speak to it. **That charge has since been rejected** — see the vehicle-roster
   entry below. Both stay.
+- **Van Life passed the probe and still broke constraint 1**, which is the
+  clearest demonstration in the file that δ-invariance is not the whole test.
+  It read 1/1/0 and its single direction change was a half-metre straight
+  reverse at the end, to seat the van once it was already inside the bay. The
+  probe cannot see that, because a nudge into a bay is a property of the route,
+  not of the clearance. `ROUTE=1` sees it immediately, and the fingerprint is a
+  leg with **zero turn**: `R+0` in a signature is final positioning by
+  definition, since a straight reverse changes nothing but where the vehicle
+  sits. Ten candidate edits were swept. Moving the neighbouring cars around did
+  nothing at all, and lowering the wall to narrow the aisle produced *two*
+  `R+0` legs instead of one — tightening made it worse, exactly as the
+  constraint-4 warning says. What worked was parking the right-hand neighbour
+  1.7 m out of its bay, which closes the aisle enough that the nose-first arc
+  does not exist: the van drives past the bay and reverses in on one 73° arc.
+  The record is still 1, and the 1 is now a manoeuvre. It holds its shape at
+  δ = 0.30, which nothing else in the set does.
+- **Look for `R+0` in any signature.** It is the machine-readable form of "this
+  level scores you on parking-space fiddling", and it costs nothing to check.
 - **Artic Dock and Yard Full hold** at 1 direction change through δ = 0.30.
   Measured after the table above was first written. Neither is a tolerance
   level.
@@ -850,6 +898,17 @@ hatchback series: a design session first, with the user; do not invent levels
 to fill a table.
 
 ### Recorded, not open
+
+**A sixth vehicle, and a level built for it.** Decided by the user, who was
+given three options — a vehicle plus its own level, a vehicle dropped into the
+levels that already exist, or no vehicle and `OVH` kept as a measurement only —
+and chose the first, on the grounds that dropping a long-tailed vehicle into a
+level not laid out for it had already been measured producing a shuffle. That
+reasoning held up: the Tour Coach ships with Tail Swing, and the search for
+that level is what established that tail swing does not generate direction
+changes at all. The vehicle is kept anyway, because the user's stated interest
+was vehicles that *move* differently, which this one measurably does, and not
+vehicles that score differently. See constraint 4 for the numbers.
 
 **Trailer Trouble stays as it is.** Decided by the user, against the
 measurement and knowing it. Nine perturbations of the vehicle — wheelbase and

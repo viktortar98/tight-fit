@@ -46,6 +46,22 @@ export const VEHICLES = {
     maxSpeed: 2.5, maxReverse: 1.9, crawlSpeed: 0.85,
     bodyColor: 0xd81f5e,
   },
+  // A rear-engine coach: the rear axle sits far forward under a long body, so
+  // 3.9 m of bus hangs behind it. It turns fractionally wider than the city bus
+  // and is only a metre longer, which is the point — what makes it different is
+  // not its size or its lock but where its wheels are. Steer it by the nose and
+  // the tail takes out whatever is behind and beside it.
+  coach: {
+    id: 'coach',
+    name: 'Tour Coach',
+    length: 12.0, width: 2.55, height: 3.35,
+    wheelbase: 6.1, rearOverhang: 3.9, trackWidth: 2.15,
+    wheelRadius: 0.52, wheelWidth: 0.3,
+    maxSteer: deg(52), steerRate: deg(100),
+    accel: 2.0, brakeAccel: 4.4, rollDrag: 1.8,
+    maxSpeed: 2.4, maxReverse: 1.8, crawlSpeed: 0.85,
+    bodyColor: 0x7a4fd6,
+  },
   towcar: {
     id: 'towcar',
     name: 'Car + Trailer',

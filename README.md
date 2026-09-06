@@ -1,7 +1,7 @@
 # Tight Fit
 
 A 3D parking game about threading a vehicle through spaces that look too small
-for it. Thirteen levels, five vehicles, no lap times and no "you were 4 cm off
+for it. Fourteen levels, six vehicles, no lap times and no "you were 4 cm off
 centre" scoring — a level is passed the moment the vehicle is inside the bay
 and stopped.
 
@@ -76,8 +76,16 @@ its geometry, and finding it is the level.
 | Hatchback | 3.95 m | 2.83 m swept ring | 2.9 m/s |
 | Van | 5.30 m | 3.41 m | 2.7 m/s |
 | Bus | 11.0 m | 6.60 m | 2.5 m/s |
+| Tour Coach | 12.0 m | 6.61 m | 2.4 m/s |
 | Car + trailer | 4.60 m + 4.2 m | 3.05 m (car alone) | 2.6 m/s |
 | Semi | 6.30 m + 13.0 m | 4.53 m (tractor alone) | 2.3 m/s |
+
+The coach and the bus turn almost identically — 4.77 m against 4.70 m of
+minimum radius — and are a metre apart in length. What separates them is where
+the wheels sit: the coach's rear axle is 3.9 m forward of its tail, so 1.15 m of
+it swings outside its own turning circle, against 0.67 m for the bus and 0.07 m
+for the hatchback. Bigger is not harder in this roster; the worst-steering
+vehicle in the game is the van, at 5.12 m.
 
 The two articulated combinations are one hinge each — a drawbar behind the tow
 car's rear axle, a fifth wheel just in front of the tractor's. Both fold if you
@@ -104,10 +112,11 @@ did not — a new kind of problem rather than a tighter version of the last one.
 | 7 | Van Life | Van | Same puzzle, half a metre more vehicle. |
 | 8 | Loading Dock | Van | A right-angle turn out of a corridor, into a bay between two vans. |
 | 9 | Bus Stop | Bus | Parallel park 11 m of bus into a 13.5 m gap. |
-| 10 | Trailer Trouble | Car + trailer | Reverse a drawbar trailer into a bay row. |
-| 11 | Fold | Car + trailer | The trailer goes in the bay. Where does the cab go? |
-| 12 | Artic Dock | Semi | 16.6 m, hinged, into a dock between two others. |
-| 13 | Yard Full | Semi | The same dock from the far side, in a yard with pillars in it. |
+| 10 | Tail Swing | Tour Coach | Out of your bay and into one two along, with 1.15 m of tail. |
+| 11 | Trailer Trouble | Car + trailer | Reverse a drawbar trailer into a bay row. |
+| 12 | Fold | Car + trailer | The trailer goes in the bay. Where does the cab go? |
+| 13 | Artic Dock | Semi | 16.6 m, hinged, into a dock between two others. |
+| 14 | Yard Full | Semi | The same dock from the far side, in a yard with pillars in it. |
 
 ## Why the levels are the size they are
 
@@ -150,7 +159,7 @@ claims.
 | `src/geom.js` | oriented-rectangle maths: SAT overlap, containment, distance |
 | `src/vehicle.js` | kinematic bicycle model, articulation, the five vehicle specs |
 | `src/colliders.js` | obstacles as flat rectangles, shared by renderer and prover |
-| `src/levels.js` | all thirteen levels, in metres |
+| `src/levels.js` | all fourteen levels, in metres |
 | `src/world.js` | scene construction, themes, lighting |
 | `src/carMesh.js` | vehicle and trailer models, saturated or pastel |
 | `src/camera.js` | chase / overhead / orbit, body-relative, with occlusion pull-in |

@@ -229,7 +229,9 @@ export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
     lights.tail.emissiveIntensity = 0.12;
   }
 
-  if (spec.id === 'bus') buildBus(g, spec, paint, lights);
+  // The coach is a bus with its wheels somewhere else; buildBus is parametric
+  // in length, height and centreOffset, so it draws both.
+  if (spec.id === 'bus' || spec.id === 'coach') buildBus(g, spec, paint, lights);
   else if (spec.id === 'semi') buildTractor(g, spec, paint, lights);
   else buildCarBody(g, spec, paint, lights);
 

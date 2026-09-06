@@ -247,6 +247,13 @@ export const LEVELS = [
     paint: bayPaint(4.2, -3, 2.6, 5, P2),
   },
 
+  // The neighbour on the right is parked 1.7 m out of its bay, which closes the
+  // aisle enough that the van cannot swing in nose-first. It has to drive past
+  // the bay and reverse in on one arc. Before that car moved, the whole of this
+  // level's single direction change was a half-metre straight back-up to seat
+  // the van once it was already inside — final positioning, which constraint 1
+  // says a level may not be made of. The manoeuvre now holds its shape with the
+  // van shrunk 0.30 m per side, which is the strongest reading in the set.
   {
     id: 'van-life',
     name: 'Van Life',
@@ -259,7 +266,7 @@ export const LEVELS = [
     obstacles: [
       wall(1.5, -3.6, 35, 0.6, { h: 1.6 }),
       parked(-3, -14.1, 0, 'van', pick(2)),
-      parked(3, -10.7, Math.PI, 'van', pick(1)),
+      parked(3, -9.0, Math.PI, 'van', pick(1)),
       parked(-9, -14.1, 0, 'van', pick(5)),
       parked(9, -13.625, 0, 'hatch', pick(3)),
       pillar(6.2, -8.2, 0.6, 2.8),
@@ -319,6 +326,39 @@ export const LEVELS = [
       { x: -1.6, z: -6, w: 0.14, d: 56, rot: 0 },
       ...bayPaint(2.6, -1.75, 3.2, 12.4),
     ],
+  },
+
+  // The coach's rear axle sits 3.9 m forward of its tail, so 1.15 m of bus
+  // swings outside its own turning circle — against 0.67 m for the city bus and
+  // 0.07 m for a hatchback. That is the whole reason this vehicle exists, and
+  // the manoeuvre that exposes it is coming *out* of a bay: the nose goes one
+  // way and the tail goes the other, into whatever is parked alongside.
+  //
+  // Measured honestly: the record is 2 and the bus would also park it in 2. The
+  // tail does not buy direction changes — five layout families were swept and
+  // every one that made the coach shunt more than the bus did it either by
+  // sawing on the spot or by standing on the edge of solvability. What the tail
+  // buys is route: the coach needs 41.9 m and 67 degrees on the final reverse
+  // where the bus needs 36.6 m and 52. The score cannot see that; the bump
+  // counter can.
+  {
+    id: 'tail-swing',
+    name: 'Tail Swing',
+    vehicle: 'coach',
+    theme: 'garage',
+    record: 2,
+    bounds: { minX: -30, maxX: 30, minZ: -21.4, maxZ: 21.4 },
+    start: { x: 0, z: 11.6, yaw: 0 },
+    target: { x: 8, z: -13.7, w: 3.4, d: 13.4, rot: 0 },
+    obstacles: [
+      // the rank you start in, solid but for your own bay at x = 0
+      wall(-15.925, 13.7, 28.15, 13.4, { h: 4.6, color: 0xd9cfc2 }),
+      wall(15.925, 13.7, 28.15, 13.4, { h: 4.6, color: 0xd9cfc2 }),
+      // the rank opposite, solid but for the bay two along at x = 8
+      wall(-11.925, -13.7, 36.15, 13.4, { h: 4.6, color: 0xd9cfc2 }),
+      wall(19.925, -13.7, 20.15, 13.4, { h: 4.6, color: 0xd9cfc2 }),
+    ],
+    paint: [...bayPaint(0, 13.7, 3.4, 13.4), ...bayPaint(8, -13.7, 3.4, 13.4)],
   },
 
   {
