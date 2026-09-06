@@ -85,8 +85,9 @@ is measured against is the player's own best on that level, and a level with no
 best yet says so. A published optimum tells a player what the designer thinks
 the level is worth, which is a claim about difficulty of *execution* — the
 thing constraint 1 says this game is not about. It also cannot be honest: the
-number would come from the solver, and what the solver finds is one route, not
-the best one (constraint 4).
+number would have to come from a search, and a search finds one route, not the
+best one — which is why the solver that used to produce it was never allowed to
+publish it, and why its withdrawal (constraint 4) changes nothing here.
 
 The result card's verdict follows from that. It used to have four grades, the
 top one gated on beating par. With no par it lost that one, and the remaining
@@ -124,345 +125,54 @@ Fold.
 
 *Held by:* the reader. Re-introducing a timer would satisfy every test.
 
-## 3. Every level ships proved, not eyeballed
+## 3. Withdrawn: every level ships proved, not eyeballed
 
-Tight levels are easy to make impossible by accident. `node tools/validate.js`
-runs a hybrid-A* search over `(x, z, yaw)` — `(x, z, yaw, trailerYaw)` for
-articulated vehicles — using the game's own `integrate()` and collision boxes.
-It also refuses any move that reaches the jackknife stop, so a solution may not
-grind the limit to get round a corner.
+## 4. Withdrawn: the solver is a design tool, and its number is a record
 
-**If the search cannot park it, the level does not ship.**
+Both of these were the same thing: `tools/validate.js`, a hybrid-A* search over
+`(x, z, yaw[, trailerYaw])` driven by the game's own `integrate()` and collision
+boxes. Constraint 3 refused to ship a level the search could not park. Constraint
+4 said the number it produced was a record and never reached the player, and
+carried the reasoning for why that number was an upper bound rather than a
+minimum: `seen` collapsed exact poses into lattice cells, so a route the lattice
+could not represent was a route the search could not find.
 
-*Enforced by:* `tools/validate.js`, exit code 1.
+**They are withdrawn because the solver is gone.** It was the largest thing in
+the project — a search, a lattice, a stale-record check, a no-slip sweep, three
+substitution probes — and everything it produced was for the designer. The
+levels it validated are kept; the tool that validated them is not. The numbers
+are still withdrawn to two places rather than deleted, because the sections
+below refer to them and because the levels were cut against them.
 
-## 4. The solver is a design tool, and its number is a record, not a minimum
+**What survives the withdrawal**, because the levels rest on it:
 
-`tools/validate.js` exists to tell the designer whether a level still asks the
-question it was built to ask. **Nothing it produces reaches the player**
-(constraint 2). That is the decision the rest of this follows from.
+- The entry minima for the hatchback, measured by driving `integrate()` out of a
+  bay at full lock. Reverse-in: 1.60 m of aisle depth, 6.54 m of aisle past the
+  bay, 0.95 m short of it. Nose-first: 3.04 m of depth, 4.09 m of run-up before
+  the bay, 1.95 m past it. These are minima — loosening the lock makes both
+  worse — and they are the numbers the levels are cut against. They are written
+  at the top of `src/levels.js`, where they are used.
+- **The window is 0.21 m wide.** A perpendicular bay costs a direction change
+  only while the aisle in front of it is between the hatchback's swept width
+  (2.83 m, below which it cannot turn at all) and the depth its nose-first swing
+  needs (3.04 m). Every aisle in the hatchback series is placed inside or below
+  that window on purpose. First Bay's is 2.90 m.
+- **Ten of thirteen levels were not asking for the score.** That was the
+  solver's one substantial finding, and it is the reason constraint 1 exists in
+  the shape it does. Three levels were re-cut in response and one was cut
+  outright. The finding is kept; the tool that found it is not needed to keep
+  believing it.
+- **A level and its mirror image are the same puzzle** — the model is
+  equivariant under `(x, yaw, steer) -> (-x, -yaw, -steer)`. This is a property
+  of `integrate()`, not of the search, and it is still true.
 
-### The number is an upper bound, and the lattice is why
+**What is lost, stated plainly.** Nothing now proves a level is solvable, and
+nothing now measures whether a level's cost is its route or its clearances. A
+level edited into impossibility will be found by playing it. That is the cost of
+the removal, and it was accepted knowingly: the alternative was carrying a
+search, a lattice and four probes to check fourteen levels that do not change.
 
-**Every count this tool has ever printed is an upper bound on the true
-optimum, and several are known to be well above it.** The search dedups on a
-lattice cell — `seen` is first-come-wins per `(x, z, yaw[, trailerYaw])` cell —
-so a cell that is too coarse discards genuine routes and the search pays for a
-long smooth arc in direction changes it did not need. Refining the cell can
-only *lower* a reported cost, because `seen` discards nodes and never creates a
-transition, and every route returned is a real sequence of `integrate()` steps
-from the start pose. So a finer answer is always the more correct one.
-
-`CELL` scales the whole lattice: `CELL=0.5` halves the cell and doubles every
-bin count. It belongs with `SHRINK`/`WB`/`LOCK`/`OVH`/`TRL` as a probe, but it
-differs from all of them in kind — those perturb the *level or the vehicle* to
-ask a question about the design, and this one perturbs *the instrument* to ask
-whether the design question was answered at all.
-
-**The convergence test, which is cheap and does not need the true optimum:**
-run a level at two cell sizes and check that the count *and* the distance are
-both stationary. A level whose pair has settled is being measured; a level
-whose count is still falling is a lattice reading, not a level property. This
-is due to `level-research`, and is the criterion that separates the two.
-
-Until a level has passed that test, treat its record as a claim about the
-search rather than about the level, and do not reason from it — the swept-ring
-and aisle-depth constants in constraint 7 are measured against the physics
-directly and are unaffected, but any argument of the form "this level costs N
-direction changes, therefore..." is only as good as the cell it was measured
-at.
-
-**Its objective is the game's score.** A route is ordered first by direction
-changes and only then by distance, as a pair compared lexicographically — not
-as one number with an exchange rate between the two. The search used to cost a
-route at `metres + 1.4 per direction change` under a heuristic weighted 1.35 to
-1.7, which minimised neither quantity and would shuffle at a bay mouth rather
-than drive 6 m away and come back for one shunt. Every number it produced was
-biased against exactly the routes a level is usually about.
-
-**Its counting matches the game's.** A run starts with no direction of travel
-(`dir = 0`, mirroring `lastDir = 0` in `Game.stepPhysics`), so the first
-movement is free in either direction and a level whose opening move is a
-reverse is not charged for it. Direction of travel is part of the state key:
-without it, a pose reached going forwards and the same pose reached in reverse
-collapse into one node and whichever arrived first decides the cost of every
-route through it. The fine straight run into the bay is a candidate pushed onto
-the heap with its own direction change charged, not an answer returned
-unpriced.
-
-**It is still an upper bound.** `seen` collapses exact poses into lattice cells
-(0.3 m, 10°), so which pose represents a cell decides what continuations exist
-from it. The evidence is in the output: Dead End reports 5 where the older,
-worse-objective search found 4. A search that minimises cannot report a larger
-number than one that does not — unless both are approximations over the same
-lattice, which they are. A pose that is already parked is exempt from the
-collapse, because a cell holds parked and unparked states alike and dropping
-the parked one is how a minimising search reports a number that is too high.
-
-**The solver and the game do not play by the same rules.** `integrate()` clamps
-the hitch at `maxAngle` and sets `jackknifed` (`src/vehicle.js:192`). Only the
-validator reads it (`tools/validate.js:158` and `:188`), where grinding the
-stop is treated as a mistake rather than a manoeuvre. The game reads it
-nowhere — `Game.showHud` passes `maxArticulation` to the HUD gauge and that is
-all — so the player may grind the stop freely and the solver may not. The
-search is therefore conservative, which is the safe direction for constraint 3:
-a route it finds is a route the player can drive. It is the wrong direction for
-`record`, which is defined below as the fewest direction changes *anything* has
-achieved: on the two articulated levels a player is playing a game the solver
-never searched, and a record beaten that way would not be a stale record but a
-different game. Whether the game should enforce the stop is in Open decisions.
-
-So `record` on a level means **the fewest direction changes anything has
-achieved on that geometry**. It is a record, not an optimum, and the validator
-checks it in one direction only: finding fewer fails the level, because the
-number is stale and the level is easier than its design believes. Finding more
-is not a failure — it is the lattice.
-
-**The number is not a property of the level, and here is the proof.** A level
-reflected about x = 0 is the same puzzle: `integrate()` is equivariant under
-(x, yaw, steer) -> (-x, -yaw, -steer) — `tan()` is odd so the yaw rate flips, x
-maps to -x, z is untouched, and the trailer's articulation rate flips with it —
-the steering set is symmetric, and SAT is geometric. So every route maps to a
-route in the mirror with the same direction-change count and the same distance,
-and the true optimum of the pair is identical. The reflection was checked
-first: every collider, arena rect, start pose and target of all fourteen levels
-matches the reflection of the original exactly, to the bit.
-
-**Five of the first twelve audited disagree.** Parallel 1 against 2, Dead End
-5 against UNSOLVED, Van Life 1 against 4, Loading Dock 3 against 1, and Bus
-Stop 1 against 10. The peer who found this reports Yard Full at 1 against 2 as
-well, on the commit before the coach landed; the two semi levels take about
-twenty minutes a pair and that half of the audit is still running. The cause is
-`key()`,
-which bins position as `floor((x - minX) / XY)`: cell walls are anchored to the
-arena's own corner, so reflecting the level slides the lattice, and `seen` is
-first-come-wins per cell, so which pose gets to represent a cell decides what
-continuations exist from it.
-
-Two things follow, and they point in opposite directions.
-
-- **Five of the six are harmless, and they look alike.** In those the mirror
-  finds a *worse* route, so the shipped number is still the minimum. They also
-  share a signature: Bus Stop's mirror is `F+19 R+0 F+0 R+10 F+0 R+0 F+0 R+0
-  F+10 R+0 F-3` — six zero-turn legs. **When the lattice fights, it saws.** So
-  a route full of `R+0` legs is a symptom of the instrument as well as of a bad
-  level, and the two are told apart by whether the route is also shorter.
-- **The sixth was a real error, in the level the table called soundest.**
-  Loading Dock's mirror parks it in 1 over 22.0 m against 3 over 28.8 m, and
-  that route — `R+0 F-88`, reverse straight back, which is free because nothing
-  has moved yet, then one arc into the dock — is legal in the shipped level by
-  reflection. The record was wrong by two.
-
-**What was adopted:** the validator solves both handednesses and keeps the
-better one, marking the line `[mirror]` when the reflection wins. One extra
-solve per level. It is a strictly tighter upper bound, and it is what lets the
-stale-record check catch a record that is too *high* — against a single lattice
-it structurally cannot, because the record was set on that same lattice.
-
-**What that does not fix.** The peer who found this reports that re-anchoring
-the lattice to a global origin does not repair the disagreement but re-rolls
-it — The Short Side going from 2/2 to 6/3, Dead End from 5/UNSOLVED to 3/4 —
-and that Dead End is beatable at 3 against its record of 4. That result is
-theirs and is not reproduced here, but it is the more important half if it
-holds: sliding the lattice by less than 0.3 m changes the reported cost, so the
-cost is a property of the search and not of the level. Solving both ways takes
-a minimum over two lattices; it does not make the minimum true.
-
-**The method that survives this is the one already in use: prefer plateaus to
-points.** A number that holds across a metre of some dimension is a property of
-the level. A number that appears at one setting and nowhere either side of it
-is the instrument — which is exactly why the coach's aisle sweep rejected a
-2-change reading at 14.0 m sitting in a field of 1s, and why the difference
-probe is read as a collapse rather than as a value.
-
-**And UNSOLVED is not proof of unsolvability.** Dead End's mirror does not run
-out of budget; it exhausts its reachable set and reports no solution, on a
-level whose original solves in half a second. That is constraint 3's
-instrument, not only constraint 4's, and the guarantee it offers is one-sided.
-
-**The difference probe.** `SHRINK=δ` (an environment variable, default 0)
-trims δ metres off every side of every rectangle belonging to the vehicle —
-body, trailer, and the rectangle the bay has to contain. Nothing kinematic
-changes: wheelbase, lock, turning radius and swept path are identical, so every
-route keeps its shape and every gap in the level gets δ wider. **If a level's
-direction-change count falls under it, that count was a clearance.** If it
-holds, the cost is the shape of the free space, which is what constraint 1 says
-a level is allowed to be made of. Three lines in the validator, and it is the
-only thing that has ever held constraint 1 — the enforcement table listed that
-row as held by nothing.
-
-**The failing condition.** Run at δ = 0.15 per side, and read three outcomes.
-*Structural*: the count does not fall, and the level's comment may say so.
-*Mixed*: it falls but not to zero — part idea, part clearance, which is normal
-and often correct. *Clearance*: it falls to **zero**, and only this fails. A
-level whose count reaches zero on a 15 cm trim has no route structure at all;
-every direction change in it existed because something did not quite fit.
-
-δ = 0.15 rather than another number because it is about 9% of a hatchback's
-width, smaller than every level's stated `slack` in both axes, and because it
-is where the set actually separates. At δ = 0.30 almost everything collapses,
-including the levels that are supposed to collapse last, and a test that fails
-everything discriminates nothing — so 0.30 is a stress reading to quote, not a
-pass mark to set.
-
-**The probe must not become a target.** A level tuned to survive δ = 0.15 by
-adding 0.3 m everywhere has not become structural, it has become loose. The
-probe detects clearance-dependence and cannot detect that a level is boring.
-
-**The ban is not on numbers, it is on numbers whose neighbourhood matters.** A
-threshold — the swept band, the bay-entry envelopes of constraint 7 — switches
-which routes exist and then plays the same anywhere on one side of it. A
-tolerance has a knife edge. **The operational test is the width of the basin:**
-sweep the dimension that carries the level's cost and look at the neighbourhood
-of the shipped value. Flat for a metre either side is a plateau and a
-threshold; changed by a quarter-metre step is a spike and a tolerance, whatever
-it looks like in the file.
-
-**Threshold-ness is necessary and not sufficient, and this is the trap.** A
-number can be a genuine threshold and still be a clearance. A bus needs 6.5 m
-of street to turn through a 6 m gate for 3 direction changes, 7–8 m for 1, and
-9 m for none: a real plateau, a metre wide. The whole ladder slides half a
-metre sideways at δ = 0.15, because the threshold *is* the swept band and the
-band *is* the body. So the two tests are independent and a level should pass
-both — **basin width** answers "is this a tolerance?", **δ-invariance** answers
-"is this clearance?".
-
-What comes out the other side is the sentence to design against:
-
-> A constraint built against the shape of the free space survives shrinking the
-> vehicle. A constraint built against the size of the vehicle does not. Walls
-> that forbid a *placement* hold at any clearance; gaps that forbid a *sweep*
-> hold only at the clearance you tuned them to.
-
-**Making a weak level harder by tightening it makes it worse by this measure,
-every time.** Counter-intuitive, and the specific mistake the probe exists to
-catch. The Short Side's closing wall was swept: flush with the bay it costs 11
-direction changes at full size and 1 at δ = 0.15. Shaving an envelope buys
-hardness by standing as close to the cliff as possible, which is the most
-clearance-dependent place a level can be.
-
-**One probe is not enough.** `SHRINK` answers "does this level need the vehicle
-to be that big?". It cannot answer the question the difference rule actually
-asks, because it only ever makes the vehicle *smaller*: a δ-shrunk hatchback is
-a hatchback with more room, and a van is not a hatchback with less room.
-Substituting a vehicle changes properties `SHRINK` holds fixed. Three more
-knobs, each isolating one, level untouched:
-
-- **`WB`, `LOCK`** scale wheelbase and steering lock. Together they are the
-  turning radius — how tight a corner the vehicle can cut.
-- **`OVH`** scales rear overhang while `length` and `width` stay literally
-  fixed, so the collision rectangle keeps its dimensions and only its offset
-  from the rear axle moves. This is the wheel-position axis: the same box, with
-  more tail behind the wheels to swing and less nose ahead of them to lead.
-- **`TRL`** scales the trailer's `axleFromHitch` — how fast the trailer answers
-  the tractor. It is the one confounded knob: it also lengthens the trailer's
-  rectangle, so a response could be either cause. Read it as indicative.
-
-**Record four numbers per level, not one.** A level that moves on none of the
-four is not posing a problem to the vehicle standing in it — any vehicle would
-do, and the level is about its walls alone. That is a sharper failure than
-clearance-dependence, and it is the one the difference rule is actually asking
-about.
-
-Trailer Trouble is the level that reads that way. Nine perturbations — wheelbase
-and lock at ±25%, overhang from 0.4x to 1.3x, trailer response at 0.6x, and a
-0.15 m shrink — return 1 direction change, every one of them. Nothing about the
-vehicle is load-bearing there.
-
-**A count that rises is not automatically a level that got better.** Bus Stop
-is flat at `OVH` 0.4 and 1.0 and jumps to 12 direction changes at 1.3 — the
-largest response any axis produces anywhere in the set, with no wall moved. But
-`ROUTE=1` shows that eight of those twelve legs are one K-turn ground out in
-eighths, each leg 0.6 m and 7°, pivoting on a single spot: the lengthened tail
-cannot swing, so the bus saws. The number is real, and what it counts is a
-grind. **This is the third way the count misleads** — it over-reports a shuffle
-exactly as it under-reports at 0 and 1 — and it is why `ROUTE=1` exists. A
-shuffle is not hard, it is slow, and "not easy, just hard to do fast" is not
-satisfied by making it long.
-
-**Two orderings, and they are not the same ordering.** Measured minimum turning
-radius against overall length:
-
-| | turning radius | length |
-|---|---|---|
-| Hatchback | 3.37 m | 4.0 m |
-| Car + Trailer | 4.08 m | 8.8 m |
-| Semi | 4.65 m | 16.6 m |
-| City Bus | 4.70 m | 11.0 m |
-| Delivery Van | **5.12 m** | 5.3 m |
-
-The van is the worst-steering vehicle in the game and the second smallest; the
-bus is nearly three times its length and turns tighter. So **"bigger is harder"
-is false in this roster**, while "worse steering is harder" picks out a real
-ordering. A new vehicle is specified by its radius and its overhang, not by its
-length, and a level made harder by swapping in something longer has not
-necessarily been made harder at all.
-
-**The Tour Coach is what that specification produced.** It was added to test
-the wheel-position axis as a vehicle rather than as a knob: 12.0 m against the
-bus's 11.0, a minimum radius of 4.77 m against the bus's 4.70 — and a rear axle
-3.9 m forward of its tail, so **1.15 m of it swings outside its own turning
-circle**, against 0.67 m for the bus and 0.07 m for a hatchback. Same size
-class, same lock, different manoeuvre. It costs one spec entry and one `||` in
-the mesh dispatch, because `buildBus` was already parametric in length, height
-and `centerOffset`.
-
-**And it does not buy direction changes.** Five layout families were swept —
-a gated yard, an open depot with parked ranks, a solid-walled slot, an
-L-corridor bend, and pulling out of a bay into the rank opposite — at roughly
-140 solver runs. Every layout that made the coach cost more than the bus did it
-in one of two ways: by making it saw on the spot, or by standing at the edge of
-solvability, where the aisle basin was 0.5 m wide and `OVH=0.4` made the level
-*harder* rather than easier. Neither is a level. What the tail changes is the
-**route**: on the shipped Tail Swing the coach needs 41.9 m and 67° on its
-final reverse where the bus needs 36.6 m and 52°, for the same score of 2.
-
-The conclusion generalises, and it corrects the headline that started this
-line of work. `OVH=1.3` on Bus Stop moves the count from 1 to 12, which looked
-like the strongest design lever measured — but `ROUTE=1` shows eight of those
-twelve legs are one K-turn ground out in eighths. **Tail swing widens the swept
-band, and the swept band is a clearance.** Constraint 1 forbids building a
-level on a clearance, so it forbids building one on tail swing. The property is
-real and it belongs in the game; what it produces is bumps, which the game
-already scores, and not shunts, which it also scores. A vehicle can be worth
-adding for how it moves without being worth a level built on how it counts.
-
-**The substitution precondition.** A vehicle swap measures nothing in an arena
-that cannot admit the vehicle: the level comes back unsolvable, and that is a
-missing reading, not a zero. Trailer Trouble at `TRL=1.6` is exactly that
-cell: the trailer outgrows the yard and the run returns UNSOLVED, which says
-nothing about whether the level responds to trailer response. Arenas are laid
-out for the largest vehicle that might ever stand in them — which costs nothing
-while they are empty space, and makes every later substitution a measurement
-instead of a rebuild.
-
-The results are under Open decisions, "The set against the difference rule".
-
-**What this measurement found.** On the objective that is actually the score,
-ten of the thirteen levels then in the set wanted 0 or 1 direction change. The game's own
-scoring unit was, in almost every level, not being asked for. That is a fact
-about the levels and not about the tool, and it is what the tool is for. Three
-levels were re-cut in response — First Bay to 2, Tight Lane to 5, The Alcove to
-2 — though Tight Lane was cut shortly afterwards under constraint 1's
-difference rule, because 5 direction changes bought with 0.1 m of bay slack is
-the anti-pattern that rule names. That is the shape of the whole finding: the
-solver can tell you a level is not asking for the score, and it cannot tell you
-the level has an idea.
-
-The lever that moved them is narrow. A perpendicular bay costs a direction
-change only while the lane in front of it is between the hatchback's swept
-width (2.83 m, below which it cannot turn at all) and the depth its nose-first
-swing needs (3.04 m). That is a 0.21 m window, measured, and every lane in the
-hatchback series is now placed inside or below it on purpose.
-
-**It costs what it costs.** Ordering by direction changes first means the
-search exhausts everything reachable in *n* of them before it looks at *n+1*.
-The Impossible Gap went from 1 s to 26 s, Yard Full from 20 s to 50 s, Artic
-Dock from 101 s to 404 s. That was accepted rather than worked around: this is
-a tool a designer runs between edits, not something in a player's way, and a
-fast wrong number is worth less than a slow honest one.
-
-*Enforced by:* the stale-record check in `tools/validate.js`, exit 1.
+*Held by:* nothing. Playing the level is the check.
 
 ## 5. A crash is entering contact, not being in it
 
@@ -532,11 +242,13 @@ never binds. Any aisle you can drive down is wide enough to reverse into a bay
 from. What decides a bay level is a *length*, and the swept ring has nothing to
 say about it. The constant was not wrong; it was not load-bearing there.
 
-*Enforced by:* `sweptWidth()` is printed per level by the validator, which is
-worth keeping — it is what makes the two corridor levels legible in the output.
-**It is not an enforcement of this constraint.** It is constant per vehicle, so
-the column reads 2.83 on every hatchback row and cannot make drift visible. A
-bay level's real constraint is not printed at all.
+*Enforced by:* nothing. A `sweptWidth()` used to be printed per level by the
+validator, which made the two corridor levels legible in its output but was
+never an enforcement of this constraint: it is constant per vehicle, so the
+column read 2.83 on every hatchback row and could not make drift visible. A bay
+level's real constraint was not printed at all. Both are gone with the solver;
+what governs bay entries is the table above, repeated at the top of
+`src/levels.js`, and a person checks against it.
 
 ## 8. The player's vehicle is the only saturated colour
 
@@ -675,10 +387,9 @@ When this was first written it claimed the rule bought something back — that
 height was the axis an outside view opens, since an overhang is legible from
 the chase camera and invisible from above, and `wall()` already takes an `h`.
 **That was wrong, and the engine says so.** Collision is two-dimensional on
-XZ. `collidersOf()` (`src/colliders.js`) emits `{x, z, w, d, rot, kind}` and
+XZ. `collidersOf()` (`src/colliders.js`) emits `{x, z, w, d, rot, type}` and
 drops `h` for every obstacle; `overlaps()` is a separating-axis test on those
-rectangles; nothing in `Game.isFree` or the validator's `blocked()` reads a
-height. The only readers of `h` are the mesh builders in `src/world.js` and the
+rectangles; nothing in `Game.isFree` reads a height. The only readers of `h` are the mesh builders in `src/world.js` and the
 camera's look-at target. **A 0.15 m kerb is exactly as solid as a 5 m
 building**, and Kerbside and Bus Stop already depend on that being true.
 
@@ -920,12 +631,12 @@ equal 3 cm steps over 20 m of a varying-lock profile:
 | semi (trailer included) | 1.78e-15 m, 2.22e-16 rad |
 
 That is floating-point identity, not similarity. And `steerRate` is not in the
-proof at all: `tools/validate.js` applies steer angles to `integrate()` with no
-rate limit, so how fast the wheel reaches an angle is something the prover
-already ignores.
+the measurement at all: it was taken by applying steer angles to `integrate()`
+with no rate limit, so how fast the wheel reaches an angle is something the
+measurement already ignores.
 
-So every route the prover proves stays drivable under every combination of
-settings, and a record in `src/levels.js` means one thing rather than sixteen.
+So every route that is drivable stays drivable under every combination of
+settings, and a level's difficulty means one thing rather than sixteen.
 The score is safe for the same reason: a shunt is a sign change in the
 direction of travel with a 0.2 m/s deadband (`Game.stepPhysics`), and no
 multiplier changes how many times a route crosses zero.
@@ -996,8 +707,10 @@ articulations, at the game's 1/120 s:
 | semitrailer | 2.6e+0 | 1.2e-6 |
 
 Restoring only the start-of-step articulation, leaving the jackknife stop
-correct, gives 2.4e-3 and 1.5e-3 — three orders above where the model sits now,
-which is what the validator's threshold is set between.
+correct, gives 2.4e-3 and 1.5e-3 — three orders above where the model sits now.
+The check that measured this was a sweep of the whole roster in the validator,
+and it is gone with it; the numbers are kept here because they are what a
+re-measurement would have to reproduce.
 
 Normalising by the axle's *own* longitudinal displacement is the obvious measure
 and it is the wrong one. A trailer axle at large articulation sits near its own
@@ -1011,17 +724,16 @@ integration error and falls with the step, at the second order the midpoint rule
 is meant to give. It is not a direction the trailer can be pushed: five
 micrometres per metre travelled, on the vehicle where it is largest.
 
-The prover never had this bug to fix: `tools/validate.js` has always discarded
-any state flagged `jackknifed`, on the grounds that grinding the fold is a
-mistake rather than a manoeuvre. What changed is that the game now agrees with
-it.
+The solver never had this bug to fix: it always discarded any state flagged
+`jackknifed`, on the grounds that grinding the fold is a mistake rather than a
+manoeuvre. What changed is that the game now agrees with it.
 
-*Held by:* the no-slip check in `tools/validate.js`, which sweeps the whole
-roster before the levels and refuses to run them if any vehicle can be made to
-slide. It is checked against both defects it was written for: re-introduce
-either and it fails, which is the only evidence that a check of this shape is
-worth having. The first version of it was not — it skipped a step once the
-state was flagged `jackknifed`, and the clamp sets that flag on the same step it
+*Held by:* nothing, since the no-slip check went with the validator. It swept
+the whole roster before the levels and refused to run them if any vehicle could
+be made to slide, and it was checked against both defects it was written for:
+re-introduce either and it failed, which is the only evidence that a check of
+this shape is worth having. The first version of it was not — it skipped a step
+once the state was flagged `jackknifed`, and the clamp sets that flag on the same step it
 teleports the axle, so the check broke out immediately before the evidence and
 passed against the bug it existed to catch.
 
@@ -1053,7 +765,7 @@ union:
 Two ways to close a gap, and they are not equivalent. Bringing the geometry
 inside the rectangle costs nothing but the look. Widening the collision
 footprint to the geometry is the realistic one — mirrors do hit things — and it
-changes what fits, which invalidates every level's proof (constraint 3).
+changes what fits, so every level has to be driven again after it.
 
 **Lights, bumpers and glazing took the first**, and are inset by half their own
 depth; the semi's cab ends where its rectangle ends.
@@ -1071,12 +783,12 @@ Everything else is now zero — except one. The tow car's ball sits 0.230 m behi
 rectangle because that is where the hitch physically is, and the drawbar spans
 1.3 m of open air between the car's rectangle and the trailer's. Drawing that
 inside a rectangle would misplace the hitch; giving it a rectangle of its own
-would change what fits, and so needs the levels re-proved. It is in Open
-decisions rather than closed by default.
+would change what fits, and so needs the levels re-checked by hand. It is in
+Open decisions rather than closed by default.
 
 *Enforced by:* nothing yet. The check exists as a script and its numbers are
-above; it is not wired into `pnpm lint` or the validator. The mirrors are the
-one part it cannot catch by construction, and they do not need it: `mirror()`
+above; it is not wired into `pnpm lint`. The mirrors are the one part it cannot
+catch by construction, and they do not need it: `mirror()`
 in `src/carMesh.js` builds the housing from the same `spec.mirrors` that
 `mirrorRect()` collides with.
 
@@ -1177,40 +889,28 @@ timer that guesses at deliberateness is worse than an act that is deliberate.
 
 | Constraint | Enforced by | Fails how |
 |---|---|---|
-| 3 — proved solvable | `tools/validate.js` | exit 1, names the level |
-| 4 — record not stale | stale-record check in the validator | exit 1, prints the shorter answer |
 | 13 — no dead code | `pnpm knip`, `pnpm lint` | exit 1, names the export |
-| 1 — route, not measurement | `SHRINK`/`WB`/`LOCK`/`OVH`/`TRL` probes | count collapses, or never moves |
-| 4 — count is a level property | `CELL` probe, run at two sizes | count still falling means the lattice, not the level |
-| 7 — swept ring | printed per level by the validator | visible drift |
 | 15 — settings are timing, not geometry | review; `gains()` scales only rates, and `maxSteer` / dimensions are not in it | silent |
-| 16 — every wheel rolls | no-slip check in the validator, whole roster | exit 1, names the vehicle and the slide |
 | 17 — nothing drawn outside a rectangle | a script, run by hand | silent between runs |
-| 2, 5, 6, 8, 9, 10, 11, 12, 14, 18, 19, 20 | nothing | silent |
+| 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 19, 20 | nothing | silent |
+| 3, 4 | withdrawn | — |
 
-Fifteen of twenty are held by reading. That is the honest state of it: the
-solvability gate and the dead-code sweep are machine-checked because both are
-invisible until someone trips over them, and the rest are cheap for a person to
-notice and expensive to automate. This file is what a reviewer checks a change
-against.
+**One of eighteen live constraints is machine-checked.** That is the honest
+state of it, and it got worse on purpose: constraints 3, 4, 7, 16 and 1's probe
+were all held by `tools/validate.js`, and the tool was removed. What it bought
+was a designer's tool for a set of fourteen levels that are finished; what it
+cost was a search, a lattice, four probes and a no-slip sweep, all of which had
+to stay correct against every change to `integrate()`. The trade was taken
+knowingly (constraint 4).
 
-Constraint 1's row is new and is not yet a gate. The probe produces the number
-and a person reads it; nothing exits 1. Making it a gate needs a failing
-condition, and the honest one is not obvious — "the count must not fall at all"
-would fail First Bay, which is a legitimate first level, and "must not fall to
-zero" passes a level that goes 5 to 1. The substitution axes have the same
-problem from the other end: "must move on at least one axis" is the right
-shape, but Bus Stop shows a level can move a long way and move into a shuffle. It is listed here because it is the
-first thing that measures constraint 1 at all, not because it decides anything
-on its own yet.
+What is now unchecked, named rather than implied: nothing proves a level is
+solvable, nothing catches a level whose cost turns out to be clearance rather
+than route, nothing catches a vehicle that can be made to slide sideways, and
+nothing checks that a level still asks the question its comment says it asks.
+The last of those was never checked anyway. The first three are found by
+playing the game, which is the check this project now has.
 
-Two other entries are weaker than they look. The swept-ring row prints a number
-that is constant per vehicle, so it cannot show drift in anything a level does
-— constraint 7 says what actually governs bay entries. And the stale-record row
-only catches a level getting *easier* — and until the validator was made to
-solve both handednesses it could not reliably do even that, because a record
-set from one lattice is not comparable with a search on the same lattice.
-Nothing checks that a level still asks the question its comment says it asks.
+This file is what a reviewer checks a change against.
 
 ---
 
@@ -1228,10 +928,12 @@ add even more vehicles with different wheel positioning / shape that makes the
 manouvering feel different, makes the movement of the vehicle different." So a
 level is not disqualified for reposing an earlier level's geometry to a heavier
 or worse-steering vehicle, and **no level is cut for repetition**. What is
-still owed is a measurement: the difference probe cannot tell whether a vehicle
-substitution changes which routes exist or only how much room they have, and
-that measurement is what would decide whether Van Life and Bus Stop are earning
-their place or merely occupying it. Being designed.
+still owed is a measurement: the difference probe could not tell whether a
+vehicle substitution changes which routes exist or only how much room they
+have, and that measurement is what would decide whether Van Life and Bus Stop
+are earning their place or merely occupying it. The probe is gone with the
+solver (constraint 4), so this is now a question for playing rather than for a
+tool. Being designed.
 
 The corollary the roster already supports and no level uses: the vehicles are
 not a size ladder. Steady-state articulation in a full-lock forward turn is
@@ -1243,7 +945,7 @@ slow and unforgiving. And the bus is the only vehicle with a tail: rear
 overhang swing at full lock is 0.67 m against 0.07–0.09 m for everything else.
 Bus Stop does not use it. A tail that swings outboard on the side opposite the
 turn is a placement property, not a width property, which is the class the
-probe says survives.
+probe said survives.
 
 **Whether the tow car's drawbar gets a collision rectangle.** The one gap left
 by constraint 17. The car's rectangle ends 0.95 m behind its rear axle, the
@@ -1251,14 +953,15 @@ trailer's begins 2.25 m behind it, and the 1.30 m between them holds a hitch
 ball and a drawbar that nothing collides with. A pillar or a cone can sit in
 that slot untouched while the two rectangles pass either side of it. Closing it
 means a third rectangle on the combination, which changes what fits and so
-needs Trailer Trouble and Fold re-proved — the same cost as widening a vehicle.
+needs Trailer Trouble and Fold driven again — the same cost as widening a
+vehicle.
 Leaving it means the tow car has 1.3 m of visible steel that is not there as
 far as the physics is concerned. Not decided.
 
 **Whether obstacles get a height.** Found by measurement, not assumed: collision
 is two-dimensional. `collidersOf()` drops `h`, `overlaps()` is a separating-axis
-test on flat rectangles, and neither `Game.isFree` nor the validator's
-`blocked()` reads a height — so a 0.15 m kerb stops a semi exactly as a 5 m
+test on flat rectangles, and `Game.isFree` does not read a height — so a
+0.15 m kerb stops a semi exactly as a 5 m
 building does, and Kerbside and Bus Stop depend on that. Giving obstacles a
 `clearance` compared against a vehicle height in those two tests is about a
 dozen lines. It would open overhangs, canopies and low bars as level material,
@@ -1268,19 +971,21 @@ view. It also adds a rule the player must learn without being told (constraint
 another is a *measurement* difficulty unless the level is built so the height
 changes the route. Not decided.
 
-**Whether the game should enforce the jackknife stop.** The solver treats
+**Whether the game should enforce the jackknife stop.** The solver treated
 grinding it as a failed move; the game permits it. Enforcing it in the game —
-a contact, a refusal to steer further, or a void — would make the two agree and
-would make an articulation budget a thing a level can be built on. Leaving it
-permits a player to beat a record by a route the tool cannot search. Not
-decided.
+a contact, a refusal to steer further, or a void — would make an articulation
+budget a thing a level can be built on. Leaving it means a fold ground against
+its stop is a legal manoeuvre. The solver's disagreement is no longer an
+argument either way, since the solver is gone. Not decided.
 
-**The set against the difference rule.** No longer a hand audit. Constraint 1
-is now measured, by the probe described under constraint 4: shrink every
-rectangle belonging to the vehicle by δ per side, change nothing kinematic, and
-see whether the level still costs what it cost. Every number below was produced
-by `SHRINK=δ node tools/validate.js <level>` and reproduced independently of
-the peer who proposed the method.
+**The set against the difference rule.** Measured once, and the measurement is
+kept here because the levels were cut against it. The probe shrank every
+rectangle belonging to the vehicle by δ per side, changed nothing kinematic, and
+asked whether the level still cost what it cost. Every number below was produced
+by `SHRINK=δ node tools/validate.js <level>` and reproduced independently of the
+peer who proposed the method. **The probe is gone** (constraint 4), so this
+table is a record of the set as it stood, not something a change can be
+re-checked against.
 
 | level | δ=0 | δ=0.15 | δ=0.30 | reading |
 |---|---|---|---|---|
@@ -1297,7 +1002,7 @@ the peer who proposed the method.
 | The Short Side | 2 | 0 | 0 | **all of it is clearance** |
 | Tight Lane (cut) | 5 | 0 | — | all of it is clearance |
 
-Read it with two cautions. The solver is an upper bound, so ±1 is noise and
+Read it with two cautions. The solver was an upper bound, so ±1 is noise and
 only a collapse is signal. And δ=0.30 makes the hatchback 1.16 × 3.35 m, which
 is smaller than a real car — it is a stress test for separating survivors, not
 a fair pass. **δ=0.15 is the honest line.**
@@ -1446,7 +1151,8 @@ reasoning held up: the Tour Coach ships with Tail Swing, and the search for
 that level is what established that tail swing does not generate direction
 changes at all. The vehicle is kept anyway, because the user's stated interest
 was vehicles that *move* differently, which this one measurably does, and not
-vehicles that score differently. See constraint 4 for the numbers.
+vehicles that score differently. The numbers are in Tail Swing's comment in
+`src/levels.js`.
 
 **Trailer Trouble stays as it is.** Decided by the user, against the
 measurement and knowing it. Nine perturbations of the vehicle — wheelbase and

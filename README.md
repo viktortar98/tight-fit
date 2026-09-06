@@ -219,34 +219,35 @@ out of a bay at full lock: reversing in needs 6.54 m of aisle past the bay,
 nose-first needs 1.95 m past it and 4.09 m before it. Which of those you take
 away *is* the level.
 
-Tight levels are easy to make impossible by accident, so they are checked
-rather than eyeballed:
+Tight levels are easy to make impossible by accident. There used to be a
+hybrid-A* solver in `tools/` that proved each one and printed the fewest
+direction changes it could find; it was removed, because it was the largest
+thing in the project and everything it produced was for the designer of a set
+of levels that is finished. What is left is playing them. `DESIGN.md`
+constraint 4 records the trade and the measurements worth keeping.
 
-```bash
-node tools/validate.js            # all levels
-node tools/validate.js alcove     # one
+## Levels are objects
+
+A level is a list of objects and nothing else:
+
+```js
+objects: [
+  room(0, -8.475, 9.2, 10.35),
+  bays(0, -11, ['hatch', null, 'hatch'], { w: 2.6, d: 5 }),
+]
 ```
 
-It confirms the vehicle starts clear and the target is reachable and unblocked,
-then runs a hybrid-A* search over `(x, z, yaw)` — `(x, z, yaw, trailerYaw)` for
-the articulated ones — using the game's own `integrate()` and collision boxes,
-refusing any move that would reach the jackknife stop. If the search cannot
-park it, the level does not ship.
+`src/objects.js` holds the palette — walls, kerbs, pillars, cones, parked
+vehicles and paint, plus the composites built from them: `bay`, `bays`, `room`,
+`street`, `docks`. Each is a `type` and its parameters, and `expand()` turns
+them into rectangles and paint once, when the world is built.
 
-Nothing it prints reaches the player. It is a tool for whoever is building a
-level: the real clearances, and the fewest direction changes anything has
-managed on that geometry. It orders routes the way the game scores them —
-direction changes first, distance only as a tie-break — so that number means
-something to a designer, but it is a record rather than an optimum, and the
-validator only fails a level when the search beats the number the level
-claims.
-
-That record is an **upper bound**, and by more than we thought. The search
-dedups on a lattice, and a cell too coarse to represent a long smooth arc pays
-for the arc in direction changes it never needed. `CELL=0.5` halves the cell;
-refining can only lower a count, never raise one. Run a level at two cell sizes
-and check the count and the distance have both stopped moving — if they have,
-the number is the level's; if the count is still falling, it is the lattice's.
+The numbers a level writes down are the ones it is *about*: an aisle width, a
+bay pitch, the length of a street. Everything that follows from those is worked
+out in `src/objects.js` — where a car's rear axle has to go so the car sits
+centred in its bay, where a kerb sits so the road is the width asked for. Levels
+used to do that arithmetic by hand, and one of them had a bay row and the cars
+parked in it a metre apart. An editor edits the parameters.
 
 ## Layout
 
@@ -254,7 +255,8 @@ the number is the level's; if the count is still falling, it is the lattice's.
 |---|---|
 | `src/geom.js` | oriented-rectangle maths: SAT overlap, containment, distance |
 | `src/vehicle.js` | kinematic bicycle model, articulation, the five vehicle specs |
-| `src/colliders.js` | obstacles as flat rectangles, shared by renderer and prover |
+| `src/colliders.js` | obstacles as flat rectangles, shared by renderer and physics |
+| `src/objects.js` | the palette a level is built from, and what expands it |
 | `src/levels.js` | all fourteen levels, in metres |
 | `src/world.js` | scene construction, themes, lighting |
 | `src/carMesh.js` | vehicle and trailer models, saturated or pastel |
@@ -264,7 +266,6 @@ the number is the level's; if the count is still falling, it is the lattice's.
 | `src/traces.js` | the marks the tyres leave, one ribbon per wheel |
 | `src/gamepad.js` | Xbox mapping, analog triggers, rumble |
 | `src/main.js` | game loop, collision resolution, progression |
-| `tools/validate.js` | the solvability prover |
 | `DESIGN.md` | the constraints all of the above exist to satisfy |
 
 Collision is 2D: every obstacle, and every unit of the vehicle, is a rectangle

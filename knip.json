@@ -4,7 +4,6 @@
     "index.html"
   ],
   "project": [
-    "src/**/*.js",
-    "tools/**/*.js"
+    "src/**/*.js"
   ]
 }

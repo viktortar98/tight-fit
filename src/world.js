@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { VEHICLES, trailerAxle } from './vehicle.js';
 import { createVehicleMesh } from './carMesh.js';
 import { collidersOf } from './colliders.js';
+import { expand } from './objects.js';
 
 const THEMES = {
   lot: {
@@ -115,6 +116,9 @@ export class World {
 
   build(level) {
     this.clear();
+    // The level holds objects; the world needs rectangles and paint. This is
+    // the only place the two forms meet (src/objects.js).
+    const { obstacles, paint } = expand(level.objects);
     const theme = THEMES[level.theme] ?? THEMES.lot;
     const b = level.bounds;
     const cx = (b.minX + b.maxX) / 2;
@@ -170,7 +174,7 @@ export class World {
 
     // --- paint
     const paintMat = new THREE.MeshStandardMaterial({ color: 0xd6d3c6, roughness: 0.85 });
-    for (const p of level.paint ?? []) {
+    for (const p of paint) {
       const m = new THREE.Mesh(new THREE.BoxGeometry(p.w, 0.02, p.d), paintMat);
       m.position.set(p.x, 0.011, p.z);
       m.rotation.y = p.rot ?? 0;
@@ -198,12 +202,12 @@ export class World {
     }
 
     // --- obstacles
-    for (const o of level.obstacles) {
+    for (const o of obstacles) {
       this.colliders.push(...collidersOf(o));
       const mesh = this.obstacleMesh(o, theme);
       this.root.add(mesh);
       // Cones and kerbs are too small to be worth shoving the camera around.
-      if (o.kind !== 'cone' && o.kind !== 'kerb') this.occluders.push(mesh);
+      if (o.type !== 'cone' && o.type !== 'kerb') this.occluders.push(mesh);
     }
 
     // --- target
@@ -215,7 +219,7 @@ export class World {
 
   obstacleMesh(o, theme) {
     const g = new THREE.Group();
-    if (o.kind === 'parked') {
+    if (o.type === 'parked') {
       const spec = VEHICLES[o.spec];
       const car = createVehicleMesh(spec, o.color ?? 0xdfe3e8, { pastel: true });
       car.group.position.set(o.x, 0, o.z);
@@ -230,7 +234,7 @@ export class World {
       return g;
     }
 
-    if (o.kind === 'dropped') {
+    if (o.type === 'dropped') {
       const paint = new THREE.MeshStandardMaterial({ color: o.color ?? 0xdfe3e8, roughness: 0.62 });
       const deckY = 1.1;
       const box = new THREE.Mesh(new THREE.BoxGeometry(o.w, o.h - deckY, o.d), paint);
@@ -256,17 +260,17 @@ export class World {
     }
 
     let mat;
-    if (o.kind === 'kerb') {
+    if (o.type === 'kerb') {
       mat = new THREE.MeshStandardMaterial({ color: 0xe6e3db, roughness: 0.95 });
-    } else if (o.kind === 'pillar') {
+    } else if (o.type === 'pillar') {
       mat = new THREE.MeshStandardMaterial({ color: 0xd3d5d9, roughness: 0.92 });
-    } else if (o.kind === 'cone') {
+    } else if (o.type === 'cone') {
       mat = new THREE.MeshStandardMaterial({ color: 0xf2b795, roughness: 0.7 });
     } else {
       mat = new THREE.MeshStandardMaterial({ color: o.color ?? theme.wall, roughness: 0.9 });
     }
 
-    if (o.kind === 'cone') {
+    if (o.type === 'cone') {
       const cone = new THREE.Mesh(new THREE.ConeGeometry(0.22, o.h, 14), mat);
       cone.position.set(o.x, o.h / 2, o.z);
       const base = new THREE.Mesh(
@@ -290,7 +294,7 @@ export class World {
     box.receiveShadow = true;
     g.add(box);
 
-    if (o.kind === 'pillar') {
+    if (o.type === 'pillar') {
       const stripe = new THREE.Mesh(
         new THREE.BoxGeometry(o.w * 1.03, 0.28, o.d * 1.03),
         new THREE.MeshStandardMaterial({ color: 0xf0dcab, roughness: 0.8 }),

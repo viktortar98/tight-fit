@@ -138,19 +138,6 @@ export function combinationLength(spec) {
   return front + (-t.hitch + t.axleFromHitch + t.axleToRear);
 }
 
-function turningRadius(spec) {
-  return spec.wheelbase / Math.tan(spec.maxSteer);
-}
-
-// Width of the ring swept by a full-lock turn: the corridor a 90-degree swing
-// needs. Level dimensions are chosen against this number.
-export function sweptWidth(spec) {
-  const r = turningRadius(spec);
-  const frontOverhang = spec.length - spec.wheelbase - spec.rearOverhang;
-  const outer = Math.hypot(r + spec.width / 2, spec.wheelbase + frontOverhang);
-  return { outer, inner: r - spec.width / 2, width: outer - (r - spec.width / 2) };
-}
-
 // --- state helpers -----------------------------------------------------
 // A state is {x, z, yaw, trailerYaw, speed}, x/z at the tractor's rear axle.
 
@@ -233,7 +220,7 @@ export function wheelPoints(spec, s) {
 // stick out and collide". They get a rectangle of their own rather than a wider
 // body, because a car is only mirror-wide at the mirrors — widening `width`
 // would make its bumpers hit things its bumpers do not reach.
-function mirrorRect(spec, s) {
+export function mirrorRect(spec, s) {
   const m = spec.mirrors;
   return {
     x: s.x + Math.sin(s.yaw) * m.z,
@@ -249,7 +236,7 @@ export function rearBodyRect(spec, s) {
   return spec.trailer ? trailerRect(spec, s) : bodyRect(spec, s);
 }
 
-export function bodyRects(spec, s) {
+function bodyRects(spec, s) {
   const r = [bodyRect(spec, s), mirrorRect(spec, s)];
   if (spec.trailer) r.push(trailerRect(spec, s));
   return r;
