@@ -96,18 +96,18 @@ did not — a new kind of problem rather than a tighter version of the last one.
 | # | Level | Vehicle | What it asks |
 |---|---|---|---|
 | 1 | First Bay | Hatchback | A 2.9 m aisle. The bay is behind your shoulder. |
-| 2 | Tight Lane | Hatchback | How do you aim an entry, with 0.64 m of slack? |
-| 3 | The Short Side | Hatchback | The room is 1.45 m past the bay and 15 m behind it. |
-| 4 | Kerbside | Hatchback | The bay is beside the aisle, not across it. |
-| 5 | The Alcove | Hatchback | 4.6 m each side. Reversing in wants 6.5. |
+| 2 | The Short Side | Hatchback | The room is 1.45 m past the bay and 15 m behind it. |
+| 3 | Kerbside | Hatchback | The bay is beside the aisle, not across it. |
+| 4 | The Alcove | Hatchback | 4.6 m each side. Reversing in wants 6.5. |
+| 5 | The Impossible Gap | Hatchback | Can you tell it fits before you commit? |
 | 6 | Dead End | Hatchback | The room you need is behind you, going nowhere. |
-| 7 | The Impossible Gap | Hatchback | Can you tell it fits before you commit? |
+| 7 | Tight Lane | Hatchback | Every idea is behind you. Now aim it, with 0.64 m of slack. |
 | 8 | Van Life | Van | Same puzzle, half a metre more vehicle. |
-| 9 | Loading Dock | Van | Reverse blind around a corner between two vans. |
+| 9 | Loading Dock | Van | A right-angle turn out of a corridor, into a bay between two vans. |
 | 10 | Bus Stop | Bus | Parallel park 11 m of bus into a 13.5 m gap. |
 | 11 | Trailer Trouble | Car + trailer | Reverse a drawbar trailer into a bay row. |
 | 12 | Artic Dock | Semi | 16.6 m, hinged, into a dock between two others. |
-| 13 | Blind Side | Semi | The same dock, on the side the mirrors don't cover. |
+| 13 | Yard Full | Semi | The same dock from the far side, in a yard with pillars in it. |
 
 ## Why the levels are the size they are
 

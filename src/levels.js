@@ -96,43 +96,6 @@ export const LEVELS = [
     paint: [...bayRow(0, -13, 11, 2.5, 5), ...bayRow(0, -5.525, 11, 2.5, 5)],
   },
 
-  // Asks: how do you aim the reverse-in First Bay handed you, at a bay barely
-  // wider than the car? Same 2.9 m lane; 0.64 m of slack rather than 0.74, and
-  // a wall opposite rather than a row of cars, so there is nothing to line up
-  // against.
-  //
-  // Honest about what this is, because the measurements say it plainly. The
-  // manoeuvre is First Bay's and the new difficulty is precision, not
-  // comprehension. The window in which a perpendicular bay costs a direction
-  // change at all is a lane between 2.83 m — below it nothing can turn — and
-  // 3.04 m, above which a nose-first swing fits. That is 0.21 m wide, so lane
-  // width cannot be what separates two levels, and slack is the only lever
-  // left. It is a steep one: at this lane the search needs 5 direction changes
-  // for 0.64 m of slack, 4 for 0.69, 3 for 0.79. Three would sit better after
-  // First Bay's two, and it would also make this bay looser than First Bay's,
-  // which is the drift the rename was supposed to end. Left at 0.64 with the
-  // curve problem written down rather than papered over.
-  {
-    id: 'tight-lane',
-    name: 'Tight Lane',
-    vehicle: 'hatch',
-    theme: 'lot',
-    record: 5,
-    bounds: { minX: -14, maxX: 17, minZ: -15.5, maxZ: -6.0 },
-    start: { x: 10, z: -9.05, yaw: -P2 },
-    target: { x: 0, z: -13, w: 2.4, d: 5, rot: 0 },
-    obstacles: [
-      wall(1.5, -7.0, 31, 1.2, { h: 1.5 }),
-      parked(-2.4, -14.125, 0, 'hatch', pick(1)),
-      parked(2.4, -11.675, Math.PI, 'hatch', pick(5)),
-      parked(-7.2, -14.125, 0, 'hatch', pick(2)),
-      parked(7.2, -14.125, 0, 'hatch', pick(3)),
-      parked(-12, -11.675, Math.PI, 'hatch', pick(6)),
-      parked(12, -14.6, 0, 'van', pick(0)),
-    ],
-    paint: bayRow(0, -13, 11, 2.4, 5),
-  },
-
   // Asks: where does the room for the manoeuvre come from, when it is not on
   // the side you arrived from? Reversing in sweeps 6.5 m of aisle past the bay
   // and 0.95 m short of it; this bay has 1.45 m on its far side and 15 m on
@@ -227,32 +190,6 @@ export const LEVELS = [
     paint: bayRow(0, -11, 3, 2.6, 5),
   },
 
-  // Asks: what do you do when neither entry fits at all? A 3.4 m alley into a
-  // 3.0 m doorway leaves no single arc; the answer is the empty alley behind
-  // you, which is the first level where space you are not aiming at is the
-  // resource.
-  {
-    id: 'dead-end',
-    name: 'Dead End',
-    vehicle: 'hatch',
-    theme: 'alley',
-    record: 4,
-    bounds: { minX: -4.5, maxX: 8, minZ: -13, maxZ: 13 },
-    start: { x: 0, z: 6, yaw: Math.PI },
-    target: { x: 4.2, z: -3, w: 2.6, d: 5, rot: P2 },
-    obstacles: [
-      wall(-2.35, 0, 1.3, 26, { h: 4.2, color: 0xd6c9bb }),
-      wall(2.35, -8.75, 1.3, 8.5, { h: 4.2, color: 0xd6c9bb }),
-      wall(2.35, 5.75, 1.3, 14.5, { h: 4.2, color: 0xd6c9bb }),
-      wall(4.35, -4.65, 5.3, 0.3, { h: 3.4, color: 0xe1d7c9 }),
-      wall(4.35, -1.35, 5.3, 0.3, { h: 3.4, color: 0xe1d7c9 }),
-      wall(6.95, -3, 0.3, 3.3, { h: 3.4, color: 0xe1d7c9 }),
-      cone(-1.2, -10),
-      cone(1.2, -11.5),
-    ],
-    paint: bayPaint(4.2, -3, 2.6, 5, P2),
-  },
-
   // Asks: which of two tight things do you do first? The 2.3 m slot and the
   // 90 degrees inside a 2.6 m corridor are each survivable; only one order of
   // them is. The series finale, and the only level about sequence.
@@ -282,6 +219,74 @@ export const LEVELS = [
       cone(-6, 2.4),
     ],
     paint: bayPaint(8.1, -5.5, 2.5, 4.6),
+  },
+
+  // Asks: what do you do when neither entry fits at all? A 3.4 m alley into a
+  // 3.0 m doorway leaves no single arc; the answer is the empty alley behind
+  // you, which is the first level where space you are not aiming at is the
+  // resource.
+  {
+    id: 'dead-end',
+    name: 'Dead End',
+    vehicle: 'hatch',
+    theme: 'alley',
+    record: 4,
+    bounds: { minX: -4.5, maxX: 8, minZ: -13, maxZ: 13 },
+    start: { x: 0, z: 6, yaw: Math.PI },
+    target: { x: 4.2, z: -3, w: 2.6, d: 5, rot: P2 },
+    obstacles: [
+      wall(-2.35, 0, 1.3, 26, { h: 4.2, color: 0xd6c9bb }),
+      wall(2.35, -8.75, 1.3, 8.5, { h: 4.2, color: 0xd6c9bb }),
+      wall(2.35, 5.75, 1.3, 14.5, { h: 4.2, color: 0xd6c9bb }),
+      wall(4.35, -4.65, 5.3, 0.3, { h: 3.4, color: 0xe1d7c9 }),
+      wall(4.35, -1.35, 5.3, 0.3, { h: 3.4, color: 0xe1d7c9 }),
+      wall(6.95, -3, 0.3, 3.3, { h: 3.4, color: 0xe1d7c9 }),
+      cone(-1.2, -10),
+      cone(1.2, -11.5),
+    ],
+    paint: bayPaint(4.2, -3, 2.6, 5, P2),
+  },
+
+  // Asks: how do you aim the reverse-in First Bay handed you, at a bay barely
+  // wider than the car? Same 2.9 m lane; 0.64 m of slack rather than 0.74, and
+  // a wall opposite rather than a row of cars, so there is nothing to line up
+  // against.
+  //
+  // Last of the seven on purpose. This level introduces nothing — its
+  // manoeuvre is First Bay's and its only new difficulty is precision — and
+  // that is why it sits at the end rather than at position 2, where it was.
+  // Every idea in the series has been handed over by the time you arrive, so
+  // the level is the exam and not a lesson, which is the one job a level with
+  // no idea of its own can hold honestly.
+  //
+  // It was moved rather than loosened. The window in which a perpendicular bay
+  // costs a direction change at all is a lane between 2.83 m — below it
+  // nothing can turn — and 3.04 m, above which a nose-first swing fits. That
+  // is 0.21 m wide, so lane width cannot separate two levels and slack is the
+  // only lever left, and it is a steep one: at this lane the search needs 5
+  // direction changes for 0.64 m of slack, 4 for 0.69, 3 for 0.79. Loosening
+  // to 0.79 would have cost 3 and made this bay roomier than First Bay's,
+  // which is the drift the rename was meant to end. At the end of the series
+  // the 5 is a finale rather than a spike.
+  {
+    id: 'tight-lane',
+    name: 'Tight Lane',
+    vehicle: 'hatch',
+    theme: 'lot',
+    record: 5,
+    bounds: { minX: -14, maxX: 17, minZ: -15.5, maxZ: -6.0 },
+    start: { x: 10, z: -9.05, yaw: -P2 },
+    target: { x: 0, z: -13, w: 2.4, d: 5, rot: 0 },
+    obstacles: [
+      wall(1.5, -7.0, 31, 1.2, { h: 1.5 }),
+      parked(-2.4, -14.125, 0, 'hatch', pick(1)),
+      parked(2.4, -11.675, Math.PI, 'hatch', pick(5)),
+      parked(-7.2, -14.125, 0, 'hatch', pick(2)),
+      parked(7.2, -14.125, 0, 'hatch', pick(3)),
+      parked(-12, -11.675, Math.PI, 'hatch', pick(6)),
+      parked(12, -14.6, 0, 'van', pick(0)),
+    ],
+    paint: bayRow(0, -13, 11, 2.4, 5),
   },
 
   {
@@ -403,14 +408,22 @@ export const LEVELS = [
     paint: [...bayPaint(0, -17.1, 3.9, 15.0), { x: 0, z: -4, w: 44, d: 0.16, rot: 0 }],
   },
 
+  // Was "Blind Side": a semi backing into the dock on the side a real driver's
+  // mirrors do not cover. This game has no mirrors and only outside views, so
+  // that premise described nothing (constraint 9). What the level actually has
+  // is the mirrored approach and a yard with two pillars in it, so no single
+  // long arc fits. The name now says that. Whether the obstruction is a
+  // sufficient idea for a level is open, with the other five large-vehicle
+  // levels — see DESIGN, Open decisions.
   {
-    id: 'blind-side',
-    name: 'Blind Side',
+    id: 'yard-full',
+    name: 'Yard Full',
     vehicle: 'semi',
     theme: 'garage',
     record: 1,
     bounds: { minX: -26, maxX: 30, minZ: -26, maxZ: 6 },
-    // Driving -X puts the dock on the driver's right, which is the whole level.
+    // Approached driving -X, so the dock is reached from the opposite side to
+    // Artic Dock's; the pillars below are what stop it being that level again.
     start: { x: 16, z: -3, yaw: -P2 },
     target: { x: 8.1, z: -17.1, w: 3.9, d: 15.0, rot: 0, part: 'trailer' },
     obstacles: [

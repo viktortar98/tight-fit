@@ -13,7 +13,7 @@ import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.j
 
 // Versioned with the scoring unit. When the unit changes this key changes,
 // and there is nothing to migrate — a best in an abandoned unit is not data.
-const STORE = 'tight-fit.v3';
+const STORE = 'tight-fit.v4';
 const PHYS_DT = 1 / 120;
 
 function loadProgress() {

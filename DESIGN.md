@@ -78,11 +78,14 @@ collision — displayed next to a crash counter, in a game where a crash now
 voids the run. `shunts` survives as the identifier in code, where the second
 meaning cannot reach a player.
 
-**The save key carries the scoring unit** (`STORE = 'tight-fit.v3'`). A best
-recorded in a unit the game no longer uses is not data, it is a memory of an
-abandoned decision, so when the unit changes the key changes and there is
-nothing to migrate. The migration loop that used to strip old time-based bests
-is gone with it.
+**The save key carries the scoring unit, and the level order** (`STORE =
+'tight-fit.v4'`). A best recorded in a unit the game no longer uses is not
+data, it is a memory of an abandoned decision, so when the unit changes the key
+changes and there is nothing to migrate. The migration loop that used to strip
+old time-based bests is gone with it. The order counts for the same reason:
+bests are keyed by level id and survive anything, but `progress.unlocked` is an
+index into `LEVELS`, so re-ordering the series makes a stored index a statement
+about different levels than the one it was written for. v4 is that re-order.
 
 *Held by:* the reader. Re-introducing a timer would satisfy every test.
 
@@ -153,7 +156,7 @@ hatchback series is now placed inside or below it on purpose.
 
 **It costs what it costs.** Ordering by direction changes first means the
 search exhausts everything reachable in *n* of them before it looks at *n+1*.
-The Impossible Gap went from 1 s to 26 s, Blind Side from 20 s to 50 s, Artic
+The Impossible Gap went from 1 s to 26 s, Yard Full from 20 s to 50 s, Artic
 Dock from 101 s to 404 s. That was accepted rather than worked around: this is
 a tool a designer runs between edits, not something in a player's way, and a
 fast wrong number is worth less than a slow honest one.
@@ -308,7 +311,23 @@ only theme with room to stand back in, so the test is `theme !== 'lot'`.
 
 The camera reads the pad through the `BTN` map, like every other reader.
 
-*Held by:* `src/camera.js`.
+**There is one view, and levels are designed for it.** A chase camera and an
+overhead mode, both of which see the whole vehicle from outside. There are no
+mirrors, and there is no driver's-eye view. So **a level may not be built on
+what the player cannot see** — occlusion is not a difficulty this game has, and
+a level premised on it describes something that does not exist. Blind Side was
+exactly that: a semi backing into the dock on the side a real driver's mirrors
+do not cover, in a game with no mirrors. What the level actually has is a yard
+with two pillars in it, so a single long arc does not fit, and that is now what
+it says.
+
+The rule cuts the other way too, and this is the more useful half. Height is
+the one dimension an outside view reads *better* than a plan view: an overhang,
+a canopy, a low bar across a doorway is legible from the chase camera and
+invisible from above. `wall()` already takes an `h`. That is the axis this
+decision opens, in exchange for the one it closes.
+
+*Held by:* the reader, and `src/camera.js` for the two modes.
 
 ## 10. No path-prediction aids
 
@@ -473,28 +492,6 @@ otherwise be lost. Each says who it belongs to.
 
 ### Core, and the user's
 
-**The difficulty curve of the hatchback series.** After re-cutting the three
-0-shunt levels, the fewest direction changes found on each is: First Bay 2,
-Tight Lane 5, The Short Side 2, Kerbside 1, The Alcove 2, Dead End 4, The
-Impossible Gap 3. Level 2 is now the second hardest in the series. That is not
-a tuning slip, it is what the geometry allows: a perpendicular bay costs a
-direction change only when the lane is between 2.83 m (below which nothing can
-turn) and 3.04 m (above which a nose-first swing fits), a window 0.21 m wide,
-so lane width cannot separate two levels and bay slack is the only lever left.
-It is steep — at Tight Lane's lane, 0.64 m of slack costs 5, 0.69 m costs 4,
-0.79 m costs 3. Three would sit better after First Bay's two and would also
-make Tight Lane's bay looser than First Bay's, which is the drift its rename
-was meant to end. The alternatives are to reorder the series, to give Tight
-Lane a second idea that is not slack, or to accept the spike.
-
-**Tight Lane has no idea of its own.** Its manoeuvre is First Bay's and its
-only new difficulty is precision, against the rule that each level introduces
-something new to figure out rather than a harder version of the last thing.
-The measurements above say why: for a perpendicular bay there is nothing else
-to vary. A second idea for level 2 has to come from somewhere other than the
-bay's dimensions — which bay of several is the one that fits, an obstruction
-that moves the entry, a neighbour that overhangs.
-
 **Which manoeuvre First Bay should teach.** Re-cutting it to cost a direction
 change made it a two-row car park with a 2.9 m aisle, so level 1 now hands the
 player the reverse-in. That fixes what was wrong before — The Short Side used
@@ -502,24 +499,8 @@ to introduce the reverse-in *and* "the room is on the side you did not arrive
 from" in the same level — but it also means level 1 teaches the manoeuvre, the
 controls and the parking test at once.
 
-**What "this level teaches X" has to mean** before a tool can check it: that
-every completion embodies the lesson, that the best-shunt completion does, or
-only that one intended solution exists. Impossibility cannot be proved here —
-a lattice search that finds no counterexample has only failed to find one — so
-"every completion" is not available. The reachable contract is the middle one,
-and it is the one that follows the player's incentive: a player optimises
-direction changes against their own best, so if an unintended route is cheaper,
-the game rewards avoiding the lesson.
-
-**Mirrors, or a driver's-eye view.** Blind Side is described as the dock on the
-side the mirrors do not cover. There are no mirrors, so that is currently a
-description of nothing and the level's difficulty is pure geometry. Mirror
-insets on the chase view, or a bumper-height driver's-eye mode, would make the
-stated problem real and would make constraint 10 bite considerably harder. *It
-adds a decision rather than removing one.*
-
 **A per-level design goal for the six large-vehicle levels.** Van Life, Loading
-Dock, Bus Stop, Trailer Trouble, Artic Dock and Blind Side each state what the
+Dock, Bus Stop, Trailer Trouble, Artic Dock and Yard Full each state what the
 vehicle makes hard, but none states what the *player* has to work out, which is
 what the hatchback series was re-cut around. Five of the six cost 1 direction
 change. Whether that is a gap or the correct answer — the vehicle being the
@@ -528,6 +509,39 @@ hatchback series: a design session first, with the user; do not invent levels
 to fill a table.
 
 ### Recorded, not open
+
+**The order of the hatchback series.** Decided: reordered rather than
+re-tuned. Tight Lane cost 5 direction changes at position 2, making it the
+second-hardest of the seven and the second level a player meets, and its
+manoeuvre was First Bay's, so it introduced nothing. Loosening its bay to 0.79
+m would have brought it to 3 but made it roomier than First Bay's 0.74 m,
+which is the drift its rename was meant to end. It moved to position 7
+instead. The series is now First Bay 2, The Short Side 2, Kerbside 1, The
+Alcove 2, The Impossible Gap 3, Dead End 4, Tight Lane 5 — ascending from
+position 3, with the dip at Kerbside being a different manoeuvre rather than
+an easier one. The move also gives Tight Lane a reason to exist that it did
+not have at position 2: at the end of the series every idea has already been
+handed over, so a level with no idea of its own is the exam rather than a
+lesson.
+
+**What "this level teaches X" has to mean.** Decided: **the cheapest completion
+embodies the lesson.** The three candidates were that every completion does,
+that the cheapest one does, or that exactly one solution exists. The first and
+third are not reachable — impossibility is not provable with a lattice search,
+which can only fail to find a counterexample — and the second is the one that
+follows the player's incentive: a player optimises direction changes against
+their own best, so an unintended route that is *cheaper* than the intended one
+means the game actively rewards avoiding the lesson. Not yet built. What a
+checker needs is below, under "How a level's design goal gets checked": a
+signature carried on the search state, not a test on the final pose.
+
+**Mirrors, and the driver's-eye view.** Decided: neither, and the reason is
+general. The game has one kind of view — outside the vehicle, whole vehicle
+visible — so no level may be built on what the player cannot see. That is now
+written into constraint 9, along with the half of it that gains something:
+height is legible from an outside view and invisible from a plan view, and
+`wall()` already takes an `h`. Blind Side, whose entire premise was a mirror
+blind spot, is renamed Yard Full and now claims only the obstruction it has.
 
 **Themes.** `THEMES` holds four eight-field tables whose real distinction is
 close to binary: open versus enclosed, with `lot` the only open one.
