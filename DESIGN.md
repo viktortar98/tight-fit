@@ -249,6 +249,72 @@ direction changes at full size and 1 at δ = 0.15. Shaving an envelope buys
 hardness by standing as close to the cliff as possible, which is the most
 clearance-dependent place a level can be.
 
+**One probe is not enough.** `SHRINK` answers "does this level need the vehicle
+to be that big?". It cannot answer the question the difference rule actually
+asks, because it only ever makes the vehicle *smaller*: a δ-shrunk hatchback is
+a hatchback with more room, and a van is not a hatchback with less room.
+Substituting a vehicle changes properties `SHRINK` holds fixed. Three more
+knobs, each isolating one, level untouched:
+
+- **`WB`, `LOCK`** scale wheelbase and steering lock. Together they are the
+  turning radius — how tight a corner the vehicle can cut.
+- **`OVH`** scales rear overhang while `length` and `width` stay literally
+  fixed, so the collision rectangle keeps its dimensions and only its offset
+  from the rear axle moves. This is the wheel-position axis: the same box, with
+  more tail behind the wheels to swing and less nose ahead of them to lead.
+- **`TRL`** scales the trailer's `axleFromHitch` — how fast the trailer answers
+  the tractor. It is the one confounded knob: it also lengthens the trailer's
+  rectangle, so a response could be either cause. Read it as indicative.
+
+**Record four numbers per level, not one.** A level that moves on none of the
+four is not posing a problem to the vehicle standing in it — any vehicle would
+do, and the level is about its walls alone. That is a sharper failure than
+clearance-dependence, and it is the one the difference rule is actually asking
+about.
+
+Trailer Trouble is the level that reads that way. Nine perturbations — wheelbase
+and lock at ±25%, overhang from 0.4x to 1.3x, trailer response at 0.6x, and a
+0.15 m shrink — return 1 direction change, every one of them. Nothing about the
+vehicle is load-bearing there.
+
+**A count that rises is not automatically a level that got better.** Bus Stop
+is flat at `OVH` 0.4 and 1.0 and jumps to 12 direction changes at 1.3 — the
+largest response any axis produces anywhere in the set, with no wall moved. But
+`ROUTE=1` shows that eight of those twelve legs are one K-turn ground out in
+eighths, each leg 0.6 m and 7°, pivoting on a single spot: the lengthened tail
+cannot swing, so the bus saws. The number is real, and what it counts is a
+grind. **This is the third way the count misleads** — it over-reports a shuffle
+exactly as it under-reports at 0 and 1 — and it is why `ROUTE=1` exists. A
+shuffle is not hard, it is slow, and "not easy, just hard to do fast" is not
+satisfied by making it long.
+
+**Two orderings, and they are not the same ordering.** Measured minimum turning
+radius against overall length:
+
+| | turning radius | length |
+|---|---|---|
+| Hatchback | 3.37 m | 4.0 m |
+| Car + Trailer | 4.08 m | 8.8 m |
+| Semi | 4.65 m | 16.6 m |
+| City Bus | 4.70 m | 11.0 m |
+| Delivery Van | **5.12 m** | 5.3 m |
+
+The van is the worst-steering vehicle in the game and the second smallest; the
+bus is nearly three times its length and turns tighter. So **"bigger is harder"
+is false in this roster**, while "worse steering is harder" picks out a real
+ordering. A new vehicle is specified by its radius and its overhang, not by its
+length, and a level made harder by swapping in something longer has not
+necessarily been made harder at all.
+
+**The substitution precondition.** A vehicle swap measures nothing in an arena
+that cannot admit the vehicle: the level comes back unsolvable, and that is a
+missing reading, not a zero. Trailer Trouble at `TRL=1.6` is exactly that
+cell: the trailer outgrows the yard and the run returns UNSOLVED, which says
+nothing about whether the level responds to trailer response. Arenas are laid
+out for the largest vehicle that might ever stand in them — which costs nothing
+while they are empty space, and makes every later substitution a measurement
+instead of a rebuild.
+
 The results are under Open decisions, "The set against the difference rule".
 
 **What this measurement found.** On the objective that is actually the score,
@@ -593,7 +659,7 @@ defaults worth suppressing are — arrows and space scroll the page.
 | 3 — proved solvable | `tools/validate.js` | exit 1, names the level |
 | 4 — record not stale | stale-record check in the validator | exit 1, prints the shorter answer |
 | 13 — no dead code | `pnpm knip`, `pnpm lint` | exit 1, names the export |
-| 1 — route, not measurement | `SHRINK=0.15` difference probe | count collapses |
+| 1 — route, not measurement | `SHRINK`/`WB`/`LOCK`/`OVH`/`TRL` probes | count collapses, or never moves |
 | 7 — swept ring | printed per level by the validator | visible drift |
 | 2, 5, 6, 8, 9, 10, 11, 12, 14 | nothing | silent |
 
@@ -607,7 +673,9 @@ Constraint 1's row is new and is not yet a gate. The probe produces the number
 and a person reads it; nothing exits 1. Making it a gate needs a failing
 condition, and the honest one is not obvious — "the count must not fall at all"
 would fail First Bay, which is a legitimate first level, and "must not fall to
-zero" passes a level that goes 5 to 1. It is listed here because it is the
+zero" passes a level that goes 5 to 1. The substitution axes have the same
+problem from the other end: "must move on at least one axis" is the right
+shape, but Bus Stop shows a level can move a long way and move into a shuffle. It is listed here because it is the
 first thing that measures constraint 1 at all, not because it decides anything
 on its own yet.
 
@@ -782,6 +850,18 @@ hatchback series: a design session first, with the user; do not invent levels
 to fill a table.
 
 ### Recorded, not open
+
+**Trailer Trouble stays as it is.** Decided by the user, against the
+measurement and knowing it. Nine perturbations of the vehicle — wheelbase and
+lock at ±25%, overhang from 0.4x to 1.3x, trailer response at 0.6x, and a
+0.15 m shrink — all return the same 1 direction change, because the aisle is
+10.6 m wide and the rig is 8.8 m long, so it can turn around freely. The level
+poses no problem to the vehicle in it. Two alternatives were put up: bring the
+wall down to about a 5 m aisle so the rig has to be reversed in, or cut it and
+let Fold be the first trailer level. The user chose to keep it as the gentle
+introduction to the trailer, which is a deliberate exception to the ruling that
+only level 1 is exempt from being a tutorial. Do not re-open this on the
+strength of the same measurement; it has already been weighed against it.
 
 **The order of the hatchback series.** Decided: reordered rather than
 re-tuned. Tight Lane cost 5 direction changes at position 2, making it the

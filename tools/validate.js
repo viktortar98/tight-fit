@@ -31,6 +31,42 @@ const SHRINK = Number(process.env.SHRINK ?? 0);
 const shrink = (r) => (SHRINK ? { ...r, w: r.w - 2 * SHRINK, d: r.d - 2 * SHRINK } : r);
 const rects = (spec, s) => bodyRects(spec, s).map(shrink);
 
+// Three more probes, each moving one property of the vehicle and holding the
+// rest still. Between them they decompose "put a different vehicle in this
+// level" into the things a swap actually changes, which is what tells a level
+// apart from a level that is merely tight.
+//
+// STEERING. `WB` scales the wheelbase and `LOCK` the steering lock; together
+// they set the turning radius. Neither moves a rectangle — `bodyRects()` places
+// the body from `length` and `rearOverhang` and never reads the wheelbase, only
+// `integrate()` does — so this is the exact dual of SHRINK.
+const WB = Number(process.env.WB ?? 1);
+const LOCK = Number(process.env.LOCK ?? 1);
+// SHAPE, which is where the wheels are. `OVH` scales the rear overhang holding
+// `length` and `width` fixed, so the body box keeps its size and slides along
+// the vehicle relative to the rear axle; the front overhang takes up whatever
+// the rear gives back. Same footprint, same turning circle, wheels elsewhere.
+// This is what sets tail swing — how far the rear corner travels outside the
+// footprint the body occupies standing still. The bus swings 0.67 m and nothing
+// else in the roster exceeds 0.09 m.
+const OVH = Number(process.env.OVH ?? 1);
+// TRAILER RESPONSE. `TRL` scales `axleFromHitch`, the distance a rig travels
+// before an articulation angle answers the wheel. Not a clean probe, and the
+// model is why rather than the probe: the trailer body is placed from its own
+// axle, so lengthening the response lengthens the combination. For a trailer,
+// response distance and length are one parameter.
+const TRL = Number(process.env.TRL ?? 1);
+
+const tune = (v) => {
+  if (WB === 1 && LOCK === 1 && OVH === 1 && TRL === 1) return v;
+  const o = {
+    ...v, wheelbase: v.wheelbase * WB, maxSteer: v.maxSteer * LOCK,
+    rearOverhang: v.rearOverhang * OVH,
+  };
+  if (v.trailer && TRL !== 1) o.trailer = { ...v.trailer, axleFromHitch: v.trailer.axleFromHitch * TRL };
+  return o;
+};
+
 function blocked(spec, s, colliders, arena) {
   for (const body of rects(spec, s)) {
     if (!rectInsideRect(body, arena)) return true;
@@ -62,7 +98,7 @@ function parkRect(spec, target, s) {
 const better = (aS, aD, bS, bD) => (aS !== bS ? aS < bS : aD < bD);
 
 function solve(level, opts = {}) {
-  const spec = VEHICLES[level.vehicle];
+  const spec = tune(VEHICLES[level.vehicle]);
   const colliders = levelColliders(level);
   const arena = boundsRect(level);
   const target = level.target;
@@ -239,7 +275,7 @@ let failures = 0;
 
 for (const level of LEVELS) {
   if (only && !only.includes(level.id)) continue;
-  const spec = VEHICLES[level.vehicle];
+  const spec = tune(VEHICLES[level.vehicle]);
   const colliders = levelColliders(level);
   const arena = boundsRect(level);
   const issues = [];
@@ -298,6 +334,20 @@ for (const level of LEVELS) {
     + ` slack ${slackW.toFixed(2)}x${slackD.toFixed(2)} | nearest ${nearest.toFixed(2)} m |`
     + ` swept ${sw.width.toFixed(2)} m | record ${String(level.record ?? '-').padStart(2)} | ${solved} (${(ms / 1000).toFixed(1)} s)`,
   );
+  if (res.ok && res.legs && process.env.SIG) {
+    // A route's shape: per leg, which way the vehicle went, how far it turned
+    // while going that way, and roughly where. Two vehicles given the same
+    // geometry either solve it the same way or they do not, and the
+    // direction-change count is far too coarse to say which.
+    const parts = res.legs.filter((l) => l.dir !== 0).map((l) => {
+      const dy = (((l.to.yaw - l.from.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+      const t = Math.round((dy * 180) / Math.PI / 5) * 5;
+      const mx = Math.round((l.from.x + l.to.x) / 4) * 2;
+      const mz = Math.round((l.from.z + l.to.z) / 4) * 2;
+      return `${l.dir > 0 ? 'F' : 'R'}${t >= 0 ? '+' : ''}${t}@${mx},${mz}`;
+    });
+    console.log(`     sig  ${parts.join('  ')}`);
+  }
   if (res.ok && res.legs && process.env.ROUTE) {
     const deg = (a) => ((((a * 180) / Math.PI) % 360 + 360) % 360).toFixed(0);
     for (const l of res.legs) {
