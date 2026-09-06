@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tight Fit — inspection sheet</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #1a1d22; overflow: hidden; }
+    #sheet { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    /* The labels sit on the same grid the tiles are laid out on, so a fault in
+       a tile has a name without counting rows. */
+    #labels {
+      position: fixed; inset: 0; display: grid; pointer-events: none;
+      font: 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; color: #cdd3db;
+    }
+    #labels span {
+      align-self: start; justify-self: start; padding: 4px 6px; margin: 4px;
+      background: rgba(12, 14, 18, 0.72); border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="sheet"></canvas>
+  <div id="labels"></div>
+  <script type="module" src="/src/dev.js"></script>
+</body>
+</html>

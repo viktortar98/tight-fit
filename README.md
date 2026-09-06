@@ -259,6 +259,39 @@ centred in its bay, where a kerb sits so the road is the width asked for. Levels
 used to do that arithmetic by hand, and one of them had a bay row and the cars
 parked in it a metre apart. An editor edits the parameters.
 
+## Build your own
+
+The menu has a second list under the fourteen: levels you made. **+ new level**
+starts an empty lot, or **or start from** copies a shipped one — a copy carries
+a *Reset to original*, because the original is still in the source and restoring
+it is re-copying rather than remembering.
+
+The editor is a plan view over the level and a panel of numbers beside it. You
+drag to arrange, snapped to 10 cm, and you type the number that matters, because
+a clearance that came out of a mouse is exactly what
+[`DESIGN.md`](DESIGN.md) §7 exists to prevent — the picture is the check on the
+number, not a replacement for it. **Test drive** plays it immediately; **Export**
+prints it as `src/levels.js` source, which is how a level leaves the browser.
+
+Your levels have their own bests and unlock nothing. A bay you widened yourself
+is not a key to the next level.
+
+## Looking at it
+
+`dev.html`, on the dev server only, is an inspection sheet: every vehicle from
+six angles, or all fourteen levels from above, or the turning circles at six
+locks — one frame each, so looking at the whole matrix costs one look.
+
+```
+pnpm dev
+# then: /dev.html#cars  #car=hatch  #levels  #level=alcove  #circles=van
+```
+
+`window.dev` on that page has `report()` (every vehicle and level as one text
+table), `coplanar(id)` (surfaces the depth buffer cannot choose between — the
+check that would have caught the shell/lining z-fighting), and `builders()`
+(that every object type's export writes a call its builder actually accepts).
+
 ## Layout
 
 | File | |
@@ -276,6 +309,9 @@ parked in it a metre apart. An editor edits the parameters.
 | `src/traces.js` | the marks the tyres leave, one ribbon per wheel |
 | `src/turnCircles.js` | the circle each wheel is on, drawn on the ground when asked |
 | `src/gamepad.js` | Xbox mapping, analog triggers, rumble |
+| `src/editor.js` | the level editor: a plan view and a number panel |
+| `src/userLevels.js` | levels the player built, kept in the browser |
+| `src/dev.js` | the inspection sheet — every vehicle and every level at once |
 | `src/main.js` | game loop, collision resolution, progression |
 | `DESIGN.md` | the constraints all of the above exist to satisfy |
 

@@ -948,6 +948,54 @@ timer that guesses at deliberateness is worse than an act that is deliberate.
 
 *Held by:* `Game.checkParked` reports, `Game.frame` acts, both in `src/main.js`.
 
+## 21. A level the player builds is a level, in the same words
+
+There is no editor format. What the editor writes is `src/levels.js`'s own list
+of objects (`src/objects.js`), and Export prints that list in that file's own
+syntax, so a level made in the browser is source you can paste into the game.
+
+That is a constraint and not a convenience. A second description of a level
+would be a second place a bay's width can be written down, and the two would
+disagree the first time either changed. It also fixes what the editor can offer:
+the palette is the palette, and a thing the level format cannot say is a thing
+the editor does not have a button for.
+
+`SCHEMA` in `src/objects.js` is the whole of what the editor knows — the fields
+of each type, their defaults, and the shape of the builder's own call. It sits
+beside the builders, so a field the builder reads and nobody can set is visible
+on one screen, and `window.dev.builders()` checks that each entry still
+describes the call it claims to.
+
+**Player levels are their own list.** Separate bests, and they unlock nothing.
+A level you wrote and a level the game shipped are not comparable — you can
+build a four-metre bay and park in it first go — so a best on one must not
+appear where the other's do, and the fourteen stay a sequence.
+
+*Held by:* `src/editor.js`, `SCHEMA` in `src/objects.js`, `src/userLevels.js`.
+
+## 22. Looking at the whole thing has to be cheap
+
+Two bugs shipped that were visible the moment anyone looked: the driver's seat
+showed no cabin at all, and the shell and its lining shared face planes, which
+came out as a shifting comb across the roof and flanks of every car. Neither
+needed a subtle test. Both needed somebody to look at a hatchback's roof from
+two metres away, and nothing in the game puts you there — it shows one vehicle,
+from one of three cameras, in one level, and reaching a fault means driving to
+it first.
+
+So `dev.html` renders the whole matrix in one frame: thirteen vehicles by six
+views, or fourteen levels from above, or the turning circles at six locks. One
+image is one look at all of it, which is what keeps looking cheap enough to do
+on every change. `window.dev` on that page answers the countable half —
+`report()`, `coplanar()`, `builders()`.
+
+It is dev-server only and outside the build. It is not a test suite, and this
+project still has none (constraint 13's checks are `lint`, `knip` and `build`);
+it is a way of seeing, and the check is still a person looking at the picture.
+
+*Held by:* `dev.html`, `src/dev.js`, and `src/dev.js` being knip's second entry
+point rather than something the game imports.
+
 ## Where the rules are enforced
 
 | Constraint | Enforced by | Fails how |
@@ -955,10 +1003,13 @@ timer that guesses at deliberateness is worse than an act that is deliberate.
 | 13 — no dead code | `pnpm knip`, `pnpm lint` | exit 1, names the export |
 | 15 — settings are timing, not geometry | review; `gains()` scales only rates, and `maxSteer` / dimensions are not in it | silent |
 | 17 — nothing drawn outside a rectangle | a script, run by hand | silent between runs |
+| 21 — the editor writes calls the builders accept | `window.dev.builders()` on `dev.html` | prints `BAD <type>` |
+| 22 — no two surfaces at one depth | `window.dev.coplanar(id)` on `dev.html` | names the shared plane |
 | 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 19, 20 | nothing | silent |
 | 3, 4 | withdrawn | — |
 
-**One of eighteen live constraints is machine-checked.** That is the honest
+**Three of twenty live constraints are machine-checked**, and two of the three
+have to be asked rather than run. That is the honest
 state of it, and it got worse on purpose: constraints 3, 4, 7, 16 and 1's probe
 were all held by `tools/validate.js`, and the tool was removed. What it bought
 was a designer's tool for a set of fourteen levels that are finished; what it

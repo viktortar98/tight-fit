@@ -14,7 +14,12 @@ import { Tape } from './rewind.js';
 import { Traces } from './traces.js';
 import { TurnCircles } from './turnCircles.js';
 import { load as loadSettings, save as saveSettings, gains } from './settings.js';
+import { Editor } from './editor.js';
+import {
+  loadLevels, saveLevels, loadBests, saveBests, blank, copyOf, shippedSource,
+} from './userLevels.js';
 import { overlaps, rectInsideRect, rectDistance, corners, clamp, normalizeAngle } from './geom.js';
+import { SCHEMA } from './objects.js';
 
 // Versioned with the scoring unit. When the unit changes this key changes,
 // and there is nothing to migrate — a best in an abandoned unit is not data.
@@ -63,6 +68,9 @@ class Game {
     this.pad = new Pad();
     this.sfx = new Sfx();
     this.progress = loadProgress();
+    this.userLevels = loadLevels();
+    this.userBests = loadBests();
+    this.userLevel = null;
     this.settings = loadSettings();
     this.gains = gains(this.settings);
 
@@ -75,12 +83,21 @@ class Game {
       unlockAll: () => {
         this.progress.unlocked = LEVELS.length - 1;
         this.save();
-        this.hud.renderMenu(this.progress);
+        this.hud.renderMenu(this.progress, this.userLevels, this.userBests);
       },
       wipe: () => {
         this.progress = { unlocked: 0, best: {} };
         this.save();
-        this.hud.renderMenu(this.progress);
+        this.hud.renderMenu(this.progress, this.userLevels, this.userBests);
+      },
+      playUser: (id) => this.playUser(id),
+      edit: (id) => this.edit(id),
+      newLevel: () => this.edit(null),
+      copyLevel: (index) => {
+        const copy = copyOf(LEVELS[index], this.userLevels);
+        this.userLevels.push(copy);
+        saveLevels(this.userLevels);
+        this.edit(copy.id);
       },
       openSettings: () => this.openSettings(),
       closeSettings: () => this.closeSettings(),
@@ -117,7 +134,7 @@ class Game {
     addEventListener('resize', () => this.resize());
     addEventListener('blur', () => { if (this.state === 'playing') this.setPaused(true); });
     this.resize();
-    this.hud.showMenu(this.progress);
+    this.hud.showMenu(this.progress, this.userLevels, this.userBests);
     this.hud.setSteerMode(this.settings.steering);
     if (import.meta.env?.DEV) window.game = this;
     this.renderer.setAnimationLoop(() => this.frame());
@@ -140,18 +157,27 @@ class Game {
 
   play(index) {
     this.index = index;
-    this.level = LEVELS[index];
-    this.spec = VEHICLES[this.level.vehicle];
+    this.userLevel = null;
+    this.start(LEVELS[index]);
+  }
+
+  // A level from the editor. It is played by the same code and scored by the
+  // same rules; the only difference is where the best goes and that finishing
+  // it unlocks nothing (src/userLevels.js).
+  playUser(id) {
+    const level = this.userLevels.find((l) => l.id === id);
+    if (!level) return;
+    this.index = -1;
+    this.userLevel = level;
+    this.start(level);
+  }
+
+  start(level) {
+    this.level = level;
+    this.spec = VEHICLES[this.level.vehicle] ?? VEHICLES.hatch;
     this.world.build(this.level);
 
-    if (this.carMesh) {
-      this.scene.remove(this.carMesh.group);
-      if (this.carMesh.trailerGroup) this.scene.remove(this.carMesh.trailerGroup);
-    }
-    if (this.traces) {
-      this.scene.remove(this.traces.group);
-      this.traces.dispose();
-    }
+    this.clearPlayfield();
     this.traces = new Traces(this.spec);
     this.traces.group.visible = this.settings.traces === 'on';
     this.scene.add(this.traces.group);
@@ -164,11 +190,30 @@ class Game {
     if (this.carMesh.trailerGroup) this.scene.add(this.carMesh.trailerGroup);
     this.vehicle = new Vehicle(this.spec);
 
-    this.hud.setLevel(index, this.level, this.progress.best[this.level.id]);
+    this.hud.setLevel(this.index, this.level, this.bestOf(this.level));
     this.restart();
     this.hud.showGame();
     this.state = 'playing';
     this.sfx.ensure();
+  }
+
+  // The vehicle a level was played with is not part of the next thing on
+  // screen. The editor draws its own ghost, and the menu draws nothing.
+  clearPlayfield() {
+    if (this.carMesh) {
+      this.scene.remove(this.carMesh.group);
+      if (this.carMesh.trailerGroup) this.scene.remove(this.carMesh.trailerGroup);
+      this.carMesh = null;
+    }
+    if (this.traces) {
+      this.scene.remove(this.traces.group);
+      this.traces.dispose();
+      this.traces = null;
+    }
+    if (this.circles) this.circles.group.visible = false;
+    this.panels.show({ cockpit: false, reversing: false, mirrors: false, camera: false });
+    this.anyPanel = false;
+    this.vehicle = null;
   }
 
   restart() {
@@ -189,13 +234,99 @@ class Game {
   }
 
   next() {
-    if (this.index + 1 >= LEVELS.length) return this.toMenu();
+    if (this.userLevel || this.index + 1 >= LEVELS.length) return this.toMenu();
     this.play(this.index + 1);
+  }
+
+  bestOf(level) {
+    return this.userLevel ? this.userBests[level.id] : this.progress.best[level.id];
   }
 
   toMenu() {
     this.state = 'menu';
-    this.hud.showMenu(this.progress);
+    this.userLevel = null;
+    this.clearPlayfield();
+    if (this.editor) this.editor.close();
+    this.hud.showMenu(this.progress, this.userLevels, this.userBests);
+  }
+
+  // --- the editor ------------------------------------------------------
+
+  edit(id) {
+    if (!this.editor) {
+      this.editor = new Editor({
+        scene: this.scene, camera: this.camera, canvas: this.canvas, world: this.world,
+      });
+      this.wireEditor();
+    }
+    let level = this.userLevels.find((l) => l.id === id);
+    if (!level) {
+      level = blank(this.userLevels);
+      this.userLevels.push(level);
+    }
+    this.editing = level;
+    this.state = 'editing';
+    this.clearPlayfield();
+    this.hud.showEditor();
+    this.editor.open(level, () => saveLevels(this.userLevels));
+  }
+
+  wireEditor() {
+    const ed = this.editor;
+    document.getElementById('ed-name').oninput = (e) => {
+      this.editing.name = e.target.value;
+      saveLevels(this.userLevels);
+      ed.renderList();
+    };
+    document.getElementById('ed-vehicle').onchange = (e) => {
+      this.editing.vehicle = e.target.value;
+      ed.rebuild();
+    };
+    document.getElementById('ed-theme').onchange = (e) => {
+      this.editing.theme = e.target.value;
+      ed.rebuild();
+    };
+    document.getElementById('ed-play').onclick = () => {
+      ed.close();
+      this.playUser(this.editing.id);
+    };
+    document.getElementById('ed-done').onclick = () => this.toMenu();
+    document.getElementById('ed-delete').onclick = () => {
+      this.userLevels = this.userLevels.filter((l) => l !== this.editing);
+      saveLevels(this.userLevels);
+      this.toMenu();
+    };
+    // Reset is a re-copy rather than an undo history: the shipped level is
+    // still in the source, so the original never had to be remembered. The
+    // name survives it — what a player wants back is the geometry they took
+    // apart, and they named the thing on purpose.
+    document.getElementById('ed-reset').onclick = () => {
+      const src = shippedSource(this.editing);
+      if (!src) return;
+      const keep = { id: this.editing.id, name: this.editing.name, from: this.editing.from };
+      Object.assign(this.editing, structuredClone(src), keep);
+      saveLevels(this.userLevels);
+      ed.open(this.editing, () => saveLevels(this.userLevels));
+    };
+    document.getElementById('ed-export').onclick = () => {
+      document.getElementById('ed-code').value = ed.code();
+      document.getElementById('ed-export-box').classList.remove('hidden');
+    };
+    document.getElementById('ed-export-close').onclick = () =>
+      document.getElementById('ed-export-box').classList.add('hidden');
+    document.getElementById('ed-copy').onclick = () => {
+      const box = document.getElementById('ed-code');
+      box.select();
+      navigator.clipboard?.writeText(box.value);
+      this.hud.toast('level code copied');
+    };
+    const add = document.getElementById('ed-add');
+    for (const [type, def] of Object.entries(SCHEMA)) {
+      const b = document.createElement('button');
+      b.textContent = def.name;
+      b.onclick = () => ed.add(type);
+      add.appendChild(b);
+    }
   }
 
   // Settings sit on top of whatever was showing and hand it back on the way
@@ -414,7 +545,8 @@ class Game {
     this.state = 'won';
     this.sfx.win();
     const id = this.level.id;
-    const prev = this.progress.best[id];
+    const store = this.userLevel ? this.userBests : this.progress.best;
+    const prev = store[id];
     // A crash voids the score but not the progress (DESIGN.md 2). The level is
     // still passed and the next one still unlocks — you are never stuck on a
     // level you cannot drive cleanly — but nothing about the run is recorded,
@@ -422,9 +554,13 @@ class Game {
     // two is better.
     const clean = this.bumps === 0;
     const better = clean && (!prev || this.shunts < prev.shunts);
-    if (better) this.progress.best[id] = { shunts: this.shunts };
-    if (this.index === this.progress.unlocked) this.progress.unlocked = Math.min(LEVELS.length - 1, this.index + 1);
-    this.save();
+    if (better) store[id] = { shunts: this.shunts };
+    // A level the player wrote unlocks nothing: the fourteen are a sequence,
+    // and a bay you widened yourself is not a key to the next one.
+    if (!this.userLevel && this.index === this.progress.unlocked) {
+      this.progress.unlocked = Math.min(LEVELS.length - 1, this.index + 1);
+    }
+    if (this.userLevel) saveBests(this.userBests); else this.save();
 
     // There is nothing left to grade. A run either counts or it does not, and
     // which one it is is the only thing the card has to say about quality.
@@ -445,7 +581,7 @@ class Game {
       bumps: this.bumps,
       rank,
       note: notes.join(' ') || 'Textbook.',
-      isLast: this.index + 1 >= LEVELS.length,
+      isLast: !!this.userLevel || this.index + 1 >= LEVELS.length,
     });
   }
 
@@ -509,6 +645,15 @@ class Game {
     if (padUsed !== keyUsed && padUsed !== this.padSeen) {
       this.padSeen = padUsed;
       this.hud.setPadMode(padUsed);
+    }
+
+    // Editing is its own loop: an overhead camera over a world with no vehicle
+    // in it, so none of the driving, scoring or panel work below applies.
+    if (this.state === 'editing') {
+      this.editor.update();
+      this.renderer.render(this.scene, this.camera);
+      input.endFrame();
+      return;
     }
 
     if (input.pressed('Escape') || this.pad.tapped(BTN.START)) {

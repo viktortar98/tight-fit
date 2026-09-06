@@ -28,7 +28,13 @@ const MAX_STEPS = 900;
 // the "circle" is a line further away than the level is wide.
 const MAX_RADIUS = 4000;
 
-const COLOUR = 0x4a9fd8;
+// The two ends of the vehicle are two different questions. The rear wheels say
+// where the vehicle will end up, because a bay is entered by the back of the
+// car; the front wheels say what it will sweep past on the way, because they
+// are the widest thing on the outside of the turn. Reading one for the other is
+// the mistake the drawing exists to prevent, so they are not the same colour.
+const REAR_COLOUR = 0x4a9fd8;
+const FRONT_COLOUR = 0xb07ee8;
 const CENTRE_COLOUR = 0xe8b33c;
 
 function ribbon(count, colour) {
@@ -73,10 +79,13 @@ export class TurnCircles {
     }
     const rows = axleRows(spec);
     this.wheels = [];
-    for (const z of [...rows.rear, ...rows.front]) {
-      for (const sx of [-1, 1]) this.wheels.push([(sx * spec.trackWidth) / 2, z]);
+    for (const z of rows.rear) {
+      for (const sx of [-1, 1]) this.wheels.push([(sx * spec.trackWidth) / 2, z, REAR_COLOUR]);
     }
-    this.rings = this.wheels.map(() => ribbon(MAX_STEPS + 1, COLOUR));
+    for (const z of rows.front) {
+      for (const sx of [-1, 1]) this.wheels.push([(sx * spec.trackWidth) / 2, z, FRONT_COLOUR]);
+    }
+    this.rings = this.wheels.map(([, , colour]) => ribbon(MAX_STEPS + 1, colour));
     for (const r of this.rings) this.group.add(r.mesh);
   }
 

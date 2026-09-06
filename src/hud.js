@@ -16,7 +16,7 @@ export class Hud {
       sensor: $('sensor'), sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
       finish: $('finish'), finishKey: $('finish-key'), toast: $('toast'), flash: $('flash'),
       wheelRot: $('wheel-rot'), rewind: $('rewind'), rewindLeft: $('rewind-left'),
-      grid: $('level-grid'),
+      grid: $('level-grid'), userGrid: $('user-grid'), editor: $('editor'),
       settings: $('settings'), settingsList: $('settings-list'),
       steerLegend: $('steer-legend'),
       pTitle: $('pause-title'),
@@ -33,6 +33,14 @@ export class Hud {
     $('btn-quit').onclick = () => handlers.toMenu();
     $('unlock-all').onclick = () => handlers.unlockAll();
     $('wipe').onclick = () => handlers.wipe();
+    $('new-level').onclick = () => handlers.newLevel();
+    // A copy is made by picking the level to copy, and the picker resets
+    // itself: it is an action, not a state, and it must be usable twice.
+    $('copy-level').onchange = (e) => {
+      const i = Number(e.target.value);
+      e.target.value = '';
+      if (Number.isInteger(i) && i >= 0) handlers.copyLevel(i);
+    };
     $('btn-settings').onclick = () => handlers.openSettings();
     $('btn-pause-settings').onclick = () => handlers.openSettings();
     $('btn-settings-back').onclick = () => handlers.closeSettings();
@@ -45,7 +53,7 @@ export class Hud {
     this._toastTimer = 0;
   }
 
-  renderMenu(progress) {
+  renderMenu(progress, userLevels = [], userBests = {}) {
     this.el.grid.innerHTML = '';
     LEVELS.forEach((lvl, i) => {
       const unlocked = i <= progress.unlocked;
@@ -62,6 +70,40 @@ export class Hud {
       b.onclick = () => this.h.play(i);
       this.el.grid.appendChild(b);
     });
+    this.renderUser(progress, userLevels, userBests);
+  }
+
+  // The player's own levels. A tile is two buttons rather than one, because a
+  // level you wrote has two things you do to it and neither is the obvious
+  // one: playing it and going back into it are equally likely.
+  renderUser(progress, userLevels, userBests) {
+    const pick = $('copy-level');
+    pick.innerHTML = '';
+    pick.add(new Option('a shipped level…', ''));
+    LEVELS.forEach((lvl, i) => {
+      if (i <= progress.unlocked) pick.add(new Option(lvl.name, String(i)));
+    });
+    this.el.userGrid.innerHTML = '';
+    for (const lvl of userLevels) {
+      const best = userBests[lvl.id];
+      const tile = document.createElement('div');
+      tile.className = 'tile own';
+      const play = document.createElement('button');
+      play.className = 'own-play';
+      play.innerHTML = `<span class="veh">${VEHICLES[lvl.vehicle]?.name ?? lvl.vehicle}</span>
+        <span class="t">${lvl.name}</span>
+        <span class="m">${best ? `your best: ${best.shunts}` : 'not parked yet'}</span>`;
+      play.onclick = () => this.h.playUser(lvl.id);
+      const edit = document.createElement('button');
+      edit.className = 'own-edit';
+      edit.textContent = 'edit';
+      edit.onclick = () => this.h.edit(lvl.id);
+      tile.append(play, edit);
+      this.el.userGrid.appendChild(tile);
+    }
+    if (!userLevels.length) {
+      this.el.userGrid.innerHTML = '<p class="sub-note">Nothing built yet.</p>';
+    }
   }
 
   // The whole menu is generated from the SETTINGS table, so a new setting is
@@ -110,13 +152,22 @@ export class Hud {
     }
   }
 
-  showMenu(progress) {
-    this.renderMenu(progress);
+  showMenu(progress, userLevels, userBests) {
+    this.renderMenu(progress, userLevels, userBests);
     this.el.menu.classList.remove('hidden');
     this.el.result.classList.add('hidden');
     this.el.pause.classList.add('hidden');
     this.el.settings.classList.add('hidden');
     this.el.hud.classList.add('hidden');
+    this.el.editor.classList.add('hidden');
+  }
+
+  // The editor gets the whole screen: none of the driving readouts mean
+  // anything when there is nothing being driven.
+  showEditor() {
+    for (const k of ['menu', 'result', 'pause', 'settings', 'hud']) {
+      this.el[k].classList.add('hidden');
+    }
   }
 
   showGame() {
@@ -124,6 +175,7 @@ export class Hud {
     this.el.result.classList.add('hidden');
     this.el.pause.classList.add('hidden');
     this.el.settings.classList.add('hidden');
+    this.el.editor.classList.add('hidden');
     this.el.hud.classList.remove('hidden');
   }
 
@@ -131,9 +183,12 @@ export class Hud {
     this.el.pause.classList.toggle('hidden', !on);
   }
 
+  // A level the player wrote has no number in the fourteen, so it is labelled
+  // by where it came from instead.
   setLevel(index, level, best) {
-    this.el.lvlLabel.textContent =
-      `${String(index + 1).padStart(2, '0')} / ${LEVELS.length} · ${level.name}`;
+    this.el.lvlLabel.textContent = index < 0
+      ? `your level · ${level.name}`
+      : `${String(index + 1).padStart(2, '0')} / ${LEVELS.length} · ${level.name}`;
     this.el.best.textContent = best ? `${best.shunts}` : '—';
     this.el.artic.classList.toggle('hidden', !VEHICLES[level.vehicle].trailer);
     this.el.pTitle.textContent = level.name;

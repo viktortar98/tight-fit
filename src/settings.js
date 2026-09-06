@@ -118,8 +118,9 @@ export const SETTINGS = [
     id: 'turnCircles',
     name: 'Turning circles',
     note: 'The circle each wheel is on at the steering you are holding, and the '
-      + 'point they all turn about. Hold the wheel and they stay where they '
-      + 'are; only turning it moves them. Off by default.',
+      + 'point they all turn about — rear wheels in blue, front in violet. Hold '
+      + 'the wheel and they stay where they are; only turning it moves them. '
+      + 'Off by default.',
     values: [{ id: 'off', name: 'Hidden' }, { id: 'on', name: 'Shown' }],
   },
   {

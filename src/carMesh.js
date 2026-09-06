@@ -214,6 +214,18 @@ function pane(g, from, to, width, length, height, zOffset) {
 // remembered to leave.
 const LINE_T = 0.055;
 
+// How far clear of the shell every lining surface is held.
+//
+// Not a nicety. A lining face laid *on* the shell's face is two surfaces at one
+// depth, and the depth buffer then picks between them per pixel and per frame:
+// the roof and the flanks of a stationary car came out combed with a shifting
+// pattern, and moving made the pattern flicker. Both faces were exactly
+// coincident -- the roof panels started on the silhouette itself, and the flank
+// panels' outer face sat exactly at the flank. Nothing about the lining is seen
+// from outside, so the whole of it moves inboard by a margin far larger than any
+// depth precision, and no lining face is coplanar with a shell face again.
+const GAP = 0.02;
+
 // Where two panels meet, both stop on the same mitre, or the corner is a slit
 // the driver can see daylight through.
 function mitre(p0, d0, p1, d1) {
@@ -223,6 +235,26 @@ function mitre(p0, d0, p1, d1) {
   return [p0[0] + d0[0] * t, p0[1] + d0[1] * t];
 }
 
+// The outline moved `dist` inwards, corner by corner. The outline is walked
+// counter-clockwise, so an edge running (da, dy) has (-dy, da) pointing in;
+// consecutive offset edges are crossed so the corners stay closed.
+function offsetOutline(p, dist) {
+  const line = [];
+  for (let i = 0; i < p.length - 1; i++) {
+    const d = [p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1]];
+    const len = Math.hypot(d[0], d[1]) || 1;
+    const n = [-d[1] / len, d[0] / len];
+    line.push({ o: [p[i][0] + n[0] * dist, p[i][1] + n[1] * dist], d });
+  }
+  return p.map((_, i) => {
+    const a = line[i - 1];
+    const b = line[i];
+    if (!a) return b ? [b.o[0], b.o[1]] : null;
+    if (!b) return [a.o[0] + a.d[0], a.o[1] + a.d[1]];
+    return mitre(a.o, a.d, b.o, b.d) ?? [b.o[0], b.o[1]];
+  });
+}
+
 function lining(g, b, spec, tailZ) {
   const { length, height, width } = spec;
   const half = (width * (b.taper ? b.taper[1] : 1)) / 2;
@@ -230,34 +262,27 @@ function lining(g, b, spec, tailZ) {
   const p = b.top.map(([a, y]) => [a * length, y * height]);
   const glazed = new Set(b.glass ?? []);
 
-  // Each segment's inward offset line, then the vertex where consecutive ones
-  // cross. The outline is walked counter-clockwise, so (-dy, da) points in.
-  const line = [];
-  for (let i = 0; i < p.length - 1; i++) {
-    const d = [p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1]];
-    const len = Math.hypot(d[0], d[1]) || 1;
-    const n = [-d[1] / len, d[0] / len];
-    line.push({ o: [p[i][0] + n[0] * LINE_T, p[i][1] + n[1] * LINE_T], d });
-  }
-  const inner = p.map((_, i) => {
-    const a = line[i - 1];
-    const bl = line[i];
-    if (!a) return bl ? [bl.o[0], bl.o[1]] : null;
-    if (!bl) return [a.o[0] + a.d[0], a.o[1] + a.d[1]];
-    return mitre(a.o, a.d, bl.o, bl.d) ?? [bl.o[0], bl.o[1]];
-  });
+  // Both faces of every panel are inboard of the shell: the near one by GAP,
+  // the far one by GAP plus the panel's own thickness.
+  const outer = offsetOutline(p, GAP);
+  const inner = offsetOutline(p, GAP + LINE_T);
 
   // Roof, header, rear -- one panel per unglazed segment of the cabin. A
   // segment below the waist is skipped because the lower half of the shell is
   // solid all the way to the waist, and its top face is already a surface the
   // driver looks at.
-  const inset = Math.max(0.02, half - LINE_T * 1.2);
-  for (let i = 0; i < line.length; i++) {
+  //
+  // The panel is made wide enough to bury its own side edges in the flank
+  // panels below. Stopping it flush against them would put two more coplanar
+  // faces in the cabin; leaving it short would open a slit, and behind a slit
+  // is the shell's culled inner face, which is to say daylight.
+  const reach = Math.max(0.02, half - GAP - LINE_T / 2);
+  for (let i = 0; i < p.length - 1; i++) {
     if (glazed.has(i)) continue;
     if ((p[i][1] + p[i + 1][1]) / 2 <= waist) continue;
-    const quad = [p[i], p[i + 1], inner[i + 1], inner[i]];
+    const quad = [outer[i], outer[i + 1], inner[i + 1], inner[i]];
     if (quad.some((q) => !q)) continue;
-    const m = piece(quad, inset * 2, tailZ, LINING);
+    const m = piece(quad, reach * 2, tailZ, LINING);
     if (m) { m.userData.inner = true; g.add(m); }
   }
 
@@ -266,12 +291,15 @@ function lining(g, b, spec, tailZ) {
   // window, so what is left of the panel is the A-pillar in front of it, the
   // rail under it and the pillar behind it -- named by nothing, because they
   // are whatever the silhouette leaves.
-  const above = p.filter((q) => q[1] > waist);
+  const above = outer.filter((q) => q && q[1] > waist);
   if (above.length >= 2) {
     const pts = [...above];
     const first = above[0];
     const last = above[above.length - 1];
-    pts.push([last[0], waist], [first[0], waist]);
+    // Closed a little *below* the waist, so the panel's bottom face is buried
+    // inside the solid lower shell instead of lying on its top face, which is
+    // one more plane the depth buffer would have to choose between.
+    pts.push([last[0], waist - GAP], [first[0], waist - GAP]);
     const shape = new THREE.Shape(pts.map(([a, y]) => new THREE.Vector2(a, y)));
     for (const [a0, a1, y0, y1] of b.sides ?? []) {
       if (y0 * height <= waist + 0.02) continue;
@@ -284,11 +312,11 @@ function lining(g, b, spec, tailZ) {
     }
     const geo = new THREE.ExtrudeGeometry(shape, { depth: LINE_T, bevelEnabled: false });
     geo.rotateY(-Math.PI / 2);
-    // rotateY put the extrusion on -X, so the panel spans [-LINE_T, 0]; half
-    // its own thickness brings its centre onto the flank it lines.
+    // rotateY put the extrusion on -X, so the panel spans [-LINE_T, 0]. Its
+    // outer face lands GAP inboard of the flank, never on it.
     for (const sx of [-1, 1]) {
       const m = new THREE.Mesh(geo, LINING);
-      m.position.set(sx * (half - LINE_T / 2) + LINE_T / 2, 0, tailZ);
+      m.position.set(sx * (half - GAP) + (sx > 0 ? 0 : LINE_T), 0, tailZ);
       m.userData.inner = true;
       g.add(m);
     }

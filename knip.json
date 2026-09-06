@@ -1,7 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "index.html"
+    "index.html",
+    "src/dev.js"
   ],
   "project": [
     "src/**/*.js"

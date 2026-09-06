@@ -183,14 +183,103 @@ export function expand(objects) {
   // saturated object on screen is always the thing being driven (DESIGN.md 8).
   // No level names a colour: the palette is walked here, in the order the
   // objects were listed, so a level looks the same every time it is built.
+  //
+  // The colour goes on a copy and not on the object itself. A primitive is
+  // passed through by reference, so writing to it writes into the level — which
+  // the editor then saves and exports, as a decimal nobody chose.
   let tint = 0;
-  for (const o of flat) {
-    if ((o.type === 'parked' || o.type === 'dropped') && o.color == null) {
-      o.color = PASTEL[tint++ % PASTEL.length];
-    }
-  }
+  const out = flat.map((o) => (
+    (o.type === 'parked' || o.type === 'dropped') && o.color == null
+      ? { ...o, color: PASTEL[tint++ % PASTEL.length] }
+      : o));
   return {
-    obstacles: flat.filter((o) => o.type !== 'line'),
-    paint: flat.filter((o) => o.type === 'line'),
+    obstacles: out.filter((o) => o.type !== 'line'),
+    paint: out.filter((o) => o.type === 'line'),
   };
 }
+
+// --- what an editor may change about each of them.
+//
+// The palette above says what a level can contain; this says what about it is
+// a number a person types. It is here and not in the editor because it is the
+// same knowledge as the builders — a field missing from this table is a field
+// the builder reads and nobody can set, and both are in view on one screen.
+//
+// `kind` is how the field is edited, not what it stores: `angle` is radians
+// held in the level and shown in degrees, because a level is metres and
+// radians and a person is metres and degrees.
+//
+// `args`, `opts` and `fn` are the builder's own call shape, which is not
+// uniform: `wall` takes its size positionally and the rest in an object,
+// `pillar` and `car` take everything positionally, `bay` takes nothing but a
+// place and an object. Export writes that call, so it has to be written down,
+// and it is written down beside the builder it describes. `def` is what a new
+// one starts as, and it is exactly the keys the builder reads -- an editor that
+// stored anything else would export a call that does not compile.
+const N = (id, label, step = 0.1) => ({ id, label, kind: 'number', step });
+const A = { id: 'rot', label: 'rotation', kind: 'angle' };
+const XZ = [N('x', 'x'), N('z', 'z')];
+
+export const SCHEMA = {
+  wall: {
+    name: 'Wall', args: ['x', 'z', 'w', 'd'], opts: true,
+    def: { w: 4, d: 0.5, rot: 0, h: 2.6 },
+    fields: [...XZ, N('w', 'width'), N('d', 'depth'), A, N('h', 'height')],
+  },
+  pillar: {
+    name: 'Pillar', args: ['x', 'z', 'w', 'h'],
+    def: { w: 0.7, h: 3.2 },
+    fields: [...XZ, N('w', 'side'), N('h', 'height')],
+  },
+  cone: {
+    name: 'Cone', args: ['x', 'z'],
+    def: {},
+    fields: XZ,
+  },
+  line: {
+    name: 'Paint', fn: 'line', args: ['x', 'z', 'w', 'd', 'rot'],
+    def: { w: 0.14, d: 4, rot: 0 },
+    fields: [...XZ, N('w', 'width'), N('d', 'depth'), A],
+  },
+  parked: {
+    name: 'Parked vehicle', fn: 'car', args: ['x', 'z', 'rot', 'spec'],
+    def: { rot: 0, spec: 'hatch' },
+    fields: [...XZ, A, { id: 'spec', label: 'vehicle', kind: 'vehicle' }],
+  },
+  bay: {
+    name: 'Bay', args: ['x', 'z'], opts: true,
+    def: { w: 2.5, d: 5, rot: 0, slot: null, out: 0 },
+    fields: [...XZ, N('w', 'width'), N('d', 'depth'), A,
+      { id: 'slot', label: 'parked in it', kind: 'vehicle', empty: true }, N('out', 'sticks out')],
+  },
+  bays: {
+    name: 'Bay row', args: ['x', 'z', 'slots'], opts: true,
+    def: { slots: ['hatch', null, 'hatch'], w: 2.5, d: 5, rot: 0, out: 0 },
+    fields: [...XZ, N('w', 'bay width'), N('d', 'bay depth'), A, N('out', 'sticks out'),
+      { id: 'slots', label: 'bays', kind: 'slots' }],
+  },
+  room: {
+    name: 'Room', args: ['x', 'z', 'w', 'd'], opts: true,
+    def: { w: 10, d: 12, rot: 0, t: 1.2, h: 3.2, open: ['front'] },
+    fields: [...XZ, N('w', 'clear width'), N('d', 'clear depth'), A, N('t', 'wall thickness'),
+      N('h', 'height'), { id: 'open', label: 'open sides', kind: 'sides' }],
+  },
+  street: {
+    name: 'Street', args: ['x', 'z', 'width', 'length'], opts: true,
+    def: { width: 7, length: 30, rot: 0, left: 4, right: 4, h: 5 },
+    fields: [...XZ, N('width', 'road width'), N('length', 'length'), A,
+      N('left', 'left building'), N('right', 'right building'), N('h', 'height')],
+  },
+  docks: {
+    name: 'Loading docks', args: ['x', 'z', 'slots'], opts: true,
+    def: { slots: ['trailer', null], w: 4.7, d: 13.3, rot: 0, t: 0.5, h: 4.5 },
+    fields: [...XZ, N('w', 'slot pitch'), N('d', 'depth'), A, N('t', 'divider'), N('h', 'height'),
+      { id: 'slots', label: 'docks', kind: 'slots', of: 'trailer' }],
+  },
+};
+
+// What `expand()` would make of one object on its own. The editor needs this
+// to know where an object is on screen without re-expanding the whole level,
+// and it is the same call, so a composite cannot be drawn one way and collided
+// another.
+export const expandOne = (o) => expand([o]);

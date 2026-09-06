@@ -4,7 +4,7 @@ import { createVehicleMesh } from './carMesh.js';
 import { collidersOf } from './colliders.js';
 import { expand } from './objects.js';
 
-const THEMES = {
+export const THEMES = {
   lot: {
     sky: 0x9fc0e0, fog: [0x9fc0e0, 60, 190], ground: '#33353a', speck: '#41444a',
     hemi: [0xcfe2f5, 0x54544e, 0.5], sun: [0xfff2dc, 1.25, [38, 46, 22]],

@@ -71,6 +71,13 @@
         <h1>Tight&nbsp;Fit</h1>
         <p class="tag">Fourteen parking problems that look impossible. None of them are.</p>
         <div id="level-grid" class="grid"></div>
+        <h3 class="sub">Your levels</h3>
+        <p class="sub-note">Kept in this browser. They have their own bests and unlock nothing.</p>
+        <div class="sub-row">
+          <button id="new-level" class="link">+ new level</button>
+          <label class="ed-pick"><span>or start from</span><select id="copy-level"></select></label>
+        </div>
+        <div id="user-grid" class="grid"></div>
         <div class="menu-foot">
           <span>Made for a controller — every menu and card is pad-navigable. Keyboard and mouse work too.</span>
           <button id="btn-settings" class="link">settings</button>
@@ -107,6 +114,41 @@
           <button id="btn-restart">Restart level</button>
           <button id="btn-pause-settings">Settings</button>
           <button id="btn-quit">Level select</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="editor" class="editor hidden">
+      <div class="ed-bar">
+        <input id="ed-name" class="ed-title" aria-label="level name" />
+        <label class="ed-pick"><span>vehicle</span><select id="ed-vehicle"></select></label>
+        <label class="ed-pick"><span>theme</span><select id="ed-theme"></select></label>
+        <span class="ed-gap"></span>
+        <button id="ed-play" class="primary">Test drive</button>
+        <button id="ed-export">Export</button>
+        <button id="ed-reset" class="hidden">Reset to original</button>
+        <button id="ed-delete">Delete</button>
+        <button id="ed-done">Done</button>
+      </div>
+      <div class="ed-side ed-left">
+        <h4>Add</h4>
+        <div id="ed-add" class="ed-add"></div>
+        <h4>In this level</h4>
+        <div id="ed-list" class="ed-list"></div>
+      </div>
+      <div class="ed-side ed-right">
+        <h4>Selected</h4>
+        <div id="ed-fields"></div>
+        <p class="ed-hint">Drag in the plan to arrange, snapped to 10&nbsp;cm. Type the number
+          that matters. <kbd>[</kbd> <kbd>]</kbd> turn by 15&deg;, <kbd>Del</kbd> removes,
+          shift-drag or right-drag pans, wheel zooms.</p>
+      </div>
+      <div id="ed-export-box" class="ed-export hidden">
+        <h3>Paste this into <code>src/levels.js</code></h3>
+        <textarea id="ed-code" readonly spellcheck="false"></textarea>
+        <div class="row">
+          <button id="ed-copy" class="primary">Copy</button>
+          <button id="ed-export-close">Close</button>
         </div>
       </div>
     </div>

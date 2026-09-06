@@ -225,3 +225,99 @@ button.primary:hover { filter: brightness(1.1); }
 @media (max-width: 720px) {
   .gauges { width: 94vw; }
 }
+
+/* --- the level editor.
+   The plan view is the canvas underneath, so the editor is a bar and two
+   columns with nothing across the middle: everything here is pinned to an
+   edge, and `pointer-events` is off on the shell so a click between the
+   columns reaches the plan rather than an invisible panel. */
+.editor { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+.editor > * { pointer-events: auto; }
+
+.ed-bar {
+  position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 9px;
+  padding: 10px 14px; background: var(--panel); backdrop-filter: blur(9px);
+  border-bottom: 1px solid var(--edge);
+}
+.ed-gap { flex: 1; }
+.ed-title {
+  font: inherit; font-size: 16px; font-weight: 620; color: var(--ink); width: 230px;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid var(--edge);
+  border-radius: 8px; padding: 7px 10px;
+}
+.ed-pick { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); }
+.ed-pick span { text-transform: uppercase; letter-spacing: 0.09em; }
+
+.editor select, .editor input[type="number"] {
+  font: inherit; font-size: 12.5px; color: var(--ink); background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--edge); border-radius: 7px; padding: 5px 7px;
+}
+
+.ed-side {
+  position: absolute; top: 60px; bottom: 14px; width: 232px; overflow-y: auto;
+  padding: 12px; background: var(--panel); backdrop-filter: blur(9px);
+  border: 1px solid var(--edge); border-radius: 12px;
+}
+.ed-left { left: 14px; }
+.ed-right { right: 14px; }
+.ed-side h4 {
+  margin: 12px 0 7px; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--dim); font-weight: 600;
+}
+.ed-side h4:first-child { margin-top: 0; }
+
+.ed-add { display: flex; flex-wrap: wrap; gap: 5px; }
+.ed-add button { padding: 5px 9px; font-size: 12px; border-radius: 7px; }
+
+.ed-list { display: flex; flex-direction: column; gap: 3px; }
+.ed-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  width: 100%; text-align: left; padding: 6px 9px; font-size: 12.5px; font-weight: 500;
+}
+.ed-row span { font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
+.ed-row.on { border-color: var(--warn); background: rgba(255, 176, 32, 0.14); }
+
+.ed-field { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.ed-field > span { font-size: 12px; color: var(--dim); }
+.ed-field input[type="number"] { width: 92px; text-align: right; font-family: var(--mono); }
+.ed-set, .ed-slots { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.ed-set button, .ed-slots button { padding: 4px 8px; font-size: 11.5px; border-radius: 6px; }
+.ed-set button.on { background: var(--accent); color: #06210f; border-color: transparent; }
+.ed-slots { flex-direction: column; align-items: stretch; width: 118px; }
+.ed-slots select { font-size: 11.5px; }
+.ed-del { width: 100%; margin-top: 12px; color: var(--danger); }
+.ed-hint { font-size: 11.5px; line-height: 1.55; color: var(--dim); margin: 14px 0 0; }
+.ed-hint kbd {
+  font-family: var(--mono); font-size: 10.5px; padding: 1px 4px;
+  border: 1px solid var(--edge); border-radius: 4px;
+}
+
+.ed-export {
+  position: absolute; inset: 8% 18%; display: flex; flex-direction: column; gap: 12px;
+  padding: 20px; background: rgba(14, 17, 21, 0.96); border: 1px solid var(--edge);
+  border-radius: 14px;
+}
+.ed-export h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.ed-export code { font-family: var(--mono); color: var(--accent); }
+.ed-export textarea {
+  flex: 1; font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--ink);
+  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--edge); border-radius: 9px;
+  padding: 12px; resize: none; white-space: pre;
+}
+.ed-export .row { display: flex; gap: 9px; }
+
+.sub { margin: 26px 0 2px; font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+.sub-note { margin: 0 0 12px; font-size: 12px; color: var(--dim); }
+.sub-row { display: flex; align-items: center; gap: 16px; margin: 0 0 12px; }
+
+/* An own level is a tile with two jobs in it, so the tile is a container and
+   the big half is the button. */
+.tile.own { padding: 0; }
+.own-play {
+  display: flex; flex-direction: column; text-align: left; font: inherit; color: inherit;
+  background: none; border: none; cursor: pointer; padding: 12px 13px 10px; width: 100%;
+}
+.own-edit {
+  align-self: flex-start; margin: 0 13px 11px; padding: 3px 9px; font-size: 11px;
+  border-radius: 7px;
+}
