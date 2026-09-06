@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Tight Fit — a 3D parking game</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#128663;</text></svg>" />
+  <script type="module" crossorigin src="./assets/index-Cwfi82zS.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-r7kzWXf4.css">
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <div id="ui">
+    <div id="hud" class="hidden">
+      <div class="corner tr">
+        <div class="panel stats">
+          <div id="lvl-label" class="lvl-label">01 / 13 &middot; First Bay</div>
+          <div class="stat-row">
+            <div class="stat"><b id="stat-shunts">0</b><span>direction changes</span></div>
+            <div class="stat"><b id="stat-bumps">0</b><span>crashes</span></div>
+            <div class="stat"><b id="stat-best">—</b><span>best</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="corner bl">
+        <div class="panel keys" id="keys-pad">
+          <div><kbd>RT</kbd> drive &middot; <kbd>LT</kbd> reverse &middot; <kbd>LS</kbd> steer &middot; <kbd>LB</kbd> crawl &middot; <kbd>A</kbd> brake</div>
+          <div><kbd>RS</kbd> look &middot; <kbd>D-pad</kbd> zoom &middot; <kbd>RB</kbd> camera &middot; <kbd>Y</kbd> restart &middot; <kbd>&#9776;</kbd> menu</div>
+        </div>
+        <div class="panel keys hidden" id="keys-kb">
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive &middot; <kbd>Shift</kbd> crawl &middot; <kbd>Space</kbd> brake</div>
+          <div><kbd>Q</kbd><kbd>E</kbd> swing &middot; <kbd>Z</kbd> recentre &middot; <kbd>C</kbd> camera &middot; <kbd>R</kbd> restart &middot; <kbd>Esc</kbd> menu</div>
+        </div>
+      </div>
+
+      <div class="gauges">
+        <div class="sensor">
+          <span class="cap">nearest</span>
+          <div class="sensor-track"><div id="sensor-fill"></div></div>
+          <span id="sensor-text">clear</span>
+        </div>
+        <div class="artic hidden" id="artic">
+          <span class="cap" id="artic-label">trailer</span>
+          <div class="artic-track"><div id="artic-dot"></div></div>
+        </div>
+      </div>
+
+      <div id="hold" class="hold hidden"><div id="hold-fill"></div><span>hold it…</span></div>
+      <div id="toast" class="toast"></div>
+      <div id="flash" class="flash"></div>
+    </div>
+
+    <div id="menu" class="overlay">
+      <div class="menu-inner">
+        <h1>Tight&nbsp;Fit</h1>
+        <p class="tag">Fourteen parking problems that look impossible. All fourteen are provably not.</p>
+        <div id="level-grid" class="grid"></div>
+        <div class="menu-foot">
+          <span>Made for a controller — every menu and card is pad-navigable. Keyboard and mouse work too.</span>
+          <button id="unlock-all" class="link">unlock all levels</button>
+          <button id="wipe" class="link">reset progress</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="result" class="overlay hidden">
+      <div class="card">
+        <div id="result-kicker" class="kicker">parked</div>
+        <h2 id="result-title">First Bay</h2>
+        <div class="result-stats">
+          <div><b id="result-shunts">0</b><span>direction changes</span></div>
+          <div><b id="result-bumps">0</b><span>crashes</span></div>
+          <div><b id="result-rank">clean</b><span>run</span></div>
+        </div>
+        <div id="result-note" class="note"></div>
+        <div class="buttons">
+          <button id="btn-next" class="primary">Next level</button>
+          <button id="btn-retry">Retry</button>
+          <button id="btn-menu">Levels</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pause" class="overlay hidden">
+      <div class="card">
+        <div class="kicker">paused</div>
+        <h2 id="pause-title">First Bay</h2>
+        <div class="buttons">
+          <button id="btn-resume" class="primary">Resume</button>
+          <button id="btn-restart">Restart level</button>
+          <button id="btn-quit">Level select</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
