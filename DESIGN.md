@@ -193,13 +193,36 @@ There is no threshold in speed and none in time. Both have been tried:
 Contact state is the unit the game already owns, because the physics computes
 it every sub-step to decide where the vehicle stops.
 
+**The jackknife stop is a contact.** Decided by the user: folding a trailer as
+far as the hitch goes costs a crash, on the same terms as a wall — one on
+entering, none for holding it, another after unwinding and refolding. It
+already stopped the vehicle, because `isFree` refuses a jackknifed state
+exactly as it refuses one inside a wall (constraint 16); what it did not do was
+score correctly.
+
+It scored **two crashes for one fold**, and the reason is that `touching` was
+inferred from whether a step was refused rather than read off the state. At a
+wall those agree: the sub-step creep leaves the body flush, so every later step
+is refused too. At the fold they do not. Measured on Fold against a 78.00°
+limit: refused at 77.9918°, then a **free** step at 77.9978° — nearer the limit
+than the refusal — then refused again. The free step cleared `touching`, so the
+refold counted a second time.
+
+No margin on the angle separates those two states, because a slow approach
+passes through any margin while still free. What separates them is direction:
+the rig has left the fold when it has actually unwound it. So the fold angle at
+the refusal is remembered, and `touching` is held until the articulation comes
+back below it.
+
 Impact still scales the flash and the rumble; it does not decide whether the
 crash happened. Sound, rumble, flash and the counter all fire on the same
 event — with the cooldown gone they would otherwise have fired every physics
 step, buzzing at 120 Hz and allocating an audio buffer per frame for a scrape.
 
-*Held by:* `Game.stepPhysics` (sets `touching`) and `Game.onContact`, which
-returns early while it is set.
+*Held by:* `Game.stepPhysics` (sets `touching`, and holds it through a fold via
+`foldAt`) and `Game.onContact`, which returns early while it is set. `foldAt`
+is on the rewind tape with the rest of the frame (constraint 18), so rewinding
+past a fold un-scores it.
 
 ## 6. First gear is all there is
 
@@ -971,13 +994,6 @@ view. It also adds a rule the player must learn without being told (constraint
 another is a *measurement* difficulty unless the level is built so the height
 changes the route. Not decided.
 
-**Whether the game should enforce the jackknife stop.** The solver treated
-grinding it as a failed move; the game permits it. Enforcing it in the game —
-a contact, a refusal to steer further, or a void — would make an articulation
-budget a thing a level can be built on. Leaving it means a fold ground against
-its stop is a legal manoeuvre. The solver's disagreement is no longer an
-argument either way, since the solver is gone. Not decided.
-
 **The set against the difference rule.** Measured once, and the measurement is
 kept here because the levels were cut against it. The probe shrank every
 rectangle belonging to the vehicle by δ per side, changed nothing kinematic, and
@@ -1117,6 +1133,13 @@ hatchback series: a design session first, with the user; do not invent levels
 to fill a table.
 
 ### Recorded, not open
+
+**The jackknife stop is a crash.** Decided by the user, from the three options
+that were on the table — a contact, a refusal to steer further, or a void. It
+is a contact, which is the one that needed no new rule: the fold already
+stopped the vehicle the way a wall does, so making it score the way a wall does
+is the whole change. Written up under constraint 5, including the double-count
+it exposed.
 
 **The game has settings, and they are handling only.** Requested by the user:
 a rate-based steering mode ("the joystick would control the turning speed of

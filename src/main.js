@@ -13,7 +13,7 @@ import { Panels } from './panels.js';
 import { Tape } from './rewind.js';
 import { Traces } from './traces.js';
 import { load as loadSettings, save as saveSettings, gains } from './settings.js';
-import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.js';
+import { overlaps, rectInsideRect, rectDistance, corners, clamp, normalizeAngle } from './geom.js';
 
 // Versioned with the scoring unit. When the unit changes this key changes,
 // and there is nothing to migrate — a best in an abandoned unit is not data.
@@ -31,6 +31,11 @@ function loadProgress() {
   } catch { /* fresh start */ }
   return { unlocked: 0, best: {} };
 }
+
+// How far the trailer is folded, as a magnitude. Zero for a rigid vehicle, so
+// the fold bookkeeping in `stepPhysics` needs no special case for one.
+const articulation = (spec, state) =>
+  (spec.trailer ? Math.abs(normalizeAngle(state.yaw - state.trailerYaw)) : 0);
 
 class Game {
   constructor() {
@@ -165,6 +170,7 @@ class Game {
     this.canFinish = false;
     this.inside = false;
     this.touching = false;
+    this.foldAt = null;
     this.tape.clear();
     this.traces.clear();
     this.rewinding = false;
@@ -241,7 +247,7 @@ class Game {
       speed: car.speed, steer: car.steer, wheelSpin: car.wheelSpin,
       shunts: this.shunts, bumps: this.bumps, lastDir: this.lastDir,
       touching: this.touching, canFinish: this.canFinish, inside: this.inside,
-      trace: this.traces.count,
+      trace: this.traces.count, foldAt: this.foldAt,
     });
   }
 
@@ -260,6 +266,7 @@ class Game {
     this.bumps = f.bumps;
     this.lastDir = f.lastDir;
     this.touching = f.touching;
+    this.foldAt = f.foldAt;
     this.canFinish = f.canFinish;
     this.inside = f.inside;
     this.traces.truncate(f.trace);
@@ -299,12 +306,14 @@ class Game {
     const h = dt / n;
 
     let hit = false;
+    let foldHit = false;
     for (let i = 0; i < n; i++) {
       const cand = car.integrate(car.state, h);
       if (this.isFree(cand)) {
         car.state = cand;
         continue;
       }
+      foldHit = !!cand.jackknifed;
       // Creep as close to the obstacle as we can before stopping, so the car
       // rests against the wall instead of freezing a few centimetres short.
       let lo = 0;
@@ -320,7 +329,22 @@ class Game {
       car.speed = 0;
       break;
     }
-    this.touching = hit;
+    // Contact is a state, and `hit` reports only whether *this* step was
+    // refused. At a wall the two agree: the creep above leaves the body flush,
+    // so every later step is refused too. At the fold they do not. Measured on
+    // Fold, against a 78.00° limit: refused at 77.9918°, then a *free* step at
+    // 77.9978° — nearer the limit than the refusal — then refused again. That
+    // free step cleared `touching`, so one fold scored two crashes.
+    //
+    // No margin on the angle can separate those two states, because a slow
+    // approach passes through any margin while still free. What distinguishes
+    // them is direction: the rig has left the fold when it has actually
+    // unwound it. So hold the fold until the articulation comes back down.
+    if (foldHit) this.foldAt = articulation(this.spec, car.state);
+    else if (this.foldAt !== null && articulation(this.spec, car.state) < this.foldAt) {
+      this.foldAt = null;
+    }
+    this.touching = hit || this.foldAt !== null;
     this.traces.follow(car.state);
   }
 

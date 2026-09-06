@@ -11,7 +11,9 @@ the game. There is no par and no published best — the only number to beat is
 your own on that level, and it sits next to your current one.
 Crashes are counted per attempt too, however gentle: a crash is the moment you
 touch something, so grinding along a wall is one crash, and letting go before
-you hit it again is what makes it two.
+you hit it again is what makes it two. Folding a trailer as far as the hitch
+goes is a crash on the same terms — the rig stops dead against the fold, and
+unwinding and refolding it is a second one.
 
 Nothing tops 2.9 m/s. Holding a steady creep is not the challenge, so the
 vehicles do it for you — the throttle is analog, but first gear is all there is.
