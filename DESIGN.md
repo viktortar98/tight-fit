@@ -842,6 +842,90 @@ reachable setting is 1.6 x 2.9 = 4.64 m/s, so nothing tunnels.
 from it, so adding a setting is adding an entry there — its `gains()`, and the
 mode branches in `Vehicle.control`, `src/vehicle.js`.
 
+## 16. Every wheel rolls; nothing is dragged sideways
+
+No body in this game moves perpendicular to the direction its own wheels point.
+Not the tractor, not a trailer, not at any speed, and not at the limits of its
+articulation. A vehicle that slides sideways is not one the player can aim, and
+aiming is the whole game.
+
+This is a statement about the *model*, and the model already satisfies it. The
+bicycle kinematics move the rear axle along the heading by construction, and the
+articulation rate
+
+    d(trailerYaw)/dt = (v sin d - behind * yawRate * cos d) / axleFromHitch
+
+is the rate that holds the trailer axle rolling while the hitch is dragged
+around. Nothing has to be added to get the invariant. It can only be lost, and
+it was lost in two places:
+
+**The jackknife limit was a clamp.** On reaching `maxAngle`, `integrate()` used
+to pin `trailerYaw` to `yaw - maxAngle`. The trailer axle is *derived* from the
+hitch and that angle, so pinning the angle teleports the axle. Keep reversing
+and the pin holds while the tractor turns under it, and the trailer travels
+sideways indefinitely. Driven through the game's own `stepPhysics` loop, full
+lock in reverse in open ground: **97% of the box trailer's travel at the fold
+was sideways** — 18.7 m across against 0.6 m rolled — and 86% of the
+semitrailer's, 17.1 m against 2.7 m. Neither ever stopped. After the fix both
+reach the same limit and go 0.00 m further.
+
+The limit is a stop, not a clamp — at `maxAngle` the cab and the trailer are
+touching, which the game already has a rule for. So `integrate()` marks the
+state `jackknifed` and leaves the geometry alone, and `Game.isFree` refuses it.
+The existing sub-step bisection then creeps to the fold and stops against it,
+on the same code path as a wall, and constraint 5 counts it as the contact it
+is. Driving out is unobstructed: forward motion reduces the angle, so those
+states are free.
+
+**The articulation was integrated at the start of the step** while the tractor
+took its heading at the half-step. The mismatch is a first-order error, and a
+first-order error in the *angle* is a lateral displacement of the axle. Both are
+sampled at the half-step now, which is exact for the tractor because `yawRate`
+is constant across a step.
+
+Measured as sideways metres per metre the vehicle travels — the worst step of a
+sweep over both directions of travel, seven steering angles and three starting
+articulations, at the game's 1/120 s:
+
+| | before | after |
+|---|---|---|
+| every vehicle without a trailer | 1e-13 | 1e-13 |
+| box trailer | 1.8e+0 | 4.9e-6 |
+| semitrailer | 2.6e+0 | 1.2e-6 |
+
+Restoring only the start-of-step articulation, leaving the jackknife stop
+correct, gives 2.4e-3 and 1.5e-3 — three orders above where the model sits now,
+which is what the validator's threshold is set between.
+
+Normalising by the axle's *own* longitudinal displacement is the obvious measure
+and it is the wrong one. A trailer axle at large articulation sits near its own
+instantaneous pivot: it rotates while barely translating, so both components
+approach zero together and their ratio is noise. That reported a 3.1e-1 slide on
+the semitrailer which was 1.4 nanometres of movement. The distance the vehicle
+travelled is never zero, so it cannot do that.
+
+The rigid bodies are exact to floating point. What is left on the trailers is
+integration error and falls with the step, at the second order the midpoint rule
+is meant to give. It is not a direction the trailer can be pushed: five
+micrometres per metre travelled, on the vehicle where it is largest.
+
+The prover never had this bug to fix: `tools/validate.js` has always discarded
+any state flagged `jackknifed`, on the grounds that grinding the fold is a
+mistake rather than a manoeuvre. What changed is that the game now agrees with
+it.
+
+*Held by:* the no-slip check in `tools/validate.js`, which sweeps the whole
+roster before the levels and refuses to run them if any vehicle can be made to
+slide. It is checked against both defects it was written for: re-introduce
+either and it fails, which is the only evidence that a check of this shape is
+worth having. The first version of it was not — it skipped a step once the
+state was flagged `jackknifed`, and the clamp sets that flag on the same step it
+teleports the axle, so the check broke out immediately before the evidence and
+passed against the bug it existed to catch.
+
+*Enforced by:* `integrate()` in `src/vehicle.js` and `Game.isFree` in
+`src/main.js`.
+
 ## Where the rules are enforced
 
 | Constraint | Enforced by | Fails how |
@@ -853,6 +937,7 @@ mode branches in `Vehicle.control`, `src/vehicle.js`.
 | 4 — count is a level property | `CELL` probe, run at two sizes | count still falling means the lattice, not the level |
 | 7 — swept ring | printed per level by the validator | visible drift |
 | 15 — settings are timing, not geometry | review; `gains()` scales only rates, and `maxSteer` / dimensions are not in it | silent |
+| 16 — every wheel rolls | no-slip check in the validator, whole roster | exit 1, names the vehicle and the slide |
 | 2, 5, 6, 8, 9, 10, 11, 12, 14 | nothing | silent |
 
 Nine of fourteen are held by reading. That is the honest state of it: the

@@ -9,7 +9,7 @@
 
 import { LEVELS } from '../src/levels.js';
 import {
-  VEHICLES, integrate, bodyRects, bodyRect, trailerRect,
+  VEHICLES, integrate, bodyRects, bodyRect, trailerRect, trailerAxle,
   sweptWidth, combinationLength, trailerLength,
 } from '../src/vehicle.js';
 import { levelColliders, boundsRect } from '../src/colliders.js';
@@ -316,11 +316,106 @@ const bothWays = (level, opts) => {
   return betterResult(flipped, direct) ? { ...flipped, viaMirror: true } : direct;
 };
 
+// Constraint 16: no body moves perpendicular to the way its own wheels point.
+//
+// This is a property of the kinematics, not of a level, so it is checked once
+// over the whole roster rather than per level — and checked first, because a
+// vehicle that can be dragged sideways makes every proof below it meaningless.
+// Full lock in reverse is the way in: it is what winds a trailer to its
+// articulation limit, which is where the invariant was lost before.
+//
+// The measure is sideways metres per metre the vehicle travels: the component
+// of an axle's displacement perpendicular to its own heading, over `|v| dt`.
+//
+// Normalising by the axle's *own* longitudinal displacement instead is the
+// obvious choice and it is wrong. A trailer axle at large articulation sits
+// near its own instantaneous pivot: it rotates while barely translating, so
+// both components go to zero together and their ratio is noise. That produced
+// a 3.1e-1 "slide" on the semi which was 1.4 nanometres of lateral movement.
+// The distance the vehicle travelled is never zero here, so it cannot.
+//
+// The rigid bodies come out at 1e-14; what is left on the trailers is
+// integration error and falls with `dt`. The threshold sits far above the
+// former and far below anything a player could see, so it catches a model that
+// has started dragging rather than a step that is slightly coarse.
+// 0.1 mm sideways per metre travelled. The model as it stands reaches 4.9e-6
+// at worst; re-introducing either of the two defects this rule was written
+// against puts it at 1.5e-3 and 2.6e+0. The threshold sits between, nearer the
+// floor, so it fails on a model that drags and not on arithmetic.
+const SLIP_LIMIT = 1e-4;
+
+// One trajectory would only prove one trajectory, and the rule is unconditional
+// — so this sweeps the space it is cheap to sweep: both directions of travel,
+// seven steering angles including straight and both full locks, and three
+// starting articulations including half-folded each way. Full lock in reverse
+// is the one that winds a rig to its limit, but a check that only ran that
+// could not tell a model that drags everywhere from one that drags there.
+function worstSlip(spec) {
+  const dt = 1 / 120;
+  const maxA = spec.trailer ? spec.trailer.maxAngle : 0;
+  let worst = 0;
+  let where = 'body';
+  for (const speed of [1.5, -1.5]) {
+    for (const f of [-1, -0.6, -0.2, 0, 0.2, 0.6, 1]) {
+      for (const a of spec.trailer ? [0, 0.5 * maxA, -0.5 * maxA] : [0]) {
+        const got = slipOfRun(spec, dt, speed, f * spec.maxSteer, a);
+        if (got.worst > worst) { worst = got.worst; where = got.where; }
+      }
+    }
+  }
+  return { worst, where };
+}
+
+function slipOfRun(spec, dt, speed, steer, artic) {
+  let s = { x: 0, z: 0, yaw: 0, trailerYaw: -artic, speed };
+  let worst = 0;
+  let where = 'body';
+  for (let i = 0; i < 1400; i++) {
+    const next = integrate(spec, s, dt, steer);
+    // Deliberately not skipped once `jackknifed` is set. Whether a state is
+    // reachable is the caller's business; `integrate()`'s business is to return
+    // a rolling continuation for whatever it is handed. Skipping flagged steps
+    // here is what made an earlier version of this check pass against the very
+    // clamp it was written to catch — the clamp sets the flag on the same step
+    // it teleports the axle, so the check broke out just before the evidence.
+    const seen = [['body', s, next, s.yaw, next.yaw]];
+    if (spec.trailer) {
+      seen.push(['trailer', trailerAxle(spec, s), trailerAxle(spec, next),
+        s.trailerYaw, next.trailerYaw]);
+    }
+    const travelled = Math.abs(s.speed) * dt;
+    for (const [part, p0, p1, y0, y1] of seen) {
+      const yaw = (y0 + y1) / 2;
+      const dx = p1.x - p0.x;
+      const dz = p1.z - p0.z;
+      const lat = Math.abs(dx * Math.cos(yaw) - dz * Math.sin(yaw));
+      const ratio = lat / travelled;
+      if (ratio > worst) { worst = ratio; where = part; }
+    }
+    s = next;
+  }
+  return { worst, where };
+}
+
 // Importable: a sweep script wants solve() without running the whole set, and
 // without the exit() below firing under it.
 const RUN = !process.env.NO_RUN;
 const only = process.argv[2] ? process.argv[2].split(',') : null;
 let failures = 0;
+
+if (RUN) {
+  let dragged = 0;
+  for (const id of Object.keys(VEHICLES)) {
+    const { worst, where } = worstSlip(VEHICLES[id]);
+    if (worst <= SLIP_LIMIT) continue;
+    dragged++;
+    console.log(`!! ${id} ${where} slides: ${worst.toExponential(2)} m sideways per m travelled`);
+  }
+  if (dragged) {
+    console.log('\nA vehicle can be dragged sideways (DESIGN.md 16). Not running the levels.');
+    process.exit(1);
+  }
+}
 
 for (const level of RUN ? LEVELS : []) {
   if (only && !only.includes(level.id)) continue;

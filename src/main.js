@@ -187,6 +187,11 @@ class Game {
   // --- physics ---------------------------------------------------------
 
   isFree(state) {
+    // A jackknifed state is one the cab and the trailer would have to pass
+    // through each other to reach. It is refused here rather than clamped in
+    // the kinematics, so the vehicle creeps up to the fold and stops against
+    // it — the same treatment, and the same code path, as a wall.
+    if (state.jackknifed) return false;
     for (const body of this.vehicle.rects(state)) {
       if (!rectInsideRect(body, this.world.arena)) return false;
       for (const c of this.world.colliders) {
