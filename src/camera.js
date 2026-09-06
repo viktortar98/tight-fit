@@ -7,19 +7,34 @@ import { BTN } from './gamepad.js';
 // Its whole state is the player's four instructions — mode, yaw offset, pitch,
 // zoom — plus the framing those are handed at the start of a level.
 //
-// Two modes, answering two different questions: `chase` is what the driver can
-// see, `top` is what the collision model sees. There is no third question.
+// Three modes, answering three different questions: `chase` is what a driver
+// can see of their own vehicle, `cockpit` is what they see from inside it, and
+// `top` is what the collision model sees.
 
 // One time constant for the whole rig. Position, look point and the overhead
 // rotation share it because they are one decision: the camera follows rather
 // than snapping. That is non-instantaneity, not a guess about what you meant.
 const FOLLOW = 0.0012;
 
+const MODES = ['chase', 'cockpit', 'top'];
+
+// A driver's field of view is far wider than a game camera's, and the part of
+// it this mode exists for — the bonnet — is the part a 52° frame cuts off. So
+// the inside view is given a wider lens and a head that starts tilted down,
+// which is where a driver's is. Both are the framing a level hands you rather
+// than a pose the camera chooses: `recentre` puts them back.
+const COCKPIT_FOV = 60;
+const COCKPIT_PITCH = -0.13;
+
 export class CameraRig {
   constructor(camera) {
     this.camera = camera;
     this.mode = 'chase';
     this.pos = new THREE.Vector3(0, 6, 12);
+    // The inside view aims a head rather than orbiting a body, so its pitch is
+    // a separate quantity from the chase camera's elevation: the two mean
+    // opposite things and sharing one number makes each mode inherit the
+    // other's last pose. `reset` below gives it its value.
     this.look = new THREE.Vector3();
     this.topYaw = 0;
     this.reset();
@@ -29,7 +44,7 @@ export class CameraRig {
   // overhead. Swooping between the two spends half a second with the camera
   // somewhere neither view asked for.
   cycle() {
-    this.mode = this.mode === 'chase' ? 'top' : 'chase';
+    this.mode = MODES[(MODES.indexOf(this.mode) + 1) % MODES.length];
     this.first = true;
     return this.mode;
   }
@@ -37,7 +52,7 @@ export class CameraRig {
   handleInput(input, pad, dt = 0.016) {
     if (input.drag.dx || input.drag.dy) {
       this.yawOffset -= input.drag.dx * 0.006;
-      this.pitch = clamp(this.pitch + input.drag.dy * 0.004, 0.06, 1.4);
+      this.tilt(input.drag.dy * 0.004);
     }
     if (input.wheel) this.zoom(input.wheel);
     const swing = (input.keys.has('camleft') ? 1 : 0) - (input.keys.has('camright') ? 1 : 0);
@@ -46,7 +61,7 @@ export class CameraRig {
     if (pad && pad.connected) {
       const look = pad.look();
       if (look.x) this.yawOffset -= look.x * 2.4 * dt;
-      if (look.y) this.pitch = clamp(this.pitch + look.y * 1.5 * dt, 0.06, 1.4);
+      if (look.y) this.tilt(look.y * 1.5 * dt);
       if (pad.button(BTN.RS)) this.recentre();
       if (pad.tapped(BTN.UP)) this.zoom(-1);
       if (pad.tapped(BTN.DOWN)) this.zoom(1);
@@ -54,9 +69,18 @@ export class CameraRig {
     this.yawOffset = normalizeAngle(this.yawOffset);
   }
 
+  // Pushing the look control down means "show me more of what is below" in
+  // both idioms — which raises an orbiting camera and lowers a head.
+  tilt(d) {
+    if (this.mode === 'cockpit') this.headPitch = clamp(this.headPitch - d, -0.8, 0.4);
+    else this.pitch = clamp(this.pitch + d, 0.06, 1.4);
+  }
+
   zoom(steps) {
     if (this.mode === 'top') this.topHeight = clamp(this.topHeight + steps * 2.2, 9, 70);
-    else this.dist = clamp(this.dist + steps * 0.9, 3.6, 30);
+    else if (this.mode === 'chase') this.dist = clamp(this.dist + steps * 0.9, 3.6, 30);
+    // The inside view has nowhere to zoom to: the eye is where the driver's
+    // eye is, and moving it is the one thing that would make the bonnet lie.
   }
 
   // Camera angles are held relative to the vehicle body, so a view you chose
@@ -65,9 +89,35 @@ export class CameraRig {
   recentre() {
     this.yawOffset = 0;
     this.pitch = this.basePitch;
+    this.headPitch = COCKPIT_PITCH;
   }
 
-  update(dt, car, spec) {
+  update(dt, car, spec, view) {
+    // The inside view is bolted to the vehicle, so it neither smooths nor
+    // frames: the eye is exactly where the mesh says a driver's eye is, and
+    // the only thing the player moves is which way that head is looking.
+    const fov = this.mode === 'cockpit' ? COCKPIT_FOV : 52;
+    if (this.camera.fov !== fov) {
+      this.camera.fov = fov;
+      this.camera.updateProjectionMatrix();
+    }
+    if (this.mode === 'cockpit' && view) {
+      const s = Math.sin(car.yaw);
+      const c = Math.cos(car.yaw);
+      const e = view.eye;
+      const ex = car.x + e.x * c + e.z * s;
+      const ez = car.z - e.x * s + e.z * c;
+      const a = car.yaw + this.yawOffset;
+      const flat = Math.cos(this.headPitch) * 10;
+      this.camera.up.set(0, 1, 0);
+      this.camera.position.set(ex, e.y, ez);
+      this.camera.lookAt(
+        ex + Math.sin(a) * flat, e.y + Math.sin(this.headPitch) * 10, ez + Math.cos(a) * flat,
+      );
+      this.first = true;
+      return;
+    }
+
     // Frame the whole combination, not the cab: anchored on the tractor's rear
     // axle, a chase camera for a 16.6 m artic sits on top of its own trailer.
     let cx = car.x + Math.sin(car.yaw) * 1.2;
@@ -129,6 +179,7 @@ export class CameraRig {
     this.dist = (enclosed ? 8.6 : 9.6) + long * 1.55;
     this.topHeight = 24 + long * 3;
     this.yawOffset = 0;
+    this.headPitch = COCKPIT_PITCH;
     this.first = true;
   }
 }

@@ -60,7 +60,8 @@ card are all pad-navigable.
 | right stick | `Q` / `E`, drag | look around the body |
 | `D-pad ↑↓` | scroll | zoom |
 | `RS` click | `Z` | recentre the view where the level handed it to you |
-| `RB` | `C` | camera: chase ↔ overhead |
+| `RB` | `C` | view: chase → inside → overhead |
+| `X` | `Backspace` | hold to rewind |
 | `Y` | `R` | restart level |
 | `LS` click | `M` | mute |
 | `Menu` | `Esc` | pause |
@@ -101,20 +102,39 @@ could not finish several of the levels.
 
 **The camera does what you told it and nothing else.** It does not swing round
 when you reverse, pull itself in past walls, or trade distance for height on
-your behalf. Two views: chase, which is what the driver can see, and overhead,
-which is what the collision model sees — collision is 2D, so the overhead view
-*is* the physics. Angles are held relative to the driven body, so a jackknifed
+your behalf. Three views: chase, which shows the whole vehicle from outside;
+inside, which is the driver's seat; and overhead, which is what the collision
+model sees — collision is 2D, so the overhead view *is* the physics.
+
+The inside view is built around the complaint that most driving games get it
+wrong: you sit behind the glass and cannot see your own bonnet, which is the
+one thing a real driver is always looking over. Here you can. A bus and a
+cab-over have no bonnet, so they get the thing that does its job instead — a
+dash whose front edge is a known distance from the nose. All three mirrors are
+there too, aimed exactly where the real glass points, but drawn at the sides
+and top of the screen rather than out at the corners of the windscreen, so
+reading one never means turning the view. Angles are held relative to the driven body, so a jackknifed
 trailer never drags your viewpoint with it, and a view you chose stays on the
 same corner of the vehicle as it turns. If a wall is in the way, it is in the
 way; the overhead view is one button away.
 
 The bar across the bottom is a parking sensor: the distance to the nearest
-thing in any direction. Articulated vehicles get a second gauge showing the
-angle at the hitch, which is the only honest warning you get before it folds.
-Those are the only two gauges, because they are the only two things the view
-cannot tell you — there is no speedometer, no gear indicator and no
-steering-angle readout, and nothing on screen is there to help you find the bay
-on your first attempt. There are no hints anywhere: what a level is about is in
+thing in any direction, beeping faster as it closes. Articulated vehicles get a
+second gauge showing the angle at the hitch, which is the only honest warning
+you get before it folds. Beside them is a steering wheel that mirrors your
+stick — in Rate mode the lock stays where you leave it, and from the inside
+view the front tyres are out of sight in both modes, so where the wheel is
+pointing is a thing you otherwise cannot know. Those are the only three gauges,
+because they are the only things the view cannot tell you — there is no
+speedometer and no gear indicator, and nothing on screen is there to help you
+find the bay on your first attempt.
+
+**Hold rewind and the run plays backwards.** No budget, no cooldown. It winds
+back the crashes and the direction changes with it, because the score is
+recorded step by step alongside the vehicle's position rather than tallied
+beside it — so a rewind past a crash also puts you back before the crash, and
+you have to drive that stretch again. What it removes is the half minute of
+driving back to the interesting part, which was never the difficulty. There are no hints anywhere: what a level is about is in
 its geometry, and finding it is the level.
 
 ## Vehicles
@@ -217,7 +237,9 @@ the number is the level's; if the count is still falling, it is the lattice's.
 | `src/levels.js` | all fourteen levels, in metres |
 | `src/world.js` | scene construction, themes, lighting |
 | `src/carMesh.js` | vehicle and trailer models, saturated or pastel |
-| `src/camera.js` | chase / overhead / orbit, body-relative, with occlusion pull-in |
+| `src/camera.js` | chase / inside / overhead, body-relative |
+| `src/mirrors.js` | the three mirror views, rendered as screen panels |
+| `src/rewind.js` | the tape the run plays backwards through |
 | `src/gamepad.js` | Xbox mapping, analog triggers, rumble |
 | `src/main.js` | game loop, collision resolution, progression |
 | `tools/validate.js` | the solvability prover |

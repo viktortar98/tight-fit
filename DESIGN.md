@@ -561,16 +561,61 @@ hysteresis timer and its lerp.
 
 Deleting the flip is what settles how many camera modes there are. `orbit` was
 `chase` minus the flip — the two branches differed by one term — so with the
-flip gone the mode collapsed into `chase` on its own. Two modes remain, and
-they answer two genuinely different questions:
+flip gone the mode collapsed into `chase` on its own. Three modes remain, and
+they answer three genuinely different questions:
 
-- **chase** — what the driver can see. This is what makes it a driving game
-  rather than a puzzle on a grid.
+- **chase** — what the vehicle looks like from outside, so its extremities are
+  legible at once. This is what makes it a driving game rather than a puzzle
+  on a grid.
+- **cockpit** — what the driver actually has: a seat, a bonnet, and three
+  mirrors. It is the view every other one is a cheat against.
 - **overhead** — what the physics sees. Collision is 2D on XZ, so this view
   *is* the collision model, with nothing hidden by perspective.
 
-A third mode would have to answer a third question. "The same view, held
+A fourth mode would have to answer a fourth question. "The same view, held
 differently" is not one; that is what the right stick is for.
+
+**The inside view exists because most driving games get it wrong.** The user's
+statement of the fault, which is the whole specification:
+
+> "In most driving games, this view is flawed because I can only see the inside
+> of the car, but in real life, when I am driving, I can see the front of the
+> car also."
+
+So the bonnet is not decoration in this mode, it is the mode. Three things
+follow, and each was measured against a screenshot rather than guessed:
+
+- **The eye sits above the body box, behind the glass.** That is what puts the
+  bonnet in frame at all; `src/carMesh.js` places it, because the code that
+  draws the windows is the only code that knows where someone behind them
+  would be. A bus and a cab-over have no bonnet, so they are given the thing
+  that does its job — a dash whose front edge is a fixed distance from the
+  nose.
+- **A windscreen is glazed, not glassed.** A screen the driver sits *behind*
+  is a separate slab in front of the eye, and an opaque slab there is a wall:
+  the first bus build rendered a full-frame grey rectangle. `GLAZE` is the
+  same glass with something on the other side of it.
+- **The lens is 60° and the head starts 7.5° down.** A driver's field of view
+  is far wider than a game camera's, and the part a 52° frame cuts off is
+  exactly the bonnet. Both are the framing a level hands you, so `recentre`
+  puts them back; neither is the camera deciding something mid-drive.
+
+**Mirrors are aimed where the glass is and drawn where the eyes go.** A mirror
+camera sits at the mirror's mount point and looks where that mirror looks —
+that part is real. What is not real is the position on screen: the panels are
+at the two edges and the top centre, because the alternative is a 7 cm
+rectangle out at the corner of the windscreen that can only be read by turning
+the view, which is the thing this mode exists to avoid. The user asked for
+exactly that trade:
+
+> "not on this side of the car, so I don't have to turn the camera in the game,
+> but on the sides of my screen and on top in the center of the screen"
+
+Mirrors are aimed from the vehicle's heading alone. Turning your head does not
+turn a mirror. They render only in the inside view, because the other two
+answer the same question by showing the vehicle from outside, and they are
+rendered after the main pass with `shadowMap.autoUpdate` off, so three extra
+scene passes do not become four shadow rebuilds.
 
 Angles stay relative to the driven body, so a view you chose stays on the same
 corner of the vehicle as it turns and a jackknifed trailer never drags your
@@ -612,15 +657,19 @@ only theme with room to stand back in, so the test is `theme !== 'lot'`.
 
 The camera reads the pad through the `BTN` map, like every other reader.
 
-**There is one view, and levels are designed for it.** A chase camera and an
-overhead mode, both of which see the whole vehicle from outside. There are no
-mirrors, and there is no driver's-eye view. So **a level may not be built on
-what the player cannot see** — occlusion is not a difficulty this game has, and
-a level premised on it describes something that does not exist. Blind Side was
-exactly that: a semi backing into the dock on the side a real driver's mirrors
-do not cover, in a game with no mirrors. What the level actually has is a yard
-with two pillars in it, so a single long arc does not fit, and that is now what
-it says.
+**A level may not be built on what the player cannot see.** This used to be
+justified by there being no mirrors and no driver's-eye view; both now exist,
+and the rule survives on a better argument. Every mode is one button away at
+any moment, and the overhead mode shows the whole collision model with nothing
+hidden by perspective — so a level premised on occlusion is a level premised on
+the player not pressing a button. Blind Side was exactly that: a semi backing
+into the dock on the side a real driver's mirrors do not cover. What the level
+actually has is a yard with two pillars in it, so a single long arc does not
+fit, and that is now what it says.
+
+The inside view is therefore an *option*, never an assumption. Every level has
+to remain finishable from the chase camera alone, which is the view they were
+all proved and tuned against.
 
 When this was first written it claimed the rule bought something back — that
 height was the axis an outside view opens, since an overhang is legible from
@@ -639,7 +688,8 @@ two containment tests, which is roughly a dozen lines and a new rule about what
 a vehicle may pass under. That is a decision, not a discovery, and it is in
 Open decisions rather than assumed here.
 
-*Held by:* the reader, and `src/camera.js` for the two modes.
+*Held by:* the reader, `src/camera.js` for the three modes, and
+`src/mirrors.js` for the panels.
 
 ## 10. No path-prediction aids
 
@@ -710,10 +760,28 @@ depends on.
 Shunts, crashes and your own best are the score — there is no record and no
 par on screen (constraint 2). The proximity bar is the one
 gauge showing something no camera angle reveals, and the articulation gauge is
-the only honest warning before a trailer folds. The speedometer, the gear
-letter and the steering-angle dot were none of those — they measured a
-quantity constraint 6 exists to make not matter, twice over, next to a scored
-number displayed smaller than either.
+the only honest warning before a trailer folds. The speedometer and the gear
+letter were neither — they measured a quantity constraint 6 exists to make not
+matter, twice over, next to a scored number displayed smaller than either.
+
+**The steering wheel came back, and the rule is why.** A steering-angle dot was
+removed here alongside them, when Direct was the only steering mode: the stick
+position *was* the wheel position, so the gauge repeated the controller. Two
+things since then made the wheel a quantity the player cannot see. Rate
+steering (constraint 15) leaves the lock where you let go of it, so the wheel
+became state rather than an echo of the stick. And the inside view puts the
+front tyres out of sight entirely, in both modes. The user's statement of what
+it has to be:
+
+> "the driving wheel on my screen should mirror my movements with my Controller
+> device"
+
+Which `car.steer` already is: in Direct it is where the stick is, in Rate it is
+where the stick has left it, and in both it is where the wheel physically
+points. Full lock is drawn at 140° rather than a real wheel's two-and-a-half
+turns, so the marker is legible at a glance and never wraps past vertical. It
+is a position, not a readout: no number, no degrees, nothing that invites
+aiming at a value.
 
 Two consequences that were derived rather than decided, and are worth keeping
 because the derivation generalises:
@@ -926,6 +994,81 @@ passed against the bug it existed to catch.
 *Enforced by:* `integrate()` in `src/vehicle.js` and `Game.isFree` in
 `src/main.js`.
 
+## 17. Nothing is drawn outside a collision rectangle
+
+The user's statement, which is the rule:
+
+> "everything I can see has a collision box, or should have a collision box"
+
+A part drawn past the rectangle the physics collides with is a part that passes
+through walls, and the player has no way to tell which parts those are. Every
+mesh in `src/carMesh.js` therefore sits inside the union of the vehicle's
+collision rectangles — the tractor's and the trailer's, for the articulated
+ones — in the vehicle's own frame, where that union is fixed.
+
+Measured before the fix, as the furthest any mesh's footprint reached past that
+union:
+
+| | mirrors | ends | other |
+|---|---|---|---|
+| hatch, van | 0.140 m each side | 0.040 m (lights), 0.020 m (bumpers) | — |
+| bus, coach | 0.190 m | 0.050 m (lights), 0.045 m (front and rear glass) | 0.025 m (window bands) |
+| towcar | 0.140 m | 0.040–0.050 m | 0.230 m (tow ball) |
+| semi | 0.210 m | 0.260 m (cab and screen past the nose) | 0.030 m (side windows) |
+
+Two ways to close a gap, and they are not equivalent. Widening the collision
+rectangle to the geometry is the realistic one — mirrors do hit things — and it
+changes the vehicle footprint, which invalidates every level's proof
+(constraint 3): +0.28 m on the hatchback's width is 16%, against aisles cut to
+2.9 m. Bringing the geometry inside the rectangle costs nothing but the look.
+**The second was taken**, so mirrors are folded against the flank, lights and
+bumpers are inset by half their own depth, and the semi's cab ends where its
+rectangle ends. Everything is now zero.
+
+Everything except one. The tow car's ball sits 0.230 m behind the car's
+rectangle because that is where the hitch physically is, and the drawbar spans
+1.3 m of open air between the car's rectangle and the trailer's. Drawing that
+inside a rectangle would misplace the hitch; giving it a rectangle of its own
+would change what fits, and so needs the levels re-proved. It is in Open
+decisions rather than closed by default.
+
+*Enforced by:* nothing yet. The check exists as a script and its numbers are
+above; it is not wired into `pnpm lint` or the validator.
+
+## 18. Rewind is free, and it does not launder the score
+
+The user's statement of what it is for:
+
+> "the aim of this game is to experience with the driving and parking methods
+> and learn how to do it correctly... in real life, crashes are obviously bad,
+> but in the game it doesn't really matter because I want to learn"
+
+Hold the button and the run plays backwards at 3x through a tape of every
+physics step; let go and it continues from there. There is no budget, no
+cooldown and no cost.
+
+**A recorded frame is the whole step, score included** — pose, motion, shunts,
+crashes, the direction the last move was in, whether the vehicle was already
+touching something. That is the entire mechanism for "undo the crashes and
+direction changes I made during the stretch I rewound": the counters are on the
+tape with the pose, so winding the tape back winds them back, and no arithmetic
+anywhere needs to know a rewind happened.
+
+**It does not conflict with constraint 2**, which is the thing to check before
+adding an undo to a scored game. Rewinding past a crash puts the vehicle back
+*before* the crash, so that stretch has to be driven again; the count that
+survives is the count belonging to the path the player actually finished on.
+The same holds for direction changes: rewinding a shunt also rewinds the
+progress the shunt bought. What rewind removes is the cost of *restarting* —
+thirty seconds of driving back to the interesting part — which was never part
+of the difficulty this game is about (constraint 1).
+
+The tape holds four minutes at the physics rate and drops the oldest frames
+past that. A run long enough to overflow it is one where restarting is cheaper
+anyway.
+
+*Held by:* `src/rewind.js` and `Game.record`/`Game.restore`.
+
 ## Where the rules are enforced
 
 | Constraint | Enforced by | Fails how |
@@ -938,7 +1081,8 @@ passed against the bug it existed to catch.
 | 7 — swept ring | printed per level by the validator | visible drift |
 | 15 — settings are timing, not geometry | review; `gains()` scales only rates, and `maxSteer` / dimensions are not in it | silent |
 | 16 — every wheel rolls | no-slip check in the validator, whole roster | exit 1, names the vehicle and the slide |
-| 2, 5, 6, 8, 9, 10, 11, 12, 14 | nothing | silent |
+| 17 — nothing drawn outside a rectangle | a script, run by hand | silent between runs |
+| 2, 5, 6, 8, 9, 10, 11, 12, 14, 18 | nothing | silent |
 
 Nine of fourteen are held by reading. That is the honest state of it: the
 solvability gate and the dead-code sweep are machine-checked because both are
@@ -996,6 +1140,24 @@ overhang swing at full lock is 0.67 m against 0.07–0.09 m for everything else.
 Bus Stop does not use it. A tail that swings outboard on the side opposite the
 turn is a placement property, not a width property, which is the class the
 probe says survives.
+
+**Whether the tow car's drawbar gets a collision rectangle.** The one gap left
+by constraint 17. The car's rectangle ends 0.95 m behind its rear axle, the
+trailer's begins 2.25 m behind it, and the 1.30 m between them holds a hitch
+ball and a drawbar that nothing collides with. A pillar or a cone can sit in
+that slot untouched while the two rectangles pass either side of it. Closing it
+means a third rectangle on the combination, which changes what fits and so
+needs Trailer Trouble and Fold re-proved — the same cost as widening a vehicle.
+Leaving it means the tow car has 1.3 m of visible steel that is not there as
+far as the physics is concerned. Not decided.
+
+**Whether mirrors should be part of the vehicle's footprint.** Constraint 17
+closed the mirror gap by folding the mirrors in, which was the option that cost
+no proofs. The other option is the realistic one: mirrors stick out, and a
+mirror that clips a wall in a parking game is a fair thing to lose to. It costs
++0.28 m of width on the hatchback (16%), +0.38 m on the bus and +0.42 m on the
+semi, against aisles cut to 2.9 m — so every level would need re-proving and
+several would likely need re-cutting. Not decided.
 
 **Whether obstacles get a height.** Found by measurement, not assumed: collision
 is two-dimensional. `collidersOf()` drops `h`, `overlaps()` is a separating-axis

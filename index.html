@@ -25,16 +25,27 @@
 
       <div class="corner bl">
         <div class="panel keys" id="keys-pad">
-          <div><kbd>RT</kbd> drive &middot; <kbd>LT</kbd> reverse &middot; <kbd>LS</kbd> <span id="steer-legend">steer</span> &middot; <kbd>LB</kbd> crawl &middot; <kbd>A</kbd> brake</div>
-          <div><kbd>RS</kbd> look &middot; <kbd>D-pad</kbd> zoom &middot; <kbd>RB</kbd> camera &middot; <kbd>Y</kbd> restart &middot; <kbd>&#9776;</kbd> menu</div>
+          <div><kbd>RT</kbd> drive &middot; <kbd>LT</kbd> reverse &middot; <kbd>LS</kbd> <span id="steer-legend">steer</span> &middot; <kbd>LB</kbd> crawl &middot; <kbd>A</kbd> brake &middot; <kbd>X</kbd> hold to rewind</div>
+          <div><kbd>RS</kbd> look &middot; <kbd>D-pad</kbd> zoom &middot; <kbd>RB</kbd> view &middot; <kbd>Y</kbd> restart &middot; <kbd>&#9776;</kbd> menu</div>
         </div>
         <div class="panel keys hidden" id="keys-kb">
-          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive &middot; <kbd>Shift</kbd> crawl &middot; <kbd>Space</kbd> brake</div>
-          <div><kbd>Q</kbd><kbd>E</kbd> swing &middot; <kbd>Z</kbd> recentre &middot; <kbd>C</kbd> camera &middot; <kbd>R</kbd> restart &middot; <kbd>Esc</kbd> menu</div>
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive &middot; <kbd>Shift</kbd> crawl &middot; <kbd>Space</kbd> brake &middot; <kbd>Backspace</kbd> hold to rewind</div>
+          <div><kbd>Q</kbd><kbd>E</kbd> swing &middot; <kbd>Z</kbd> recentre &middot; <kbd>C</kbd> view &middot; <kbd>R</kbd> restart &middot; <kbd>Esc</kbd> menu</div>
         </div>
       </div>
 
       <div class="gauges">
+        <div class="wheel" id="wheel" aria-hidden="true">
+          <svg viewBox="-50 -50 100 100">
+            <g id="wheel-rot">
+              <circle r="40" fill="none" stroke="currentColor" stroke-width="8" opacity="0.55" />
+              <path d="M-33 6 H-12 M33 6 H12 M0 13 V34" stroke="currentColor" stroke-width="9"
+                    stroke-linecap="round" opacity="0.55" />
+              <rect x="-14" y="-3" width="28" height="13" rx="5" fill="currentColor" opacity="0.55" />
+              <path d="M0 -44 l-7 11 h14 z" fill="var(--accent)" />
+            </g>
+          </svg>
+        </div>
         <div class="sensor">
           <span class="cap">nearest</span>
           <div class="sensor-track"><div id="sensor-fill"></div></div>
@@ -46,6 +57,7 @@
         </div>
       </div>
 
+      <div id="rewind" class="rewind hidden"><b>&#9664;&#9664;</b> rewinding &middot; <span id="rewind-left">0.0</span>s of run left</div>
       <div id="hold" class="hold hidden"><div id="hold-fill"></div><span>hold it…</span></div>
       <div id="toast" class="toast"></div>
       <div id="flash" class="flash"></div>

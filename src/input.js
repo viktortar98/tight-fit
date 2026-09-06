@@ -6,6 +6,8 @@ const KEYMAP = {
   Space: 'brake',
   ShiftLeft: 'crawl', ShiftRight: 'crawl',
   KeyQ: 'camleft', KeyE: 'camright',
+  // Held, not tapped, so it lives in the action map rather than in `tapped`.
+  Backspace: 'rewind',
 };
 
 export class Input {
@@ -81,6 +83,7 @@ export class Input {
       steer: (k.has('left') ? 1 : 0) + (k.has('right') ? -1 : 0),
       brake: k.has('brake'),
       crawl: k.has('crawl'),
+      rewind: k.has('rewind'),
     };
   }
 }

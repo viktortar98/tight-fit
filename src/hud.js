@@ -15,6 +15,7 @@ export class Hud {
       shunts: $('stat-shunts'), bumps: $('stat-bumps'), best: $('stat-best'),
       sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
       hold: $('hold'), holdFill: $('hold-fill'), toast: $('toast'), flash: $('flash'),
+      wheelRot: $('wheel-rot'), rewind: $('rewind'), rewindLeft: $('rewind-left'),
       grid: $('level-grid'),
       settings: $('settings'), settingsList: $('settings-list'),
       steerLegend: $('steer-legend'),
@@ -165,6 +166,15 @@ export class Hud {
       this.el.artic.classList.toggle('bad', mag > 0.88);
       this.el.articLabel.textContent = mag > 0.88 ? 'jackknife' : 'trailer';
     }
+
+    // A steering wheel turns much further than the road wheels do; what the
+    // number has to be is legible at a glance and never wrapped past vertical,
+    // so full lock is a bit under half a turn. Positive steer is a left turn
+    // and SVG rotates clockwise, hence the sign.
+    this.el.wheelRot.setAttribute('transform', `rotate(${-s.steer * 140})`);
+
+    this.el.rewind.classList.toggle('hidden', !s.rewinding);
+    if (s.rewinding) this.el.rewindLeft.textContent = s.tape.toFixed(1);
 
     this.el.hold.classList.toggle('hidden', s.hold <= 0);
     this.el.holdFill.style.width = `${Math.min(100, s.hold * 100)}%`;

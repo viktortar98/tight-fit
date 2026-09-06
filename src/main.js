@@ -9,6 +9,8 @@ import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { Pad, BTN } from './gamepad.js';
 import { Hud } from './hud.js';
+import { Mirrors } from './mirrors.js';
+import { Tape } from './rewind.js';
 import { load as loadSettings, save as saveSettings, gains } from './settings.js';
 import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.js';
 
@@ -16,6 +18,10 @@ import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.j
 // and there is nothing to migrate — a best in an abandoned unit is not data.
 const STORE = 'tight-fit.v4';
 const PHYS_DT = 1 / 120;
+// How much faster than real time the tape runs backwards. Fast enough to undo
+// half a minute without waiting for it, slow enough to release on the frame
+// you meant.
+const REWIND_RATE = 3;
 
 function loadProgress() {
   try {
@@ -43,6 +49,7 @@ class Game {
     pmrem.dispose();
     this.camera = new THREE.PerspectiveCamera(52, 1, 0.1, 400);
     this.rig = new CameraRig(this.camera);
+    this.mirrors = new Mirrors();
     this.world = new World(this.scene);
     this.input = new Input();
     this.pad = new Pad();
@@ -90,6 +97,8 @@ class Game {
     this.vehicle = null;
     this.clock = new THREE.Clock();
     this.accum = 0;
+    this.tape = new Tape();
+    this.rewinding = false;
 
     addEventListener('resize', () => this.resize());
     addEventListener('blur', () => { if (this.state === 'playing') this.setPaused(true); });
@@ -110,6 +119,7 @@ class Game {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.mirrors.resize(w, h, this.renderer.getPixelRatio());
   }
 
   // --- level lifecycle -------------------------------------------------
@@ -145,6 +155,8 @@ class Game {
     this.hold = 0;
     this.inside = false;
     this.touching = false;
+    this.tape.clear();
+    this.rewinding = false;
     this.rig.reset(this.level.theme, this.spec);
     this.hud.update(this.telemetry(this.nearestGap()));
   }
@@ -209,8 +221,54 @@ class Game {
       : this.vehicle.body(state);
   }
 
+  // Everything a step reads and writes, so that running the tape backwards
+  // restores the run rather than just the pose (src/rewind.js).
+  record() {
+    const car = this.vehicle;
+    this.tape.push({
+      x: car.x, z: car.z, yaw: car.yaw, trailerYaw: car.trailerYaw,
+      speed: car.speed, steer: car.steer, wheelSpin: car.wheelSpin,
+      shunts: this.shunts, bumps: this.bumps, lastDir: this.lastDir,
+      touching: this.touching, hold: this.hold, inside: this.inside,
+    });
+  }
+
+  restore(f) {
+    if (!f) return false;
+    const car = this.vehicle;
+    car.x = f.x;
+    car.z = f.z;
+    car.yaw = f.yaw;
+    car.trailerYaw = f.trailerYaw;
+    car.speed = f.speed;
+    car.steer = f.steer;
+    car.wheelSpin = f.wheelSpin;
+    car.braking = false;
+    this.shunts = f.shunts;
+    this.bumps = f.bumps;
+    this.lastDir = f.lastDir;
+    this.touching = f.touching;
+    this.hold = f.hold;
+    this.inside = f.inside;
+    return true;
+  }
+
+  // Backwards through the tape at REWIND_RATE, on the same clock the forward
+  // steps use, so a second held is a fixed number of steps undone whatever the
+  // frame rate is doing.
+  stepRewind(dt) {
+    this.accum += dt * REWIND_RATE;
+    let steps = 0;
+    while (this.accum >= PHYS_DT && steps < 12 * REWIND_RATE) {
+      this.accum -= PHYS_DT;
+      steps++;
+      if (!this.restore(this.tape.pop())) break;
+    }
+  }
+
   stepPhysics(dt, input) {
     const car = this.vehicle;
+    this.record();
     car.control(dt, input);
 
     // The score is shunts: every time the vehicle actually reverses its
@@ -287,6 +345,9 @@ class Game {
       shunts: this.shunts,
       bumps: this.bumps,
       gap,
+      steer: car.steer / this.spec.maxSteer,
+      rewinding: this.rewinding,
+      tape: this.tape.len / 120,
       hold: this.hold / 0.6,
       articulation: car.articulation,
       maxArticulation: this.spec.trailer ? this.spec.trailer.maxAngle : 0,
@@ -414,7 +475,7 @@ class Game {
         this.hud.showGame();
         this.state = 'playing';
       }
-      if (input.pressed('KeyC') || this.pad.tapped(BTN.RB)) this.hud.toast(`camera: ${this.rig.cycle()}`);
+      if (input.pressed('KeyC') || this.pad.tapped(BTN.RB)) this.hud.toast(`view: ${this.rig.cycle()}`);
       if (input.pressed('KeyM') || this.pad.tapped(BTN.LS)) {
         this.sfx.muted = !this.sfx.muted;
         this.hud.toast(this.sfx.muted ? 'muted' : 'sound on');
@@ -437,13 +498,22 @@ class Game {
       drive.steerMode = this.settings.steering;
       drive.throttleMode = this.settings.throttle;
       drive.gains = this.gains;
-      this.accum += dt;
-      let steps = 0;
-      while (this.accum >= PHYS_DT && steps < 12) {
-        this.accum -= PHYS_DT;
-        steps++;
-        this.stepPhysics(PHYS_DT, drive);
-        if (this.checkParked()) { this.finish(); break; }
+
+      // Rewinding replaces the step rather than modifying it: nothing is
+      // driven, nothing is scored, and no bay is checked, because every state
+      // it visits is one the run already passed through.
+      this.rewinding = (keys.rewind || this.pad.button(BTN.X)) && this.tape.len > 0;
+      if (this.rewinding) {
+        this.stepRewind(dt);
+      } else {
+        this.accum += dt;
+        let steps = 0;
+        while (this.accum >= PHYS_DT && steps < 12) {
+          this.accum -= PHYS_DT;
+          steps++;
+          this.stepPhysics(PHYS_DT, drive);
+          if (this.checkParked()) { this.finish(); break; }
+        }
       }
 
       const gap = this.nearestGap();
@@ -466,11 +536,15 @@ class Game {
         braking: car.braking,
         reversing: car.speed < -0.05,
       });
-      this.rig.update(dt, car, this.spec);
+      this.rig.update(dt, car, this.spec, this.carMesh.view);
+      if (this.rig.mode === 'cockpit') this.mirrors.aim(car, this.carMesh.view);
       this.world.animateTarget(performance.now() / 1000, this.inside);
     }
 
     this.renderer.render(this.scene, this.camera);
+    // Mirrors belong to the inside view: they answer the question the other
+    // two views answer by showing the vehicle from outside.
+    if (this.vehicle && this.rig.mode === 'cockpit') this.mirrors.draw(this.renderer, this.scene);
     input.endFrame();
   }
 }

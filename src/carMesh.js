@@ -4,6 +4,15 @@ import { centerOffset, trailerCenterOffset, trailerLength } from './vehicle.js';
 // Vehicle groups have their origin at the physics reference point: the centre
 // of the rear axle for a tractor, the axle for a trailer. Placing one is then
 // just position + rotation.y = yaw.
+//
+// Nothing drawn here may stick out past the rectangle the physics collides
+// with (DESIGN.md 17). Parts that want to read as flush — lights, bumpers,
+// glazing, mirrors — are inset by half their own depth instead, which is why
+// the offsets below are the sizes of the parts rather than round numbers.
+//
+// Each builder also records where the driver's head and mirrors are, in the
+// group's own frame. Whoever draws the windows is the only code that knows
+// where someone sitting behind them would be.
 
 const wheelGeoCache = new Map();
 function wheelGeometry(r, w) {
@@ -20,6 +29,13 @@ const RUBBER = new THREE.MeshStandardMaterial({ color: 0x2c2e33, roughness: 0.85
 const HUB = new THREE.MeshStandardMaterial({ color: 0xc9ced6, roughness: 0.4, metalness: 0.6 });
 const GLASS = new THREE.MeshStandardMaterial({ color: 0x53667a, roughness: 0.18, metalness: 0.45 });
 const TRIM = new THREE.MeshStandardMaterial({ color: 0x555a63, roughness: 0.7 });
+// Glazing you sit behind, as opposed to glazing you look at. A windscreen is a
+// separate slab in front of the driver rather than a face of the cabin box, so
+// from the inside view it is a front face and reads as a wall. This is the
+// same glass with something on the other side of it.
+const GLAZE = new THREE.MeshStandardMaterial({
+  color: 0x9fc4dc, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.22,
+});
 const STEEL = new THREE.MeshStandardMaterial({ color: 0x8d939c, roughness: 0.5, metalness: 0.5 });
 
 function axleLayout(spec) {
@@ -60,6 +76,19 @@ function lightMaterials() {
   };
 }
 
+// The driver sits on the left, and +X is the driver's left: the group's
+// forward is +Z and its up is +Y, so +X is the side a left-hand-drive seat is
+// on. The mirror points sit a hand's width outside the flank, where the glass
+// faces, so a mirror camera is not looking at the inside of the bodywork.
+function view(eye, mirrorY, mirrorZ, halfWidth, centre) {
+  return {
+    eye,
+    left: new THREE.Vector3(halfWidth + 0.05, mirrorY, mirrorZ),
+    right: new THREE.Vector3(-(halfWidth + 0.05), mirrorY, mirrorZ),
+    centre,
+  };
+}
+
 function buildCarBody(g, spec, paint, lights) {
   const off = centerOffset(spec);
   const r = spec.wheelRadius;
@@ -87,8 +116,8 @@ function buildCarBody(g, spec, paint, lights) {
   g.add(cabin);
 
   if (isVan) {
-    const ws = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.86, cabinH * 0.55, 0.08), GLASS);
-    ws.position.set(0, sillY + bodyH + cabinH * 0.6, cabinZ + cabinLen / 2 + 0.02);
+    const ws = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.86, cabinH * 0.55, 0.08), GLAZE);
+    ws.position.set(0, sillY + bodyH + cabinH * 0.6, cabinZ + cabinLen / 2 - 0.05);
     g.add(ws);
   } else {
     const roof = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.84, 0.09, cabinLen * 0.86), paint);
@@ -98,19 +127,23 @@ function buildCarBody(g, spec, paint, lights) {
 
   const noseZ = off + spec.length / 2;
   const tailZ = off - spec.length / 2;
+  const mirrorZ = cabinZ + cabinLen / 2 - 0.1;
+  const mirrorY = spec.height - cabinH * 0.55;
   for (const sx of [-1, 1]) {
     const hl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.06), lights.head);
-    hl.position.set(sx * (spec.width / 2 - 0.28), sillY + bodyH * 0.62, noseZ + 0.01);
+    hl.position.set(sx * (spec.width / 2 - 0.28), sillY + bodyH * 0.62, noseZ - 0.031);
     const tl = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.06), lights.tail);
-    tl.position.set(sx * (spec.width / 2 - 0.26), sillY + bodyH * 0.66, tailZ - 0.01);
+    tl.position.set(sx * (spec.width / 2 - 0.26), sillY + bodyH * 0.66, tailZ + 0.031);
     const rl = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.06), lights.reverse);
-    rl.position.set(sx * (spec.width / 2 - 0.55), sillY + bodyH * 0.45, tailZ - 0.01);
+    rl.position.set(sx * (spec.width / 2 - 0.55), sillY + bodyH * 0.45, tailZ + 0.031);
     g.add(hl, tl, rl);
-    const m = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.09, 0.07), TRIM);
-    m.position.set(sx * (spec.width / 2 + 0.06), spec.height - cabinH * 0.55, cabinZ + cabinLen / 2 - 0.1);
+    // Folded against the flank rather than proud of it: a mirror that sticks
+    // out is a mirror the physics does not know about.
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.09, 0.07), TRIM);
+    m.position.set(sx * (spec.width / 2 - 0.051), mirrorY, mirrorZ);
     g.add(m);
   }
-  for (const zPos of [noseZ - 0.06, tailZ + 0.06]) {
+  for (const zPos of [noseZ - 0.081, tailZ + 0.081]) {
     const bump = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.99, 0.22, 0.16), TRIM);
     bump.position.set(0, sillY + 0.16, zPos);
     g.add(bump);
@@ -120,6 +153,15 @@ function buildCarBody(g, spec, paint, lights) {
     ball.position.set(0, sillY - 0.05, spec.trailer.hitch);
     g.add(ball);
   }
+
+  // Behind the windscreen with the bonnet in front of it. The eye sits above
+  // the body box, which is what puts the bonnet in the picture — the whole
+  // point of the inside view (DESIGN.md 9).
+  g.userData.view = view(
+    new THREE.Vector3(spec.width * 0.22, sillY + bodyH + cabinH * 0.62, cabinZ + cabinLen * 0.22),
+    mirrorY + 0.04, mirrorZ, spec.width / 2,
+    new THREE.Vector3(0, spec.height - cabinH * 0.22, cabinZ + cabinLen / 2 - 0.16),
+  );
 }
 
 function buildBus(g, spec, paint, lights) {
@@ -141,14 +183,14 @@ function buildBus(g, spec, paint, lights) {
   const bandY = floorY + bodyH * 0.62;
   for (const sx of [-1, 1]) {
     const band = new THREE.Mesh(new THREE.BoxGeometry(0.07, bandH, spec.length * 0.88), GLASS);
-    band.position.set(sx * (spec.width / 2 - 0.01), bandY, off);
+    band.position.set(sx * (spec.width / 2 - 0.036), bandY, off);
     g.add(band);
   }
-  const front = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.9, bandH * 1.15, 0.07), GLASS);
-  front.position.set(0, bandY, off + spec.length / 2 + 0.01);
+  const front = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.9, bandH * 1.15, 0.07), GLAZE);
+  front.position.set(0, bandY, off + spec.length / 2 - 0.036);
   g.add(front);
-  const back = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.86, bandH * 0.8, 0.07), GLASS);
-  back.position.set(0, bandY, off - spec.length / 2 - 0.01);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.86, bandH * 0.8, 0.07), GLAZE);
+  back.position.set(0, bandY, off - spec.length / 2 + 0.036);
   g.add(back);
 
   const roof = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.92, 0.1, spec.length * 0.94), paint);
@@ -157,18 +199,33 @@ function buildBus(g, spec, paint, lights) {
 
   const noseZ = off + spec.length / 2;
   const tailZ = off - spec.length / 2;
+  const mirrorZ = noseZ - 0.35;
+  const mirrorY = spec.height * 0.78;
   for (const sx of [-1, 1]) {
     const hl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.06), lights.head);
-    hl.position.set(sx * (spec.width / 2 - 0.35), floorY * 0.75, noseZ + 0.02);
+    hl.position.set(sx * (spec.width / 2 - 0.35), floorY * 0.75, noseZ - 0.031);
     const tl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.06), lights.tail);
-    tl.position.set(sx * (spec.width / 2 - 0.32), floorY * 0.85, tailZ - 0.02);
+    tl.position.set(sx * (spec.width / 2 - 0.32), floorY * 0.85, tailZ + 0.031);
     const rl = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.06), lights.reverse);
-    rl.position.set(sx * (spec.width / 2 - 0.72), floorY * 0.6, tailZ - 0.02);
+    rl.position.set(sx * (spec.width / 2 - 0.72), floorY * 0.6, tailZ + 0.031);
     g.add(hl, tl, rl);
-    const m = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.28, 0.08), TRIM);
-    m.position.set(sx * (spec.width / 2 + 0.09), spec.height * 0.78, noseZ - 0.35);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.08), TRIM);
+    m.position.set(sx * (spec.width / 2 - 0.061), mirrorY, mirrorZ);
     g.add(m);
   }
+
+  // A bus has no bonnet, so the inside view is given the thing that does the
+  // same job: a dash whose front edge is a fixed distance from the nose.
+  const dashH = 0.55;
+  const dash = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.9, dashH, 0.9), TRIM);
+  dash.position.set(0, floorY + dashH / 2 + 0.14, noseZ - 0.75);
+  g.add(dash);
+
+  g.userData.view = view(
+    new THREE.Vector3(spec.width * 0.2, floorY + 1.2, noseZ - 1.55),
+    mirrorY, mirrorZ, spec.width / 2,
+    new THREE.Vector3(0, spec.height - bandH * 0.3, noseZ - 0.5),
+  );
 }
 
 function buildTractor(g, spec, paint, lights) {
@@ -178,25 +235,30 @@ function buildTractor(g, spec, paint, lights) {
   frame.position.set(0, frameY, centerOffset(spec) - 0.3);
   g.add(frame);
 
+  const noseZ = spec.wheelbase + (spec.length - spec.wheelbase - spec.rearOverhang);
   const cabH = spec.height - frameY - 0.1;
   const cabLen = 2.5;
-  const cabZ = spec.wheelbase + 0.35;
+  // A cab-over sits with its face at the bumper, so the cab ends where the
+  // collision rectangle ends and the glass is inset into it.
+  const cabZ = noseZ - cabLen / 2;
   const cab = new THREE.Mesh(new THREE.BoxGeometry(spec.width, cabH, cabLen), paint);
   cab.position.set(0, frameY + 0.13 + cabH / 2, cabZ);
   g.add(cab);
 
-  const ws = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.88, cabH * 0.42, 0.08), GLASS);
-  ws.position.set(0, frameY + cabH * 0.75, cabZ + cabLen / 2 + 0.02);
+  const ws = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.88, cabH * 0.42, 0.08), GLAZE);
+  ws.position.set(0, frameY + cabH * 0.75, cabZ + cabLen / 2 - 0.041);
   g.add(ws);
+  const mirrorZ = cabZ + cabLen / 2 - 0.15;
+  const mirrorY = frameY + cabH * 0.85;
   for (const sx of [-1, 1]) {
     const sw = new THREE.Mesh(new THREE.BoxGeometry(0.08, cabH * 0.34, cabLen * 0.4), GLASS);
-    sw.position.set(sx * (spec.width / 2 - 0.01), frameY + cabH * 0.72, cabZ + cabLen * 0.2);
+    sw.position.set(sx * (spec.width / 2 - 0.041), frameY + cabH * 0.72, cabZ + cabLen * 0.2);
     g.add(sw);
     const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.5, 10), STEEL);
     stack.position.set(sx * (spec.width / 2 - 0.16), frameY + cabH * 0.75, cabZ - cabLen / 2 - 0.1);
     g.add(stack);
     const mir = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.08), TRIM);
-    mir.position.set(sx * (spec.width / 2 + 0.16), frameY + cabH * 0.85, cabZ + cabLen / 2 - 0.15);
+    mir.position.set(sx * (spec.width / 2 - 0.051), mirrorY, mirrorZ);
     g.add(mir);
   }
 
@@ -205,15 +267,24 @@ function buildTractor(g, spec, paint, lights) {
   plate.position.set(0, frameY + 0.19, spec.trailer.hitch);
   g.add(plate);
 
-  const noseZ = spec.wheelbase + (spec.length - spec.wheelbase - spec.rearOverhang);
+  const dash = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.86, 0.5, 0.7), TRIM);
+  dash.position.set(0, frameY + cabH * 0.42, cabZ + cabLen / 2 - 0.4);
+  g.add(dash);
+
   for (const sx of [-1, 1]) {
     const hl = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.2, 0.06), lights.head);
-    hl.position.set(sx * (spec.width / 2 - 0.33), frameY - 0.05, noseZ - 0.02);
+    hl.position.set(sx * (spec.width / 2 - 0.33), frameY - 0.05, noseZ - 0.031);
     g.add(hl);
     const rl = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.06), lights.reverse);
-    rl.position.set(sx * (spec.width / 2 - 0.5), frameY - 0.05, -spec.rearOverhang + 0.02);
+    rl.position.set(sx * (spec.width / 2 - 0.5), frameY - 0.05, -spec.rearOverhang + 0.031);
     g.add(rl);
   }
+
+  g.userData.view = view(
+    new THREE.Vector3(spec.width * 0.2, frameY + cabH * 0.6, cabZ + cabLen * 0.06),
+    mirrorY, mirrorZ, spec.width / 2,
+    new THREE.Vector3(0, frameY + cabH * 0.92, cabZ + cabLen / 2 - 0.2),
+  );
 }
 
 export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
@@ -258,7 +329,7 @@ export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
 
     for (const sx of [-1, 1]) {
       const tl = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.16, 0.06), lights.tail);
-      tl.position.set(sx * (t.width / 2 - 0.25), deckY + 0.16, off - len / 2 - 0.02);
+      tl.position.set(sx * (t.width / 2 - 0.25), deckY + 0.16, off - len / 2 + 0.031);
       trailerGroup.add(tl);
     }
 
@@ -285,7 +356,10 @@ export function createVehicleMesh(spec, color = spec.bodyColor, opts = {}) {
 
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
-  return { group: g, trailerGroup, wheels, tailMat: lights.tail, reverseMat: lights.reverse };
+  return {
+    group: g, trailerGroup, wheels, view: g.userData.view,
+    tailMat: lights.tail, reverseMat: lights.reverse,
+  };
 }
 
 export function updateVehicleMesh(mesh, spec, { steer = 0, spin = 0, braking = false, reversing = false }) {
