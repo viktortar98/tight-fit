@@ -29,6 +29,24 @@ function parkRect(spec, target, s) {
   return target.part === 'trailer' ? trailerRect(spec, s) : bodyRect(spec, s);
 }
 
+// The search's objective is the game's score. Direction changes come first and
+// distance only breaks ties between routes that cost the same number of them,
+// so `f` is a pair compared lexicographically rather than a single number with
+// a magic exchange rate between shunts and metres.
+//
+// It used to be one number: `g = metres + 1.4 per direction change`, which
+// priced a shunt at 1.4 m of driving and minimised neither. The heuristic was
+// weighted 1.35-1.7 on top of that, so the search would shuffle at a bay mouth
+// rather than drive 6 m away and come back for one shunt. The number it
+// produced was an upper bound biased against exactly the routes a level is
+// usually about.
+//
+// h_shunts is 0 — no admissible lower bound on remaining direction changes is
+// cheaper to compute than the search itself — so the ordering is: exhaust
+// everything reachable in n direction changes before looking at n+1. That is
+// what makes the answer a minimum, and it is also why this is slow.
+const better = (aS, aD, bS, bD) => (aS !== bS ? aS < bS : aD < bD);
+
 function solve(level, opts = {}) {
   const spec = VEHICLES[level.vehicle];
   const colliders = levelColliders(level);
@@ -41,9 +59,16 @@ function solve(level, opts = {}) {
   const XY = artic ? 0.45 : 0.3;
   const YAWBINS = artic ? 32 : 36;
   const TBINS = 32;
-  const WEIGHT = artic ? 1.7 : 1.35;
   const steers = [-1, -0.45, 0, 0.45, 1].map((f) => f * spec.maxSteer);
   const maxNodes = opts.maxNodes ?? 1200000;
+  // Two orderings over one search. `exact` tiers by direction changes, which is
+  // the game's score and is what makes the answer worth writing down. `greedy`
+  // collapses the tiers into one and prices a shunt at 1.4 m again — it cannot
+  // be trusted for a number, but it only has to find *a* route, and it is the
+  // fallback when the honest search runs out of budget. Constraint 3 asks
+  // whether a level is solvable at all; that question must still get an answer
+  // on a level too large to tier.
+  const exact = opts.greedy !== true;
 
   const b = level.bounds;
   const nx = Math.ceil((b.maxX - b.minX) / XY) + 2;
@@ -52,12 +77,15 @@ function solve(level, opts = {}) {
     const i = Math.floor((((a % TAU) + TAU) % TAU) / (TAU / n));
     return i >= n ? 0 : i;
   };
-  const key = (s) => {
+  // Direction of travel is part of the state. Without it a pose reached going
+  // forwards and the same pose reached in reverse collapse into one node, and
+  // whichever arrived first decides what every route through it costs.
+  const key = (s, dir) => {
     const ix = Math.floor((s.x - b.minX) / XY);
     const iz = Math.floor((s.z - b.minZ) / XY);
     let k = (bin(s.yaw, YAWBINS) * nz + iz) * nx + ix;
     if (artic) k = k * TBINS + bin(s.trailerYaw, TBINS);
-    return k;
+    return k * 3 + (dir + 1);
   };
 
   const heuristic = (s) => {
@@ -67,6 +95,10 @@ function solve(level, opts = {}) {
     return d + a * (artic ? 3.0 : 1.5);
   };
 
+  // dir 0 is "has not moved yet". The game starts a run the same way
+  // (`lastDir = 0` in Game.stepPhysics), so the first movement is free in
+  // either direction and a level whose opening move is a reverse is not
+  // charged a direction change the player would never be charged.
   const start = { x: level.start.x, z: level.start.z, yaw: level.start.yaw, trailerYaw: level.start.yaw, speed: 1 };
   if (blocked(spec, start, colliders, arena)) return { ok: false, reason: 'start blocked' };
 
@@ -76,7 +108,7 @@ function solve(level, opts = {}) {
     let i = heap.length - 1;
     while (i > 0) {
       const p = (i - 1) >> 1;
-      if (heap[p].f <= heap[i].f) break;
+      if (!better(heap[i].fs, heap[i].fd, heap[p].fs, heap[p].fd)) break;
       [heap[p], heap[i]] = [heap[i], heap[p]];
       i = p;
     }
@@ -90,8 +122,8 @@ function solve(level, opts = {}) {
       for (;;) {
         const l = i * 2 + 1, r = l + 1;
         let m = i;
-        if (l < heap.length && heap[l].f < heap[m].f) m = l;
-        if (r < heap.length && heap[r].f < heap[m].f) m = r;
+        if (l < heap.length && better(heap[l].fs, heap[l].fd, heap[m].fs, heap[m].fd)) m = l;
+        if (r < heap.length && better(heap[r].fs, heap[r].fd, heap[m].fs, heap[m].fd)) m = r;
         if (m === i) break;
         [heap[m], heap[i]] = [heap[i], heap[m]];
         i = m;
@@ -100,21 +132,38 @@ function solve(level, opts = {}) {
     return top;
   };
 
+  const node = (s, dir, shunts, dist, prev) => ({
+    ...s, dir, shunts, dist, prev,
+    fs: exact ? shunts : 0,
+    fd: exact ? dist + heuristic(s) : dist + shunts * 1.4 + 1.5 * heuristic(s),
+  });
+
   const seen = new Map();
-  push({ ...start, dir: 1, g: 0, f: heuristic(start), prev: null });
-  seen.set(key(start), 0);
+  push(node(start, 0, 0, 0, null));
+  seen.set(key(start, 0), [0, 0]);
 
   const inGoal = (s) => rectInsideRect(parkRect(spec, target, s), target, 0.02);
-  const straightRun = (from) => {
-    for (const dir of [-1, 1]) {
+
+  // A fine straight run into the bay, because the 0.45 m lattice can step over
+  // an exact containment that a smooth approach would land in. It is a
+  // candidate, not an answer: its own direction change is charged, and it goes
+  // back on the heap to be ordered against everything else. Returning it
+  // directly is how the old search let an unpriced shunt into the result.
+  const straightRuns = (from) => {
+    const out = [];
+    for (const dir of [1, -1]) {
       let s = { ...from, speed: dir };
       for (let k = 0; k < 44; k++) {
         s = integrate(spec, { ...s, speed: dir }, 0.5, 0);
         if (s.jackknifed || blocked(spec, s, colliders, arena)) break;
-        if (inGoal(s)) return { ...s, dir, g: from.g + (k + 1) * 0.5, prev: from };
+        if (inGoal(s)) {
+          const turn = from.dir !== 0 && dir !== from.dir ? 1 : 0;
+          out.push(node(s, dir, from.shunts + turn, from.dist + (k + 1) * 0.5, from));
+          break;
+        }
       }
     }
-    return null;
+    return out;
   };
 
   let expanded = 0;
@@ -122,17 +171,12 @@ function solve(level, opts = {}) {
     const cur = pop();
     if (++expanded > maxNodes) return { ok: false, reason: `gave up after ${expanded} nodes` };
 
-    let done = inGoal(cur) ? cur : null;
-    if (!done && cur.f - cur.g < WEIGHT * 30) done = straightRun(cur);
-    if (done) {
-      const goal = done;
-      let shunts = 0;
-      const path = [];
-      for (let n = goal; n; n = n.prev) path.push(n);
-      path.reverse();
-      for (let i = 1; i < path.length; i++) if (path[i].dir !== path[i - 1].dir) shunts++;
-      return { ok: true, expanded, moves: path.length, shunts, length: goal.g };
+    if (inGoal(cur)) {
+      let moves = 0;
+      for (let n = cur; n; n = n.prev) moves++;
+      return { ok: true, expanded, moves, shunts: cur.shunts, length: cur.dist };
     }
+    if (heuristic(cur) < 30) for (const n of straightRuns(cur)) push(n);
 
     for (const dir of [1, -1]) {
       for (const steer of steers) {
@@ -144,12 +188,20 @@ function solve(level, opts = {}) {
           if (s.jackknifed || blocked(spec, s, colliders, arena)) { bad = true; break; }
         }
         if (bad) continue;
-        const k2 = key(s);
-        const cost = cur.g + STEP + (dir !== cur.dir ? 1.4 : 0) + (dir < 0 ? 0.12 : 0);
-        const prev = seen.get(k2);
-        if (prev !== undefined && prev <= cost) continue;
-        seen.set(k2, cost);
-        push({ ...s, dir, g: cost, f: cost + WEIGHT * heuristic(s), prev: cur });
+        const shunts = cur.shunts + (cur.dir !== 0 && dir !== cur.dir ? 1 : 0);
+        const dist = cur.dist + STEP;
+        // `seen` is keyed on a lattice cell, but parking is tested on the exact
+        // pose, so one cell holds both parked and not-parked states. Dropping a
+        // parked pose because a cheaper unparked one occupied its cell first is
+        // how a minimising search can report a number that is too high — it did
+        // here, on Dead End. A pose that is already parked is never dedup'd.
+        if (!inGoal(s)) {
+          const k2 = key(s, dir);
+          const prev = seen.get(k2);
+          if (prev && !better(shunts, dist, prev[0], prev[1])) continue;
+          seen.set(k2, [shunts, dist]);
+        }
+        push(node(s, dir, shunts, dist, cur));
       }
     }
   }
@@ -190,18 +242,30 @@ for (const level of LEVELS) {
   for (const c of colliders) nearest = Math.min(nearest, rectDistance(level.target, c));
 
   const t0 = Date.now();
-  const res = solve(level);
+  let res = solve(level);
+  // Out of budget is not "unsolvable" — it is "not answered". Fall back to the
+  // finder so the solvability gate still gets a verdict, and say plainly that
+  // the number this level carries was not re-established on this run.
+  let bounded = false;
+  if (!res.ok && res.reason.startsWith('gave up')) {
+    bounded = true;
+    res = solve(level, { greedy: true });
+  }
   const ms = Date.now() - t0;
   if (!res.ok) issues.push(`NO SOLUTION FOUND (${res.reason})`);
-  // The record is shown to the player as the target, so it has to stay a
-  // number that was actually reached — see DESIGN.md 4.
-  if (res.ok && level.record != null && res.shunts < level.record) {
+  // The check runs one way only. Finding fewer direction changes than the level
+  // claims means the record is stale and the level is easier than its design
+  // believes. Finding *more* means nothing: both this search and the one that
+  // set the record collapse exact poses into lattice cells, so which pose
+  // represents a cell decides what continuations exist from it — see DESIGN.md 4.
+  if (res.ok && !bounded && level.record != null && res.shunts < level.record) {
     issues.push(`record is stale: the search parks it in ${res.shunts}, level claims ${level.record}`);
   }
 
   const sw = sweptWidth(spec);
   const solved = res.ok
     ? `solved in ${String(res.moves).padStart(4)} moves, ${String(res.shunts).padStart(2)} direction changes, ${res.length.toFixed(1)} m`
+      + (bounded ? ' [finder only — out of budget, record not checked]' : '')
     : 'UNSOLVED';
   console.log(
     `${level.id.padEnd(16)} ${level.vehicle.padEnd(7)} ${combinationLength(spec).toFixed(1).padStart(5)} m |`

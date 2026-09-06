@@ -16,8 +16,14 @@
 // forbids driving in, a yard shorter than 6.54 m past it forbids backing in,
 // and a level is the choice of which of those two you take away.
 //
-// Run `node tools/validate.js` after editing: it checks that nothing blocks a
-// target, that the car starts clear, and prints the real clearances.
+// Run `pnpm validate` after editing: it checks that nothing blocks a target,
+// that the car starts clear, and prints the real clearances.
+//
+// `record` on each level is the fewest direction changes that search has ever
+// managed on that geometry, ordering routes the way the game scores them. It
+// is a record and not an optimum — the search collapses exact poses into
+// lattice cells (DESIGN.md 4) — so the validator fails a level only when it
+// beats the number, never when it does worse. Nothing here reaches the player.
 
 const P2 = Math.PI / 2;
 
@@ -64,7 +70,6 @@ export const LEVELS = [
     hint: 'Swing wide, then straighten up. Hold Shift to crawl.',
     vehicle: 'hatch',
     theme: 'lot',
-    // proven possible in this many direction changes by tools/validate.js
     record: 0,
     bounds: { minX: -16, maxX: 16, minZ: -15.5, maxZ: 10 },
     start: { x: 9, z: -6.5, yaw: -P2 },
@@ -92,8 +97,7 @@ export const LEVELS = [
     hint: 'A 4.4 m lane between the wall and the row, and 0.64 m of slack in the bay. Aim it, do not swing it.',
     vehicle: 'hatch',
     theme: 'lot',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 1,
+    record: 0,
     bounds: { minX: -14, maxX: 17, minZ: -15.5, maxZ: 4 },
     start: { x: 10, z: -8.3, yaw: -P2 },
     target: { x: 0, z: -13, w: 2.4, d: 5, rot: 0 },
@@ -120,8 +124,7 @@ export const LEVELS = [
     hint: 'The wall is 1.45 m past the bay. Reversing in sweeps 6.5 m of aisle, and all of it is behind you.',
     vehicle: 'hatch',
     theme: 'garage',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 4,
+    record: 2,
     bounds: { minX: -1.6, maxX: 15.7, minZ: -14.5, maxZ: 1.1 },
     start: { x: 13, z: -6.3, yaw: -P2 },
     target: { x: 0, z: -11, w: 2.4, d: 5, rot: 0 },
@@ -159,8 +162,7 @@ export const LEVELS = [
     hint: 'A 5.7 m gap for a 3.95 m car. Line up your rear wheels with their bumper, full lock, reverse.',
     vehicle: 'hatch',
     theme: 'street',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 4,
+    record: 1,
     bounds: { minX: -9, maxX: 9, minZ: -22, maxZ: 12 },
     start: { x: -0.4, z: -15, yaw: 0 },
     target: { x: 2.85, z: -1.23, w: 2.2, d: 5.4, rot: 0 },
@@ -188,7 +190,6 @@ export const LEVELS = [
     hint: 'A yard 11.6 m long and 5.2 m deep. Reversing in wants 6.5 m of it on one side, and there is 5.8 m.',
     vehicle: 'hatch',
     theme: 'garage',
-    // proven possible in this many direction changes by tools/validate.js
     record: 0,
     bounds: { minX: -6.3, maxX: 6.3, minZ: -14.2, maxZ: -2.9 },
     start: { x: 4.4, z: -5.9, yaw: -P2 },
@@ -216,7 +217,6 @@ export const LEVELS = [
     hint: 'A 3.4 m alley into a 3.0 m doorway. No single arc fits — borrow the dead end behind you.',
     vehicle: 'hatch',
     theme: 'alley',
-    // proven possible in this many direction changes by tools/validate.js
     record: 4,
     bounds: { minX: -4.5, maxX: 8, minZ: -13, maxZ: 13 },
     start: { x: 0, z: 6, yaw: Math.PI },
@@ -243,7 +243,6 @@ export const LEVELS = [
     hint: 'A 2.3 m slot, then ninety degrees inside a 2.6 m corridor. It fits. Barely.',
     vehicle: 'hatch',
     theme: 'alley',
-    // proven possible in this many direction changes by tools/validate.js
     record: 3,
     bounds: { minX: -16, maxX: 11.5, minZ: -9.5, maxZ: 11 },
     start: { x: -9, z: 0, yaw: P2 },
@@ -273,8 +272,7 @@ export const LEVELS = [
     hint: '5.3 m of van, a 5.6 m lane, a 3 m bay. Everything you learned is now half a metre too big.',
     vehicle: 'van',
     theme: 'lot',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 3,
+    record: 1,
     bounds: { minX: -16, maxX: 19, minZ: -16, maxZ: 4 },
     start: { x: 11, z: -6.7, yaw: -P2 },
     target: { x: 0, z: -12.5, w: 3, d: 6, rot: 0 },
@@ -295,8 +293,7 @@ export const LEVELS = [
     hint: 'Reverse blind around the corner between two vans. Press C for the overhead view.',
     vehicle: 'van',
     theme: 'garage',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 6,
+    record: 3,
     bounds: { minX: -10, maxX: 21, minZ: -13, maxZ: 6 },
     start: { x: -3.5, z: 0, yaw: P2 },
     target: { x: 13.3, z: -9.5, w: 3.2, d: 6, rot: 0 },
@@ -323,8 +320,7 @@ export const LEVELS = [
     hint: '11 m of bus into a 13.5 m gap. The lock is good — the overhang is not.',
     vehicle: 'bus',
     theme: 'street',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 4,
+    record: 1,
     bounds: { minX: -13, maxX: 11, minZ: -32, maxZ: 22 },
     start: { x: -1.9, z: -25, yaw: 0 },
     target: { x: 2.6, z: -1.75, w: 3.2, d: 12.4, rot: 0 },
@@ -353,8 +349,7 @@ export const LEVELS = [
     hint: 'Reverse the trailer, not the car. Turn the wrong way and it folds — watch the trailer gauge.',
     vehicle: 'towcar',
     theme: 'lot',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 3,
+    record: 1,
     bounds: { minX: -17, maxX: 19, minZ: -16.5, maxZ: 7 },
     start: { x: 13, z: -5.5, yaw: -P2 },
     target: { x: 0, z: -13.9, w: 2.9, d: 4.1, rot: 0, part: 'trailer' },
@@ -376,8 +371,7 @@ export const LEVELS = [
     hint: 'Sixteen and a half metres, hinged in the middle. The trailer parks, not the cab.',
     vehicle: 'semi',
     theme: 'lot',
-    // proven possible in this many direction changes by tools/validate.js
-    record: 5,
+    record: 1,
     bounds: { minX: -26, maxX: 26, minZ: -26, maxZ: 13 },
     start: { x: -11, z: 6, yaw: P2 },
     target: { x: 0, z: -17.1, w: 3.9, d: 15.0, rot: 0, part: 'trailer' },
@@ -402,7 +396,6 @@ export const LEVELS = [
     hint: 'The dock is on your right, where the mirror shows you nothing, and the yard is shorter than the truck plus its swing.',
     vehicle: 'semi',
     theme: 'garage',
-    // proven possible in this many direction changes by tools/validate.js
     record: 1,
     bounds: { minX: -26, maxX: 30, minZ: -26, maxZ: 6 },
     // Driving -X puts the dock on the driver's right, which is the whole level.

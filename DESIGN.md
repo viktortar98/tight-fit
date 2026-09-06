@@ -12,9 +12,14 @@ loudly. "Held by" means nothing checks it, so it is on the reader.
 
 ## 1. The difficulty is the route, never the measurement
 
-A level is hard because of which way you have to enter it, how many shunts it
-takes, and how little room there is while you do it. It is never hard because
-of how precisely you finished.
+A level is hard because of which way you have to enter it and how many shunts
+it takes. It is never hard because of how precisely you finished.
+
+Room is in that list only through what it *removes*: a narrow lane is hard
+because it deletes the routes that would have worked, not because threading it
+demands a steadier hand. The two are easy to confuse and they pull opposite
+ways — a level tuned until the gap is nerve-racking is a level about execution,
+which is the thing each level is supposed not to be a harder version of.
 
 **A bay is passed the moment the vehicle is inside it and stopped.** No
 centring score, no angle tolerance, no "4 cm off" penalty. The containment test
@@ -74,30 +79,58 @@ grind the limit to get round a corner.
 
 *Enforced by:* `tools/validate.js`, exit code 1.
 
-## 4. Each level's `record` is a proved number, and par is derived from it
+## 4. The solver is a design tool, and its number is a record, not a minimum
 
-`record` on a level is the fewest direction changes the solver has actually
-achieved on that geometry. It is shown to the player as the target. It is not a
-guess and must never be typed by hand.
+`tools/validate.js` exists to tell the designer whether a level still asks the
+question it was built to ask. **Nothing it produces reaches the player**
+(constraint 2). That is the decision the rest of this follows from.
 
-The validator fails a level whose search finds a shorter answer than the record
-claims, which means the number on screen has always been proved reachable.
+**Its objective is the game's score.** A route is ordered first by direction
+changes and only then by distance, as a pair compared lexicographically — not
+as one number with an exchange rate between the two. The search used to cost a
+route at `metres + 1.4 per direction change` under a heuristic weighted 1.35 to
+1.7, which minimised neither quantity and would shuffle at a bay mouth rather
+than drive 6 m away and come back for one shunt. Every number it produced was
+biased against exactly the routes a level is usually about.
 
-**Reachable is not optimal, and the gap is not random.** The search is a
-weighted A* on distance-to-goal, so it will shuffle at a bay mouth for four
-direction changes rather than drive 6 m away and come back for one — driving
-away raises the heuristic. Records are therefore upper bounds biased *against*
-the elegant route, `parOf` inherits the inflation, and par is most generous
-exactly on the levels that best reward the good line. The consequence that
-matters for design: **a level whose identity is a particular route cannot
-currently be proved to have that route** — only to be solvable by some route.
-The Short Side ships with that caveat.
+**Its counting matches the game's.** A run starts with no direction of travel
+(`dir = 0`, mirroring `lastDir = 0` in `Game.stepPhysics`), so the first
+movement is free in either direction and a level whose opening move is a
+reverse is not charged for it. Direction of travel is part of the state key:
+without it, a pose reached going forwards and the same pose reached in reverse
+collapse into one node and whichever arrived first decides the cost of every
+route through it. The fine straight run into the bay is a candidate pushed onto
+the heap with its own direction change charged, not an answer returned
+unpriced.
 
-Par — the bar for a "flawless" rating — is `record + PAR_ALLOWANCE`, computed
-in one place (`parOf`, `src/levels.js`). Levels carry no `par` field, so pars
-cannot drift level by level.
+**It is still an upper bound.** `seen` collapses exact poses into lattice cells
+(0.3 m, 10°), so which pose represents a cell decides what continuations exist
+from it. The evidence is in the output: Dead End reports 5 where the older,
+worse-objective search found 4. A search that minimises cannot report a larger
+number than one that does not — unless both are approximations over the same
+lattice, which they are. A pose that is already parked is exempt from the
+collapse, because a cell holds parked and unparked states alike and dropping
+the parked one is how a minimising search reports a number that is too high.
 
-*Enforced by:* the stale-record check in `tools/validate.js`; `parOf` for par.
+So `record` on a level means **the fewest direction changes anything has
+achieved on that geometry**. It is a record, not an optimum, and the validator
+checks it in one direction only: finding fewer fails the level, because the
+number is stale and the level is easier than its design believes. Finding more
+is not a failure — it is the lattice.
+
+**What this measurement found.** On the objective that is actually the score,
+almost the whole level set is a 0-shunt or 1-shunt level. That is a fact about
+the levels, not about the tool, and it is the first thing the next level design
+session has to answer.
+
+**It costs what it costs.** Ordering by direction changes first means the
+search exhausts everything reachable in *n* of them before it looks at *n+1*.
+The Impossible Gap went from 1 s to 26 s, Blind Side from 20 s to 50 s, Artic
+Dock from 101 s to 404 s. That was accepted rather than worked around: this is a tool a designer runs between
+edits, not something in a player's way, and a fast wrong number is worth less
+than a slow honest one.
+
+*Enforced by:* the stale-record check in `tools/validate.js`, exit 1.
 
 ## 5. A crash is entering contact, not being in it
 
@@ -240,8 +273,8 @@ So the player gets the wall, and three controls that get them out of it. A wall
 is predictable; a 6 m lurch whenever a pillar crosses the sight line is not.
 The pose that has no camera answer has a *mode* answer, one button away.
 
-**`street` is an enclosed theme.** Kerbside, The Squeeze and Bus Stop are
-canyons between 5 m buildings 8–9 m apart — more enclosed than the garage
+**`street` is an enclosed theme.** Kerbside and Bus Stop are canyons
+between 5 m buildings 8–9 m apart — more enclosed than the garage
 levels — and were being framed as though they were open lots. The lot is the
 only theme with room to stand back in, so the test is `theme !== 'lot'`.
 
@@ -310,7 +343,8 @@ and its colour change, which is the "you are inside" feedback constraint 1
 depends on.
 
 **The only gauges are the scored numbers and what the player cannot see.**
-Shunts, crashes, best and record are the score. The proximity bar is the one
+Shunts, crashes and your own best are the score — there is no record and no
+par on screen (constraint 2). The proximity bar is the one
 gauge showing something no camera angle reveals, and the articulation gauge is
 the only honest warning before a trailer folds. The speedometer, the gear
 letter and the steering-angle dot were none of those — they measured a
@@ -328,9 +362,9 @@ because the derivation generalises:
   would, and the gauge read most often must not be mistakable for the quantity
   the game refuses to measure.
 
-Level identity — number, name, best, record — lives with the stats rather than
-in a panel of its own, because best and record are facts about the *level*, not
-about the run in progress. The pause card uses the result card's shape, so
+Level identity — number, name, best — lives with the stats rather than in a
+panel of its own, because a best is a fact about the *level*, not about the run
+in progress. The pause card uses the result card's shape, so
 there is one card idiom rather than two.
 
 *Held by:* `src/hud.js` and `index.html`. Nothing checks it.
@@ -338,10 +372,22 @@ there is one card idiom rather than two.
 ## 13. Written in JavaScript, deliberately
 
 No TypeScript, for now, as a standing experiment in what JS-only feels like to
-work with on a codebase this size. The consequence to be honest about: "it
-documents the intent" is not an argument for keeping an unused export, because
-nothing here checks intent. Dead code is found by reading, or by a tool someone
-adds later.
+work with on a codebase this size.
+
+The consequence that had to be answered: "it documents the intent" is not an
+argument for keeping an unused export, because nothing here checks intent. So
+something does. `knip` reports unused files, exports and dependencies; eslint
+is kept deliberately small, because without type information its reach here is
+narrow and a large borrowed ruleset is a decision nobody made. Together they
+found `lerp`, `gate()` and `barrier()` on the first run.
+
+They cannot find everything. The dead `kind === 'barrier'` render branch in
+`world.js` was reachable only from the factory eslint flagged — a dead branch
+keyed on a string is invisible to both tools, and was found by following the
+chain from the head the tools did see. That is the shape of what these tools
+buy: a starting point, not a guarantee.
+
+*Enforced by:* `pnpm lint` and `pnpm knip`, exit 1.
 
 *Held by:* the reader.
 
@@ -368,15 +414,22 @@ defaults worth suppressing are — arrows and space scroll the page.
 | Constraint | Enforced by | Fails how |
 |---|---|---|
 | 3 — proved solvable | `tools/validate.js` | exit 1, names the level |
-| 4 — honest record | stale-record check in the validator | exit 1, prints the shorter answer |
-| 4 — par derivation | `parOf` in `src/levels.js` | one place to change |
+| 4 — record not stale | stale-record check in the validator | exit 1, prints the shorter answer |
+| 13 — no dead code | `pnpm knip`, `pnpm lint` | exit 1, names the export |
 | 7 — swept ring | printed per level by the validator | visible drift |
-| 1, 2, 5, 6, 8, 9, 10, 11, 12, 13, 14 | nothing | silent |
+| 1, 2, 5, 6, 8, 9, 10, 11, 12, 14 | nothing | silent |
 
-Eleven of fourteen are held by reading. That is the honest state of it: the
-solvability gate is machine-checked because a broken level is invisible until
-someone plays it, and the rest are cheap for a person to notice and expensive
-to automate. This file is what a reviewer checks a change against.
+Ten of fourteen are held by reading. That is the honest state of it: the
+solvability gate and the dead-code sweep are machine-checked because both are
+invisible until someone trips over them, and the rest are cheap for a person to
+notice and expensive to automate. This file is what a reviewer checks a change
+against.
+
+Two entries here are weaker than they look. The swept-ring row prints a number
+that is constant per vehicle, so it cannot show drift in anything a level does
+— constraint 7 says what actually governs bay entries. And the stale-record row
+only catches a level getting *easier*; nothing checks that a level still asks
+the question its comment says it asks.
 
 ---
 
@@ -385,43 +438,96 @@ to automate. This file is what a reviewer checks a change against.
 Not constraints — questions that are known, deliberately unanswered, and would
 otherwise be lost. Each says who it belongs to.
 
+### Core, and the user's
+
+**The level set does not ask for shunts.** With the solver's objective fixed to
+be the game's score (constraint 4), the fewest direction changes found on each
+level is: First Bay 0, Tight Lane 0, The Short Side 2, Kerbside 1, The Alcove
+0, Dead End 4, The Impossible Gap 3, Van Life 1, Loading Dock 3, Bus Stop 1,
+Trailer Trouble 1, Artic Dock 1, Blind Side 1. Three hatchback levels are
+0-shunt levels, and the only score this game has is direction changes. A 0-shunt level cannot be
+scored: a clean first run is already perfect. The old numbers were four, three
+and zero — they were artifacts of a search that priced a shunt at 1.4 m of
+driving, and they made the set look like it had range it does not have.
+
+**The progression has two ideas in one level.** Tight Lane does not require
+reversing, so The Short Side is where both the reverse-in *and* "the room is on
+the side you did not arrive from" arrive together. That is two new ideas in one
+level, against the rule that each level introduces one. Cutting Pillar Problem
+shortened the habit-building interval further, so The Alcove now breaks a
+belief that only The Short Side and Kerbside built — and Kerbside is a
+different parking form. Tight Lane may also be execution difficulty wearing a
+comprehension label: "0.64 m of slack, aim it" is precision unless its question
+is made "align before you enter, because you cannot correct inside".
+
+**The hints give the answer away.** The level-select tile is unavoidable before
+a first attempt, and several hints state the insight outright: The Short Side
+names which side has the room, Kerbside gives the manoeuvre step by step, The
+Alcove says reverse entry does not fit, Dead End says to borrow the dead end.
+Against the rule that a level should be harder to *figure out*, that converts
+discovery into execution. The alternative is to state the problem on the tile
+and put the solution behind an explicit request.
+
+**Crashes rank the run.** Constraint 2 says the score is direction changes.
+`Game.finish` breaks a tie between two bests on crash count, and the result
+card's rating is decided entirely by crashes. Counting contact and showing it
+is compatible with shunt-only scoring; letting it choose the better run and
+award the rating is not. Either the rating and the tie-break go, or constraint
+2 says the score is shunts *and* crashes.
+
+**What "this level teaches X" has to mean** before a tool can check it: that
+every completion embodies the lesson, that the best-shunt completion does, or
+only that one intended solution exists. Impossibility cannot be proved here —
+a lattice search that finds no counterexample has only failed to find one — so
+"every completion" is not available. The reachable contract is the middle one,
+and it is the one that follows the player's incentive: a player optimises
+shunts against their own best, so if an unintended route is cheaper in shunts,
+the game rewards avoiding the lesson.
+
+**The word "shunt" on the HUD.** The stat row is labelled `shunts`; the result
+card says "direction changes"; the README defines the first with the second.
+Nothing in the game itself defines it, and the word is ordinary driving usage
+rather than something a player is guaranteed to arrive with. Either the HUD
+label becomes "direction changes" and the game has one word for the thing it
+scores, or `shunts` stays as a short label a player learns once and the longer
+phrase stays on the card that has room for it. *Recorded because it was asked,
+which is the evidence that it is not self-explanatory.*
+
 **Mirrors, or a driver's-eye view.** Blind Side's hint says "the side the
 mirrors don't cover". There are no mirrors, so that sentence is currently
 fiction and the level's difficulty is pure geometry. Mirror insets on the chase
 view, or a bumper-height driver's-eye mode, would make the stated problem real
-and would make constraint 10 bite considerably harder. *The user's call — it
-adds a decision rather than removing one.*
+and would make constraint 10 bite considerably harder. *It adds a decision
+rather than removing one.*
 
-**The overhead view's rotation.** Constraint 9 keeps the vehicle's nose pointing
-up the screen, smoothed. A world that rotates under the player is arguably the
-kind of thing constraint 9 now forbids, and the smoothing especially so. Set
-against that: it is a stated frame of reference, not the camera guessing, and
-it makes a stick-left always a nose-left. *The user's call.*
+**Levels for the van, bus, tow car and semi.** Answered for the hatchback only,
+and that answer is now in question above. Same terms: design session first,
+with the user; do not invent levels to fill a table.
+
+### Recorded, not open
 
 **Themes.** `THEMES` holds four eight-field tables whose real distinction is
-close to binary. Note the binary is *open vs enclosed* and `lot` is the only
-open one — `camera.js` used to test `garage || alley`, which quietly misfiled
-the three street-canyon levels. Deliberately not collapsed: the themes are
-expected to be replaced wholesale, and optimising a thing on its way out is
-waste. Whatever replaces them should keep that one distinction.
+close to binary: open versus enclosed, with `lot` the only open one.
+`camera.js` used to test `garage || alley`, which quietly misfiled the three
+street-canyon levels. Deliberately not collapsed — the themes are expected to
+be replaced wholesale, and optimising a thing on its way out is waste. Whatever
+replaces them should keep that one distinction.
 
-**Levels per vehicle.** Answered for the hatchback: eight levels, each with the
-question it asks written as a comment on the level itself, cut against the
-envelopes in constraint 7. The spine is Back In → The Short Side → The Alcove:
-establish the reverse-in, make the belief *more specific and still wrong*, then
-break it. Kerbside and Pillar Problem sit between as lateral-fit levels so the
-habit can set — a realisation on the very next level is a puzzle chapter with
-the answer printed underneath.
+**The overhead view's rotation.** Constraint 9 keeps the vehicle's nose
+pointing up the screen, smoothed. Kept: it is a stated frame of reference
+chosen once per mode, not the camera guessing at intent, and it makes a stick
+left always a nose left. The smoothing is the same non-instantaneity the
+position follow has, from the same constant.
 
-Still open for the van, bus, tow car and semi, on the same terms: *design
-session first, with the user; do not invent levels to fill a table.*
-
-**The solver's search bias** (constraint 4). Fixing it is the single change that
-would most improve level design here — it would make records true minima, make
-par honest, and make a level's intended route provable rather than asserted.
-`tools/validate.js` is untouched pending that decision.
-
-**Code-quality tooling.** `knip` and an eslint config would machine-catch the
-dead-export class that this session cleared by hand, which is the class most
-likely to come back. Not added yet, and TypeScript is excluded by constraint
-13. *The user's call on scope.*
+**How a level's design goal gets checked.** Not yet built, and the shape is
+constrained by what was learned above. Exact geometry values would be snapshot
+tests — "this number changed", not "the level stopped asking its question" —
+and `slackW`, `slackD` and `nearest` describe the target rectangle, not lane
+width or the usable room on each side of a bay. The unit that carries meaning
+is a relational inequality: usable far-side length below the reverse-entry
+envelope, doorway width above or below the swept band. A route check needs a
+signature carried on the search state — side crossed, region visited, entry
+orientation — not a test on the final direction of travel, which cannot express
+The Short Side (which side supplied the room), Dead End (a region visited) or
+The Impossible Gap (the order of events). Blocked on the contract question
+above.

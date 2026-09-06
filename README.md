@@ -133,10 +133,15 @@ It confirms the vehicle starts clear and the target is reachable and unblocked,
 then runs a hybrid-A* search over `(x, z, yaw)` — `(x, z, yaw, trailerYaw)` for
 the articulated ones — using the game's own `integrate()` and collision boxes,
 refusing any move that would reach the jackknife stop. If the search cannot
-park it, the level does not ship. It also prints the real clearances and how many direction changes the search
-needed. That number is the level's `record` — First Bay 0, The Squeeze 8 — and
-the validator fails the level if the search finds a shorter answer than the
-record claims, so the target in the HUD is always one that has been proved.
+park it, the level does not ship.
+
+Nothing it prints reaches the player. It is a tool for whoever is building a
+level: the real clearances, and the fewest direction changes anything has
+managed on that geometry. It orders routes the way the game scores them —
+direction changes first, distance only as a tie-break — so that number means
+something to a designer, but it is a record rather than an optimum, and the
+validator only fails a level when the search beats the number the level
+claims.
 
 ## Layout
 
