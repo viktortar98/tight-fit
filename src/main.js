@@ -11,20 +11,15 @@ import { Pad, BTN } from './gamepad.js';
 import { Hud } from './hud.js';
 import { overlaps, rectInsideRect, rectDistance, corners, clamp } from './geom.js';
 
-const STORE = 'tight-fit.v1';
+// Versioned with the scoring unit. When the unit changes this key changes,
+// and there is nothing to migrate — a best in an abandoned unit is not data.
+const STORE = 'tight-fit.v2';
 const PHYS_DT = 1 / 120;
 
 function loadProgress() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORE));
-    if (raw && typeof raw.unlocked === 'number') {
-      // Bests used to be times. Keep the unlocks, drop scores in the old unit.
-      const best = {};
-      for (const [id, b] of Object.entries(raw.best ?? {})) {
-        if (b && typeof b.shunts === 'number') best[id] = b;
-      }
-      return { unlocked: raw.unlocked, best };
-    }
+    if (raw && typeof raw.unlocked === 'number') return { unlocked: raw.unlocked, best: raw.best ?? {} };
   } catch { /* fresh start */ }
   return { unlocked: 0, best: {} };
 }
@@ -78,7 +73,6 @@ class Game {
     this.padSeen = false;
     this.carMesh = null;
     this.vehicle = null;
-    this.time = 0;
     this.clock = new THREE.Clock();
     this.accum = 0;
 
@@ -129,15 +123,14 @@ class Game {
   restart() {
     const s = this.level.start;
     this.vehicle.reset(s.x, s.z, s.yaw);
-    this.time = 0;
     this.bumps = 0;
     this.shunts = 0;
     this.lastDir = 0;
     this.hold = 0;
-    this.started = false;
-    this.contactCooldown = 0;
+    this.inside = false;
+    this.touching = false;
     this.rig.reset(this.level.theme, this.spec);
-    this.hud.update(this.telemetry(999));
+    this.hud.update(this.telemetry(this.nearestGap()));
   }
 
   next() {
@@ -147,7 +140,6 @@ class Game {
 
   toMenu() {
     this.state = 'menu';
-    this.hud.targetArrow(null);
     this.hud.showMenu(this.progress);
   }
 
@@ -199,6 +191,7 @@ class Game {
     const n = clamp(Math.ceil(dist / 0.03), 1, 6);
     const h = dt / n;
 
+    let hit = false;
     for (let i = 0; i < n; i++) {
       const cand = car.integrate(car.state, h);
       if (this.isFree(cand)) {
@@ -215,20 +208,23 @@ class Game {
         else hi = mid;
       }
       if (lo > 0) car.state = car.integrate(car.state, h * lo);
+      hit = true;
       this.onContact(Math.abs(car.speed));
       car.speed = 0;
       break;
     }
+    this.touching = hit;
   }
 
-  // Every contact is a crash for this attempt — see DESIGN.md 5. The 0.6 m/s
-  // below is not a threshold for counting one; it only scales what you feel.
+  // A crash is entering contact, not being in it — see DESIGN.md 5. Touching
+  // is a state, so grinding along a wall is one crash however long it lasts,
+  // and letting go before hitting again is what makes it two. There is no
+  // threshold in either speed or time: this game measures neither.
   onContact(impact) {
-    if (this.contactCooldown > 0) return;
-    this.contactCooldown = 0.25;
+    if (this.touching) return;
+    this.bumps++;
     this.sfx.bump(clamp(impact / 2.5, 0.05, 1));
     this.pad.rumble(clamp(impact / 2.2, 0.15, 1), impact > 0.6 ? 220 : 110);
-    this.bumps++;
     this.hud.flash(impact > 0.6 ? 0.1 + impact * 0.05 : 0.05);
   }
 
@@ -249,44 +245,6 @@ class Game {
     return Math.max(0, min);
   }
 
-  // Screen-edge chevron for a target you cannot see — the dock and the gap
-  // both put it behind you for most of the level.
-  updateTargetArrow() {
-    const t = this.world.target;
-    const w = innerWidth;
-    const h = innerHeight;
-    const v = this._tmp ?? (this._tmp = new THREE.Vector3());
-    v.set(t.x, 1.2, t.z).project(this.camera);
-    const behind = v.z > 1;
-    let sx = (v.x * 0.5 + 0.5) * w;
-    let sy = (-v.y * 0.5 + 0.5) * h;
-    if (behind) { sx = w - sx; sy = h - sy; }
-
-    // Keep the chevron clear of the HUD panels, which own the top strip.
-    const m = 54;
-    const mTop = 108;
-    const inside = !behind && sx > m && sx < w - m && sy > mTop && sy < h - m;
-    if (inside) return this.hud.targetArrow(null);
-
-    const cxs = w / 2;
-    const cys = h / 2;
-    let dx = sx - cxs;
-    let dy = sy - cys;
-    const len = Math.hypot(dx, dy) || 1;
-    dx /= len; dy /= len;
-    // walk out from the centre to the inset border
-    const tx = dx === 0 ? Infinity : (dx > 0 ? (w - m - cxs) : (m - cxs)) / dx;
-    const ty = dy === 0 ? Infinity : (dy > 0 ? (h - m - cys) : (mTop - cys)) / dy;
-    const k = Math.min(tx, ty);
-    const car = this.vehicle;
-    this.hud.targetArrow({
-      x: cxs + dx * k,
-      y: cys + dy * k,
-      angle: Math.atan2(dx, -dy),
-      dist: Math.hypot(t.x - car.x, t.z - car.z),
-    });
-  }
-
   telemetry(gap) {
     const car = this.vehicle;
     return {
@@ -295,7 +253,7 @@ class Game {
       bumps: this.bumps,
       speed: car.speed,
       steerNorm: car.steer / this.spec.maxSteer,
-      gap: gap ?? this.nearestGap(),
+      gap,
       hold: this.hold / 0.6,
       articulation: car.articulation,
       maxArticulation: this.spec.trailer ? this.spec.trailer.maxAngle : 0,
@@ -304,10 +262,10 @@ class Game {
 
   checkParked() {
     const car = this.vehicle;
-    const inside = rectInsideRect(this.parkRect(), this.world.target, 0.02);
-    if (inside && Math.abs(car.speed) < 0.25) this.hold += PHYS_DT;
+    this.inside = rectInsideRect(this.parkRect(), this.world.target, 0.02);
+    if (this.inside && Math.abs(car.speed) < 0.25) this.hold += PHYS_DT;
     else this.hold = 0;
-    return { inside, done: this.hold >= 0.6 };
+    return this.hold >= 0.6;
   }
 
   finish() {
@@ -432,24 +390,18 @@ class Game {
           crawl: keys.crawl || padDrive.crawl,
         }
         : keys;
-      if (!this.started && (drive.throttle || drive.steer)) this.started = true;
-
       this.accum += dt;
       let steps = 0;
       while (this.accum >= PHYS_DT && steps < 12) {
         this.accum -= PHYS_DT;
         steps++;
         this.stepPhysics(PHYS_DT, drive);
-        if (this.started) this.time += PHYS_DT;
-        this.contactCooldown = Math.max(0, this.contactCooldown - PHYS_DT);
-        const { done } = this.checkParked();
-        if (done) { this.finish(); break; }
+        if (this.checkParked()) { this.finish(); break; }
       }
 
       const gap = this.nearestGap();
       this.sfx.sensor(gap, performance.now() / 1000);
       this.hud.update(this.telemetry(gap));
-      this.updateTargetArrow();
     }
 
     if (this.vehicle) {
@@ -468,7 +420,7 @@ class Game {
         reversing: car.speed < -0.05,
       });
       this.rig.update(dt, car, this.spec, this.world);
-      this.world.animateTarget(performance.now() / 1000, rectInsideRect(this.parkRect(), this.world.target, 0.02));
+      this.world.animateTarget(performance.now() / 1000, this.inside);
     }
 
     this.renderer.render(this.scene, this.camera);

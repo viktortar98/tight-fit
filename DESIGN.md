@@ -36,6 +36,17 @@ constraint 4 exists to remove.
 A shunt is counted only when the vehicle actually reverses its direction of
 travel above 0.2 m/s, so rocking on the spot is free (`Game.stepPhysics`).
 
+There is no clock in the source either. There was one — `Game.time`, ticking
+every physics step, read by nothing — left behind when scoring moved off time.
+A stopwatch nobody reads is still a stopwatch, and the next reader reasonably
+concludes timing is coming back. It is gone.
+
+**The save key carries the scoring unit** (`STORE = 'tight-fit.v2'`). A best
+recorded in a unit the game no longer uses is not data, it is a memory of an
+abandoned decision, so when the unit changes the key changes and there is
+nothing to migrate. The migration loop that used to strip old time-based bests
+is gone with it.
+
 *Held by:* the reader. Re-introducing a timer would satisfy every test.
 
 ## 3. Every level ships proved, not eyeballed
@@ -65,17 +76,32 @@ cannot drift level by level.
 
 *Enforced by:* the stale-record check in `tools/validate.js`; `parOf` for par.
 
-## 5. Every contact is a crash
+## 5. A crash is entering contact, not being in it
 
-There is no free-scrape threshold. Crashes are counted per attempt, reset on
-restart, and stored with the player's best.
+Touching something is a state. The crash is the moment you enter that state,
+and you cannot enter it again until you have left it. Grinding along a wall is
+one crash however long you hold it; letting go and hitting again is two.
 
-The old rule only counted hits above 0.6 m/s, which at these speeds hid almost
-every contact — the threshold quietly taught players that grinding along a wall
-was fine. Impact still scales the screen flash and the rumble; it does not
-decide whether the crash happened.
+There is no threshold in speed and none in time. Both have been tried:
 
-*Held by:* `Game.onContact`, `src/main.js`.
+- The original rule ignored hits under 0.6 m/s, which at these speeds hid
+  almost every contact and quietly taught players that scraping was free.
+- Removing it left a 0.25 s cooldown doing the same job in a different unit.
+  That is the deeper error: **this game does not measure time** (constraint 2),
+  so a rule denominated in seconds is unreachable from its decisions and will
+  read as an accident to whoever finds it next. A rule has to be expressed in
+  a unit the game owns.
+
+Contact state is the unit the game already owns, because the physics computes
+it every sub-step to decide where the vehicle stops.
+
+Impact still scales the flash and the rumble; it does not decide whether the
+crash happened. Sound, rumble, flash and the counter all fire on the same
+event — with the cooldown gone they would otherwise have fired every physics
+step, buzzing at 120 Hz and allocating an audio buffer per frame for a scrape.
+
+*Held by:* `Game.stepPhysics` (sets `touching`) and `Game.onContact`, which
+returns early while it is set.
 
 ## 6. First gear is all there is
 
@@ -107,15 +133,39 @@ type inherits the rule rather than choosing a colour.
 *Held by:* the `PASTEL` palette in `src/levels.js` and the `pastel` option in
 `src/carMesh.js`.
 
-## 9. Camera angles are relative to the driven body
+## 9. The camera does what the player told it, and nothing else
 
-A view you chose stays on the same corner of the vehicle as the vehicle turns —
-including the overhead view, which keeps the nose pointing up the screen. A
-jackknifed trailer never drags your viewpoint with it.
+The player's instructions are mode, yaw offset, pitch and zoom. Anything the
+camera decides on the player's behalf is a guess, and a camera that guesses is
+wrong at exactly the moments that matter — the tight ones.
 
-For an articulated vehicle the chase camera frames the *whole combination*, not
-the cab, and pays back in height whatever the arena walls take away in
-distance.
+The worst of it was `autoFlip`: the view swung 180° whenever speed crossed
+±0.35 m/s. **The score is direction changes** (constraint 2), so the camera
+performed a half-turn on every point the player scored. Gone, with its
+hysteresis timer and its lerp.
+
+Deleting the flip is what settles how many camera modes there are. `orbit` was
+`chase` minus the flip — the two branches differed by one term — so with the
+flip gone the mode collapsed into `chase` on its own. Two modes remain, and
+they answer two genuinely different questions:
+
+- **chase** — what the driver can see. This is what makes it a driving game
+  rather than a puzzle on a grid.
+- **overhead** — what the physics sees. Collision is 2D on XZ, so this view
+  *is* the collision model, with nothing hidden by perspective.
+
+A third mode would have to answer a third question. "The same view, held
+differently" is not one; that is what the right stick is for.
+
+Angles stay relative to the driven body, so a view you chose stays on the same
+corner of the vehicle as it turns and a jackknifed trailer never drags your
+viewpoint with it. For an articulated vehicle the chase camera frames the
+*whole combination*, not the cab — that is geometry, not guessing, and so is
+deriving distance and pitch from vehicle length in `reset()`.
+
+Smoothing position is not guessing either; it is only non-instantaneity.
+Moving the camera somewhere the player did not put it is. The two "pay it back
+in height" adjustments — arena clamp and occlusion pull-in — were the latter.
 
 *Held by:* `src/camera.js`.
 
@@ -130,14 +180,57 @@ This was built once and deliberately removed. **Do not add it back** as a
 
 *Held by:* this paragraph, and nothing else.
 
-## 11. Full controller parity
+## 11. The gamepad is the primary input
 
-An Xbox pad drives, steers with analog input, looks around, rumbles on contact,
-and navigates every menu, level tile, pause card and result card. The HUD
-legend swaps to pad glyphs on the first button press. A pad user must never
-have to reach for the keyboard.
+Not "supported", not "at parity" — primary. Analog steering and an analog
+throttle are what a game about the last half-metre wants, and the keyboard is
+the fallback that approximates them.
+
+The consequence is that the pad is the reference the rest is measured against:
+pad glyphs are the HUD legend a player sees first, and the keyboard legend is
+the swap-in. A pad whose triggers report no analog value still has to drive.
 
 *Held by:* `src/gamepad.js` and the pad branches in `Game.padMenu`.
+
+## 12. Nothing on screen is there for the first attempt
+
+Players replay a level tens of times. **A part that only pays on the first
+attempt is paid for on every attempt** — so the screen is designed for the
+tenth run, not the first.
+
+Removed under this rule, all of them aids for finding the bay:
+
+- the screen-edge chevron with its distance-in-metres readout
+  (`Game.updateTargetArrow`, ~35 lines of screen-space projection),
+- the bobbing cone floating over the bay,
+- the level hint, which states the solution in words. It moved to the level
+  select tile and the pause card, where a player who wants it can go and get
+  it, instead of occupying the largest block of text on screen forever.
+
+What stays is what is read while inching in on the tenth attempt: the bay's
+ground outline, which is the containment boundary the level is scored against,
+and its colour change, which is the "you are inside" feedback constraint 1
+depends on.
+
+**The only gauges are the scored numbers and what the player cannot see.**
+Shunts, crashes, best and record are the score. The proximity bar is the one
+gauge showing something no camera angle reveals, and the articulation gauge is
+the only honest warning before a trailer folds. The speedometer, the gear
+letter and the steering-angle dot were none of those — they measured a
+quantity constraint 6 exists to make not matter, twice over, next to a scored
+number displayed smaller than either.
+
+*Held by:* `src/hud.js` and `index.html`. Nothing checks it.
+
+## 13. Written in JavaScript, deliberately
+
+No TypeScript, for now, as a standing experiment in what JS-only feels like to
+work with on a codebase this size. The consequence to be honest about: "it
+documents the intent" is not an argument for keeping an unused export, because
+nothing here checks intent. Dead code is found by reading, or by a tool someone
+adds later.
+
+*Held by:* the reader.
 
 ---
 
@@ -149,9 +242,45 @@ have to reach for the keyboard.
 | 4 — honest record | stale-record check in the validator | exit 1, prints the shorter answer |
 | 4 — par derivation | `parOf` in `src/levels.js` | one place to change |
 | 7 — swept ring | printed per level by the validator | visible drift |
-| 1, 2, 5, 6, 8, 9, 10, 11 | nothing | silent |
+| 1, 2, 5, 6, 8, 9, 10, 11, 12, 13 | nothing | silent |
 
-Eight of eleven are held by reading. That is the honest state of it: the
+Ten of thirteen are held by reading. That is the honest state of it: the
 solvability gate is machine-checked because a broken level is invisible until
 someone plays it, and the rest are cheap for a person to notice and expensive
 to automate. This file is what a reviewer checks a change against.
+
+---
+
+## Open decisions
+
+Not constraints — questions that are known, deliberately unanswered, and would
+otherwise be lost. Each says who it belongs to.
+
+**Mirrors, or a driver's-eye view.** Blind Side's hint says "the side the
+mirrors don't cover". There are no mirrors, so that sentence is currently
+fiction and the level's difficulty is pure geometry. Mirror insets on the chase
+view, or a bumper-height driver's-eye mode, would make the stated problem real
+and would make constraint 10 bite considerably harder. *The user's call — it
+adds a decision rather than removing one.*
+
+**The overhead view's rotation.** Constraint 9 keeps the vehicle's nose pointing
+up the screen, smoothed. A world that rotates under the player is arguably the
+kind of thing constraint 9 now forbids, and the smoothing especially so. Set
+against that: it is a stated frame of reference, not the camera guessing, and
+it makes a stick-left always a nose-left. *The user's call.*
+
+**Themes.** `THEMES` holds four eight-field tables where the real distinction is
+binary — `camera.js` already collapses them with `theme === 'garage' ||
+theme === 'alley'`. Deliberately not touched: the themes are expected to be
+replaced wholesale, and optimising a thing on its way out is waste.
+
+**Levels per vehicle.** The bus and the tow car carry one level each, and
+levels 7/8 are one route driven by two vehicles. More levels per vehicle are
+wanted — but what each new level should be *about* has had no thought yet and
+has not been discussed. *Design session first, with the user; do not invent
+levels to fill a table.*
+
+**Code-quality tooling.** `knip` and an eslint config would machine-catch the
+dead-export class that this session cleared by hand, which is the class most
+likely to come back. Not added yet, and TypeScript is excluded by constraint
+13. *The user's call on scope.*
