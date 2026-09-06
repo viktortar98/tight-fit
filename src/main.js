@@ -162,7 +162,7 @@ class Game {
     this.bumps = 0;
     this.shunts = 0;
     this.lastDir = 0;
-    this.hold = 0;
+    this.canFinish = false;
     this.inside = false;
     this.touching = false;
     this.tape.clear();
@@ -240,7 +240,7 @@ class Game {
       x: car.x, z: car.z, yaw: car.yaw, trailerYaw: car.trailerYaw,
       speed: car.speed, steer: car.steer, wheelSpin: car.wheelSpin,
       shunts: this.shunts, bumps: this.bumps, lastDir: this.lastDir,
-      touching: this.touching, hold: this.hold, inside: this.inside,
+      touching: this.touching, canFinish: this.canFinish, inside: this.inside,
       trace: this.traces.count,
     });
   }
@@ -260,7 +260,7 @@ class Game {
     this.bumps = f.bumps;
     this.lastDir = f.lastDir;
     this.touching = f.touching;
-    this.hold = f.hold;
+    this.canFinish = f.canFinish;
     this.inside = f.inside;
     this.traces.truncate(f.trace);
     return true;
@@ -363,18 +363,17 @@ class Game {
       rewinding: this.rewinding,
       tape: this.tape.len / 120,
       radar: this.rig.mode !== 'cockpit',
-      hold: this.hold / 0.6,
+      canFinish: this.canFinish,
       articulation: car.articulation,
       maxArticulation: this.spec.trailer ? this.spec.trailer.maxAngle : 0,
     };
   }
 
+  // Being parked is a state the game reports, not an event it acts on. The
+  // player says when the run is over (DESIGN.md 20).
   checkParked() {
-    const car = this.vehicle;
     this.inside = rectInsideRect(this.parkRect(), this.world.target, 0.02);
-    if (this.inside && Math.abs(car.speed) < 0.25) this.hold += PHYS_DT;
-    else this.hold = 0;
-    return this.hold >= 0.6;
+    this.canFinish = this.inside && Math.abs(this.vehicle.speed) < 0.25;
   }
 
   finish() {
@@ -527,9 +526,14 @@ class Game {
           this.accum -= PHYS_DT;
           steps++;
           this.stepPhysics(PHYS_DT, drive);
-          if (this.checkParked()) { this.finish(); break; }
+          this.checkParked();
         }
       }
+
+      // The only way out of a level. Read after the physics loop so it sees
+      // the pose the player is actually looking at, and gated on `canFinish`
+      // so the button does nothing anywhere else.
+      if (this.canFinish && (input.pressed('Enter') || this.pad.tapped(BTN.B))) this.finish();
 
       // Reverse is a gear, not a speed: the panel comes up when you ask for
       // reverse, before the vehicle has started moving.

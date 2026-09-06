@@ -14,7 +14,7 @@ export class Hud {
       artic: $('artic'), articDot: $('artic-dot'), articLabel: $('artic-label'),
       shunts: $('stat-shunts'), bumps: $('stat-bumps'), best: $('stat-best'),
       sensor: $('sensor'), sensorFill: $('sensor-fill'), sensorText: $('sensor-text'),
-      hold: $('hold'), holdFill: $('hold-fill'), toast: $('toast'), flash: $('flash'),
+      finish: $('finish'), finishKey: $('finish-key'), toast: $('toast'), flash: $('flash'),
       wheelRot: $('wheel-rot'), rewind: $('rewind'), rewindLeft: $('rewind-left'),
       grid: $('level-grid'),
       settings: $('settings'), settingsList: $('settings-list'),
@@ -143,6 +143,7 @@ export class Hud {
   setPadMode(on) {
     this.el.keysPad.classList.toggle('hidden', !on);
     this.el.keysKb.classList.toggle('hidden', on);
+    this.el.finishKey.textContent = on ? 'B' : 'Enter';
   }
 
   update(s) {
@@ -181,8 +182,9 @@ export class Hud {
     this.el.rewind.classList.toggle('hidden', !s.rewinding);
     if (s.rewinding) this.el.rewindLeft.textContent = s.tape.toFixed(1);
 
-    this.el.hold.classList.toggle('hidden', s.hold <= 0);
-    this.el.holdFill.style.width = `${Math.min(100, s.hold * 100)}%`;
+    // Being in the bay and stopped is not the end of the level; saying so is
+    // (DESIGN.md 20). The prompt is the only place the game says which button.
+    this.el.finish.classList.toggle('hidden', !s.canFinish);
   }
 
   toast(msg) {

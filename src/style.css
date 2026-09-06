@@ -115,12 +115,15 @@ kbd {
 }
 .rewind b { letter-spacing: -0.1em; }
 
-.hold {
+.finish {
   position: absolute; bottom: 78px; left: 50%; transform: translateX(-50%);
-  width: 190px; text-align: center;
+  display: flex; align-items: center; gap: 10px; white-space: nowrap;
+  background: var(--panel); border: 1px solid var(--accent); border-radius: 8px;
+  padding: 7px 14px;
 }
-.hold span { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
-#hold-fill { height: 4px; width: 0%; background: var(--accent); border-radius: 2px; margin-bottom: 6px; }
+.finish .cap { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.finish .say { font-size: 12px; color: var(--fg); }
+.finish kbd { margin-right: 4px; }
 
 .toast {
   position: absolute; top: 92px; left: 50%; transform: translateX(-50%);

@@ -2,8 +2,8 @@
 
 A 3D parking game about threading a vehicle through spaces that look too small
 for it. Fourteen levels, six vehicles, no lap times and no "you were 4 cm off
-centre" scoring — a level is passed the moment the vehicle is inside the bay
-and stopped.
+centre" scoring — a level is passed when the vehicle is inside the bay, stopped,
+and you say you are done with it.
 
 What is scored is **direction changes**: every time you swap between forward
 and reverse. Parking anything is easy given unlimited shunts, so the shunts are
@@ -62,6 +62,7 @@ card are all pad-navigable.
 | `RS` click | `Z` | recentre the view where the level handed it to you |
 | `RB` | `C` | view: chase → inside → overhead |
 | `X` | `Backspace` | hold to rewind |
+| `B` | `Enter` | finish the level — only offered once you are in the bay and stopped |
 | `Y` | `R` | restart level |
 | `LS` click | `M` | mute |
 | `Menu` | `Esc` | pause |

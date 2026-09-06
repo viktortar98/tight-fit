@@ -1148,6 +1148,31 @@ touches the ground in the same place whichever way it points.
 
 *Held by:* `src/traces.js`, and `Game.record`/`Game.restore` for the rewind.
 
+## 20. The player says when the run is over
+
+Being inside the bay and stopped used to end the level on its own, after
+holding still for 0.6 s. The user's objection is the rule:
+
+> "it is very annoying that when I am inside the accepted parking spot and my
+> vehicle's current speed is zero, then the level is ended and it shows my
+> results. Instead of this, I want the player to say that they are finished"
+
+Parking is not the moment the rectangle first fits. It is the moment the driver
+decides they are done, and everything between the two — straightening up,
+pulling forward half a metre, backing off the kerb — is driving the game used
+to interrupt. Worse, it interrupted it *at the first success*, which is the
+worst possible time: the run that ends is the sloppiest one that qualified.
+
+So the game reports the state and never acts on it. `canFinish` is inside the
+target and under 0.25 m/s; the HUD says so; **B** on the pad or **Enter** on the
+keyboard ends the run, and nothing else does.
+
+**The 0.6 s hold went with it.** It existed to keep a twitchy pass through the
+bay from ending the level, which is a problem a button press does not have. A
+timer that guesses at deliberateness is worse than an act that is deliberate.
+
+*Held by:* `Game.checkParked` reports, `Game.frame` acts, both in `src/main.js`.
+
 ## Where the rules are enforced
 
 | Constraint | Enforced by | Fails how |
@@ -1161,9 +1186,9 @@ touches the ground in the same place whichever way it points.
 | 15 — settings are timing, not geometry | review; `gains()` scales only rates, and `maxSteer` / dimensions are not in it | silent |
 | 16 — every wheel rolls | no-slip check in the validator, whole roster | exit 1, names the vehicle and the slide |
 | 17 — nothing drawn outside a rectangle | a script, run by hand | silent between runs |
-| 2, 5, 6, 8, 9, 10, 11, 12, 14, 18, 19 | nothing | silent |
+| 2, 5, 6, 8, 9, 10, 11, 12, 14, 18, 19, 20 | nothing | silent |
 
-Fourteen of nineteen are held by reading. That is the honest state of it: the
+Fifteen of twenty are held by reading. That is the honest state of it: the
 solvability gate and the dead-code sweep are machine-checked because both are
 invisible until someone trips over them, and the rest are cheap for a person to
 notice and expensive to automate. This file is what a reviewer checks a change
