@@ -1490,6 +1490,81 @@ That is not a fidelity question, which the user has ruled out; it is whether a
 roster of twenty-eight can be told apart, which is the whole point of having
 one.
 
+**It has since been settled, and the picker is what settled it.** Constraint 24
+puts all twenty-eight side by side, each framed to fill its own tile, which is
+the condition under which two vehicles either read as two things or do not.
+Measured rather than eyeballed: for every pair, the body's upper silhouette
+sampled at 64 points as a fraction of its own height, every axle and the number
+of axle rows as a fraction of its own length, the glazing band's extent, and
+the height/length and width/length ratios — everything a tile shows except
+colour.
+
+The first version of that metric left the wheels out, and it is worth recording
+what it got wrong. It called Shuttle Bus and Apron Bus the closest pair in the
+roster at 0.013. They are the two ends of the wheelbase-ratio axis: 0.48
+against 0.86, overhangs of 1.95 and 1.80 m against 0.55 and 0.55. A tile shows
+that at a glance, and with the wheels counted they are 0.224 apart — over
+three times the roster's genuinely closest pair, not below it. A silhouette
+metric measures the box and not the vehicle, which is the same error as reading
+`maxSteer` without a wheelbase.
+
+With the wheels in, exactly one cluster was real: **City Bus, Tour Coach and
+Long Coach**, at 0.077, 0.099 and 0.111 — the city bus and the tour coach
+closer than any two cars in the game. All three at wb/L 0.51 to 0.52, the same
+full-length glazing, the same flat roof. One object in three colours, and the
+render agreed with the number.
+
+Each was given a difference it already had:
+
+- **City Bus** — a low floor. The glazing drops to 0.44 of the height, under
+  the waist a coach keeps its luggage below, and a door breaks the single band
+  into two panels with a pillar between.
+- **Tour Coach** — a high floor over that luggage bay. The glazing starts at
+  0.63, the shoulder above the skirt is pronounced rather than faint, and the
+  tail is squared off over its 3.9 m of overhang instead of tucked under.
+- **Long Coach** — a tag axle. 13.50 m of body on two axles is not a thing, and
+  `axleRows` was already the place a vehicle says how many it has, because the
+  semi's tractor carries a bogie. Arches, turn circles and tyre marks all count
+  the rows, so nothing else needed changing, and none of it is kinematic:
+  `integrate()` steers on `wheelbase` and `maxSteer` alone, so no level's cost
+  moves.
+
+After, on the same metric: City Bus / Tour Coach **0.077 → 0.145**, Tour Coach
+/ Long Coach **0.099 → 0.299**, City Bus / Long Coach **0.111 → 0.327**. No
+pair that is not a car is now closer than 0.145. The top of the list is
+Hatchback / SUV at 0.068, City Car / Hatchback at 0.075 and SUV / Car + Trailer
+at 0.092 — four cars and a car towing something, which look alike because they
+are cars. What separates them is size, and a tile framed to fill cannot show
+size. The bay under it can, and does: the city car sits well inside its bay and
+the saloon overruns it. That is the reference constraint 24 exists
+to provide, doing the job it was put there for, so the cars are left as they
+are.
+
+**A fourth change was made, looked at, and reverted, and the check that stopped
+it is the reason this file argues for having them.** The coach was first given
+a windscreen raked back over a fifth of its length, which read better than
+anything else tried and made it unmistakable beside the city bus.
+`window.dev.mirrors()` then reported it floating: this coach's mirror is
+mounted 2.75 m up and 0.41 m behind the nose, a position that only stands on a
+flat front, and the rake dropped the bodywork 0.56 m out from under it. The
+mirror could have moved instead — a real coach's does sit further back and
+lower — but `mirrors.z` is also where `mirrorRect` goes, and Tail Swing is cut
+against where this vehicle's mirrors are, with no solver left to re-measure
+what moving them costs. **Appearance does not get to move collision geometry.**
+The front is unchanged; the skirt, the tail and the glazing carry the
+difference instead.
+
+Two things about that check are worth keeping. It fires on exactly one
+vehicle in twenty-eight, so nothing but running it would have found this. And
+the first attempt to read it found nothing at all, because `coplanar()` and
+`mirrors()` *return* their results rather than logging them — a probe that
+reads nothing looks exactly like a probe that passes.
+
+The driver's view was checked before and after on `dev.html#car=coach` as well,
+because a windscreen is what the seat looks through (constraint 9). It is
+unchanged. The metric is not in the repo, for the same reason the solver is not
+(constraint 4); the numbers above are a record of the roster as it stands.
+
 The corollary the roster already supports and no level uses: the vehicles are
 not a size ladder. Steady-state articulation in a full-lock forward turn is
 **+15.1° for the tow car and −5.5° for the semi** — opposite signs, because the

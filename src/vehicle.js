@@ -531,7 +531,14 @@ export const VEHICLES = {
       top: [[1.000, 0.30], [0.988, 0.56], [0.972, 0.96], [0.958, 1.00],
         [0.030, 1.00], [0.012, 0.62], [0.000, 0.32]],
       glass: [1, 4],
-      sides: [[0.04, 0.95, 0.50, 0.90]],
+      // Low floor, and the glazing says so: the band runs from 0.44 of the
+      // height, which is under the waist line the coach keeps its luggage
+      // below. The second band is the front door, a little deeper than the
+      // saloon windows with a pillar between. Before this the city bus, the
+      // tour coach and the long coach were one shape in three colours —
+      // measured at 0.077 apart over silhouette, wheels, glazing and
+      // proportion, which is closer than any two cars in the roster.
+      sides: [[0.045, 0.755, 0.44, 0.86], [0.786, 0.856, 0.40, 0.86]],
       eye: [0.859, 0.610], look: [0.891, 0.959],
     },
   },
@@ -577,11 +584,24 @@ export const VEHICLES = {
     maxSpeed: 2.4, maxReverse: 1.8, crawlSpeed: 0.85,
     bodyColor: 0x7a4fd6,
     body: {
-      sill: 0.185, arch: 1.26, taper: [0.52, 0.97], dash: true,
+      sill: 0.185, arch: 1.26, taper: [0.56, 0.95], dash: true,
+      // A high floor with the luggage bay under it, which is the thing that
+      // makes a coach a coach: the glazing starts at 0.63 where the city bus
+      // starts at 0.44, the shoulder above the skirt is pronounced rather than
+      // faint, and the tail is squared off over its 3.9 m of overhang instead
+      // of tucked under.
+      //
+      // The front is deliberately unchanged. Raking the screen back over a
+      // fifth of the length read beautifully and broke `window.dev.mirrors()`:
+      // this coach's mirror is mounted 2.75 m up and 0.41 m behind the nose,
+      // which only stands on a flat front, and it floated 0.56 m clear of the
+      // bodywork. Moving the mirror instead would move `mirrorRect`, and Tail
+      // Swing is cut against where this vehicle's mirrors are. Appearance does
+      // not get to move collision geometry.
       top: [[1.000, 0.34], [0.986, 0.60], [0.962, 0.95], [0.944, 1.00],
-        [0.040, 1.00], [0.018, 0.66], [0.000, 0.36]],
+        [0.030, 1.00], [0.012, 0.72], [0.000, 0.44]],
       glass: [1, 4],
-      sides: [[0.05, 0.94, 0.58, 0.92]],
+      sides: [[0.085, 0.895, 0.63, 0.93]],
       eye: [0.871, 0.579], look: [0.900, 0.961],
     },
   },
@@ -841,11 +861,22 @@ export function trailerRect(spec, s) {
   };
 }
 
-// Where the wheels are. A semi has a twin drive axle; everything else has one
-// of each. Shared by the mesh builder, which draws them, and the tyre traces,
-// which need the ground point rather than the drawing.
+// Where the wheels are, as z from the rear axle. Shared by the mesh builder,
+// which draws them, and the tyre traces, which need the ground point rather
+// than the drawing.
+//
+// Most vehicles have one row at the back; two do not. The semi's tractor
+// carries a bogie under its fifth wheel, and the long coach carries a tag axle
+// behind its drive axle — 13.50 m of body on two axles is not a thing, and the
+// third one is also what tells it apart from the tour coach at a glance, which
+// nothing else did. Arches, turn circles and tyre marks all count the rows
+// rather than assuming four wheels, so a row added here is drawn, circled and
+// written down without anything else changing. None of it is kinematic:
+// `integrate()` steers on `wheelbase` and `maxSteer` alone, so no level's cost
+// moves.
 export function axleRows(spec) {
-  return { rear: spec.id === 'semi' ? [0, -1.35] : [0], front: [spec.wheelbase] };
+  const TAG = { semi: [0, -1.35], tramcoach: [0, -1.30] };
+  return { rear: TAG[spec.id] ?? [0], front: [spec.wheelbase] };
 }
 
 export function trailerBogie(t) {
