@@ -261,14 +261,6 @@ export const VEHICLES = {
       eye: [0.880, 0.560], look: [0.928, 0.957],
     },
   },
-  // The user's own example, and the reason the roster is not a size ladder: it
-  // is the city bus's length and width to within 10 cm, and it needs half again
-  // as much room to turn, because the engine in front of the windscreen pushes
-  // its front axle a metre back down the body.
-  // The widest circle in the game: 9.92 m of radius, against 7.27 m for the
-  // school bus, which held the record until this arrived. 6.20 m of wheelbase
-  // and only 32 deg of lock. It is not especially long and it will not go round
-  // anything -- the aisle a level gives it has to be an aisle it can use.
   // The lock takes twice as long to wind on. 55 deg/s against a roster that runs
   // 100 to 170, so the steering is a thing you commit to a second before you
   // need it and cannot take back quickly. Everything else about it is ordinary;
@@ -294,6 +286,10 @@ export const VEHICLES = {
       eye: [0.920, 0.521], look: [0.946, 0.660],
     },
   },
+  // The widest circle in the game: 9.92 m of radius, against 7.27 m for the
+  // school bus, which held the record until this arrived. 6.20 m of wheelbase
+  // and only 32 deg of lock. It is not especially long and it will not go round
+  // anything -- the aisle a level gives it has to be an aisle it can use.
   fire: {
     id: 'fire',
     name: 'Fire Engine',
@@ -315,6 +311,10 @@ export const VEHICLES = {
       eye: [0.880, 0.560], look: [0.926, 0.831],
     },
   },
+  // The user's own example, and the reason the roster is not a size ladder: it
+  // is the city bus's length and width to within 10 cm, and it needs half again
+  // as much room to turn, because the engine in front of the windscreen pushes
+  // its front axle a metre back down the body.
   schoolbus: {
     id: 'schoolbus',
     name: 'School Bus',
@@ -355,11 +355,6 @@ export const VEHICLES = {
       eye: [0.859, 0.610], look: [0.891, 0.959],
     },
   },
-  // A rear-engine coach: the rear axle sits far forward under a long body, so
-  // 3.9 m of bus hangs behind it. It turns fractionally wider than the city bus
-  // and is only a metre longer, which is the point — what makes it different is
-  // not its size or its lock but where its wheels are. Steer it by the nose and
-  // the tail takes out whatever is behind and beside it.
   // 4.30 m behind the rear axle on a 5.40 m wheelbase, turning on 4.22 m. The
   // tail swings 1.49 m outside its own circle where the coach -- which exists
   // to have a tail -- swings 1.15. Coming out of a bay, the back of this goes
@@ -385,6 +380,11 @@ export const VEHICLES = {
       eye: [0.930, 0.561], look: [0.949, 0.725],
     },
   },
+  // A rear-engine coach: the rear axle sits far forward under a long body, so
+  // 3.9 m of bus hangs behind it. It turns fractionally wider than the city bus
+  // and is only a metre longer, which is the point — what makes it different is
+  // not its size or its lock but where its wheels are. Steer it by the nose and
+  // the tail takes out whatever is behind and beside it.
   coach: {
     id: 'coach',
     name: 'Tour Coach',
