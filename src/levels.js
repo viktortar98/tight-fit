@@ -16,6 +16,15 @@
 // forbids driving in, a yard shorter than 6.54 m past it forbids backing in,
 // and a level is the choice of which of those two you take away.
 //
+// `start` is a pose the route would pass through anyway, not the far corner of
+// the arena. A level that opens with a long straight is asking for nothing
+// during it: the route finder's dumps for the old starts all began `F0:9.0` —
+// nine metres at zero steer, which is the longest leg it offers and the only
+// one with no decision in it. Moving `start` forward along its own heading to
+// the point where the first steering input happens leaves every route intact,
+// because the old route drove through the new pose. `bounds` follows it, so the
+// arena is the space the manoeuvre uses and not the space it crosses.
+//
 // A level is a list of objects from src/objects.js and nothing else. The
 // numbers it writes down are the ones the level is *about* — an aisle width, a
 // bay pitch, the length of a street. Everything that follows from those (where
@@ -40,15 +49,15 @@ export const LEVELS = [
     name: 'First Bay',
     vehicle: 'hatch',
     theme: 'lot',
-    bounds: { minX: -16, maxX: 16, minZ: -15.5, maxZ: -3.0 },
-    start: { x: 9, z: -9.05, yaw: -P2 },
+    bounds: { minX: -14, maxX: 10, minZ: -15.5, maxZ: -3.0 },
+    start: { x: 5.5, z: -9.05, yaw: -P2 },
     target: { x: 0, z: -13, w: 2.5, d: 5, rot: 0 },
     objects: [
-      bays(0, -13, ['hatch', null, 'hatch', null, 'hatch', null, 'hatch', 'hatch', null, null, null],
+      bays(-2.5, -13, ['hatch', null, 'hatch', null, 'hatch', null, 'hatch', 'hatch', null],
         { w: 2.5, d: 5 }),
       // The far row. It is what makes the aisle an aisle: its bumpers are at
       // z = -7.60, and the bay mouth is at -10.50.
-      bays(0, -5.625, ['hatch', null, 'hatch', null, 'hatch', null, 'hatch', null, 'hatch', null, 'hatch'],
+      bays(-2.5, -5.625, ['hatch', null, 'hatch', null, 'hatch', null, 'hatch', null, 'hatch'],
         { w: 2.5, d: 5, rot: Math.PI }),
     ],
   },
@@ -86,15 +95,14 @@ export const LEVELS = [
     name: 'Kerbside',
     vehicle: 'hatch',
     theme: 'street',
-    bounds: { minX: -9, maxX: 9, minZ: -22, maxZ: 12 },
-    start: { x: -0.4, z: -15, yaw: 0 },
+    bounds: { minX: -9, maxX: 9, minZ: -13, maxZ: 13 },
+    start: { x: -0.4, z: -8.5, yaw: 0 },
     target: { x: 2.85, z: -1.23, w: 2.2, d: 5.4, rot: 0 },
     objects: [
-      street(0.25, -5, 7.5, 32),
+      street(0.25, 0, 7.5, 24),
       // the gap is 5.7 m of kerb: 1.7 m longer than the car
       car(2.9, -7.275, 0, 'hatch'),
       car(2.9, 2.375, 0, 'hatch'),
-      car(2.9, -13.425, 0, 'hatch'),
       car(2.9, 6.9, 0, 'van'),
     ],
   },
@@ -162,13 +170,13 @@ export const LEVELS = [
     name: 'Dead End',
     vehicle: 'hatch',
     theme: 'alley',
-    bounds: { minX: -4.5, maxX: 8, minZ: -13, maxZ: 13 },
-    start: { x: 0, z: 6, yaw: Math.PI },
+    bounds: { minX: -4.5, maxX: 8, minZ: -13, maxZ: 8 },
+    start: { x: 0, z: 4, yaw: Math.PI },
     target: { x: 4.2, z: -3, w: 2.6, d: 5, rot: P2 },
     objects: [
-      wall(-2.35, 0, 1.3, 26, { h: 4.2, color: 0xd6c9bb }),
+      wall(-2.35, -2.5, 1.3, 21, { h: 4.2, color: 0xd6c9bb }),
       wall(2.35, -8.75, 1.3, 8.5, { h: 4.2, color: 0xd6c9bb }),
-      wall(2.35, 5.75, 1.3, 14.5, { h: 4.2, color: 0xd6c9bb }),
+      wall(2.35, 3.25, 1.3, 9.5, { h: 4.2, color: 0xd6c9bb }),
       wall(4.35, -4.65, 5.3, 0.3, { h: 3.4, color: 0xe1d7c9 }),
       wall(4.35, -1.35, 5.3, 0.3, { h: 3.4, color: 0xe1d7c9 }),
       wall(6.95, -3, 0.3, 3.3, { h: 3.4, color: 0xe1d7c9 }),
@@ -203,28 +211,35 @@ export const LEVELS = [
     ],
   },
 
-  // Mirrored, this level parks in 1: reverse straight back, which is free
-  // because nothing has moved yet, then one 88-degree forward arc through the
-  // 8.5 m gap into the dock. So the three-shunt manoeuvre this was built around
-  // is not what it costs. It is not a level that has been shown to work.
+  // This level costs nothing. Driven by the game's own integrate(), it parks in
+  // ZERO direction changes — one continuous forward curve out of the corridor
+  // and into the dock — and it did so before the start was moved as well as
+  // after, so the count is the level's and not the trim's. DESIGN records it as
+  // parking in 1; 1 was an overestimate.
+  //
+  // The reason is the throat. It is 8.5 m wide for a 3.2 m bay, and the aisle
+  // is 9 m deep where a van needs 5.32 m to swing in nose-first, so the whole
+  // right-angle turn is slack and a single arc walks through it. Everything
+  // below is drive and none of it is game. It wants re-cutting, not trimming,
+  // and the trim here only stops it wasting the player's time on the way.
   {
     id: 'loading-dock',
     name: 'Loading Dock',
     vehicle: 'van',
     theme: 'garage',
-    bounds: { minX: -10, maxX: 21, minZ: -13, maxZ: 6 },
-    start: { x: -3.5, z: 0, yaw: P2 },
+    bounds: { minX: -5, maxX: 21, minZ: -13, maxZ: 6 },
+    start: { x: 2.5, z: 0, yaw: P2 },
     target: { x: 13.3, z: -9.5, w: 3.2, d: 6, rot: 0 },
     objects: [
-      wall(5.5, 3.6, 31, 2.2, { h: 3.4, color: 0xd9cfc2 }),
-      wall(-0.25, -3.6, 19.5, 2.2, { h: 3.4, color: 0xd9cfc2 }),
+      wall(8.5, 3.6, 25, 2.2, { h: 3.4, color: 0xd9cfc2 }),
+      wall(2.75, -3.6, 13.5, 2.2, { h: 3.4, color: 0xd9cfc2 }),
       wall(19.5, -3.6, 3, 2.2, { h: 3.4, color: 0xd9cfc2 }),
       wall(8.9, -7.75, 1.2, 10.5, { h: 3.4, color: 0xd9cfc2 }),
       wall(18.6, -7.75, 1.2, 10.5, { h: 3.4, color: 0xd9cfc2 }),
       bay(13.3, -9.5, { w: 3.2, d: 6 }),
       car(16.2, -11.1, 0, 'van'),
       car(10.55, -11.1, 0, 'van'),
-      line(6, 0, 22, 0.14),
+      line(6.5, 0, 21, 0.14),
       cone(9.9, -4.9),
       cone(20, 1.8),
     ],
@@ -235,18 +250,18 @@ export const LEVELS = [
     name: 'Bus Stop',
     vehicle: 'bus',
     theme: 'street',
-    bounds: { minX: -13, maxX: 11, minZ: -32, maxZ: 22 },
-    start: { x: -1.9, z: -25, yaw: 0 },
+    bounds: { minX: -13, maxX: 11, minZ: -25, maxZ: 21 },
+    start: { x: -1.9, z: -20, yaw: 0 },
     target: { x: 2.6, z: -1.75, w: 3.2, d: 12.4, rot: 0 },
     objects: [
-      street(-1.625, -6, 11.95, 56, { left: 6, right: 5, h: 6 }),
+      street(-1.625, -2, 11.95, 44, { left: 6, right: 5, h: 6 }),
       bay(2.6, -1.75, { w: 3.2, d: 12.4 }),
       // the gap: 13.5 m of kerb between two parked buses
       car(2.6, -16.6, 0, 'bus'),
       car(2.6, 13.1, Math.PI, 'bus'),
       // the shelter, right behind the kerb
       wall(5.45, -1.75, 1.2, 6, { h: 2.6, color: 0xe1d7c9 }),
-      car(-5.2, -22, 0, 'hatch'),
+      car(-5.2, -21, 0, 'hatch'),
       cone(-5.2, 6),
     ],
   },
@@ -289,11 +304,11 @@ export const LEVELS = [
     name: 'Trailer Trouble',
     vehicle: 'towcar',
     theme: 'lot',
-    bounds: { minX: -17, maxX: 19, minZ: -16.5, maxZ: 7 },
-    start: { x: 13, z: -5.5, yaw: -P2 },
+    bounds: { minX: -17, maxX: 16, minZ: -16.5, maxZ: 7 },
+    start: { x: 9, z: -5.5, yaw: -P2 },
     target: { x: 0, z: -13.9, w: 2.9, d: 4.1, rot: 0, part: 'trailer' },
     objects: [
-      wall(1.5, -0.4, 37, 0.8, { h: 1.5 }),
+      wall(-1, -0.4, 32, 0.8, { h: 1.5 }),
       // the neighbours are 1.65 m proud of their bays, which is what makes the
       // trailer's slot a slot rather than an open row
       bays(0, -13.9, [null, 'van', null, 'hatch', null, 'hatch', null, 'hatch', null],
@@ -306,8 +321,9 @@ export const LEVELS = [
   // Asks: where is the *cab* going to live? The trailer is what has to end up
   // in the bay, and the cab has to end up somewhere legal too. A slab behind
   // the bay means it cannot rest in line; a building alongside means it cannot
-  // rest on that side either. So which way the rig folds is settled 20 m away,
-  // before the reverse begins, and nothing at that moment points at it. The
+  // rest on that side either. So which way the rig folds is settled at the top
+  // of the run, before the reverse begins, and nothing at that moment points
+  // at it. The
   // only level about where the part you are not parking ends up.
   //
   // There is no tolerance in it at all; the cost is entirely the shape of the
@@ -320,7 +336,7 @@ export const LEVELS = [
     vehicle: 'towcar',
     theme: 'garage',
     bounds: { minX: -18, maxX: 18, minZ: -14.0, maxZ: 2.0 },
-    start: { x: 10, z: -2.0, yaw: -P2 },
+    start: { x: 6.5, z: -2.0, yaw: -P2 },
     target: { x: 0, z: -11.6, w: 2.9, d: 4.1, rot: 0, part: 'trailer' },
     objects: [
       wall(0, -6.0, 4.0, 1.6),
@@ -335,7 +351,7 @@ export const LEVELS = [
     vehicle: 'semi',
     theme: 'lot',
     bounds: { minX: -26, maxX: 26, minZ: -26, maxZ: 13 },
-    start: { x: -11, z: 6, yaw: P2 },
+    start: { x: -8, z: 6, yaw: P2 },
     target: { x: 0, z: -17.1, w: 3.9, d: 15.0, rot: 0, part: 'trailer' },
     objects: [
       docks(0, -18.15, ['trailer', null, 'trailer']),
