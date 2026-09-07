@@ -123,7 +123,10 @@ could not finish several of the levels.
 when you reverse, pull itself in past walls, or trade distance for height on
 your behalf. Three views: chase, which shows the whole vehicle from outside;
 inside, which is the driver's seat; and overhead, which is what the collision
-model sees — collision is 2D, so the overhead view *is* the physics.
+model sees. Collision is a plan view with heights: everything is a rectangle on
+the ground, and each one knows how far up it goes, so a door mirror passes over
+a kerb and a cone the way it would in a car park. The overhead view is still the
+physics; it is just the physics seen from directly above.
 
 The inside view is built around the complaint that most driving games get it
 wrong: you sit behind the glass and cannot see your own bonnet, which is the
@@ -134,7 +137,9 @@ there too, aimed exactly where the real glass points, but drawn at the sides
 and top of the screen rather than out at the corners of the windscreen, so
 reading one never means turning the view. The mirrors stick out and they
 collide: they get their own thin rectangle in the vehicle's footprint, so
-clipping one on a pillar costs you a collision exactly as a bumper would. Angles are held relative to the driven body, so a jackknifed
+clipping one on a pillar costs you a collision exactly as a bumper would — and
+they clear the things they are plainly above, which is why a mirror sails over a
+traffic cone and still catches a wall. Angles are held relative to the driven body, so a jackknifed
 trailer never drags your viewpoint with it, and a view you chose stays on the
 same corner of the vehicle as it turns. If a wall is in the way, it is in the
 way; the overhead view is one button away.

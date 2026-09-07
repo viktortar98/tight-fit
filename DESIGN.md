@@ -417,19 +417,27 @@ all proved and tuned against.
 
 When this was first written it claimed the rule bought something back — that
 height was the axis an outside view opens, since an overhang is legible from
-the chase camera and invisible from above, and `wall()` already takes an `h`.
-**That was wrong, and the engine says so.** Collision is two-dimensional on
-XZ. `collidersOf()` (`src/colliders.js`) emits `{x, z, w, d, rot, type}` and
-drops `h` for every obstacle; `overlaps()` is a separating-axis test on those
-rectangles; nothing in `Game.isFree` reads a height. The only readers of `h` are the mesh builders in `src/world.js` and the
-camera's look-at target. **A 0.15 m kerb is exactly as solid as a 5 m
-building**, and Kerbside and Bus Stop already depend on that being true.
+the chase camera and invisible from above. That was false at the time and is
+true now, and both halves are worth keeping.
 
-So the rule closes an axis and opens nothing. Height becomes available only by
-building it: an obstacle `clearance` compared against a vehicle height in the
-two containment tests, which is roughly a dozen lines and a new rule about what
-a vehicle may pass under. That is a decision, not a discovery, and it is in
-Open decisions rather than assumed here.
+It was false because collision was two-dimensional on XZ: `collidersOf()`
+dropped `h` for every obstacle, `overlaps()` was a separating-axis test on flat
+rectangles, and nothing in `Game.isFree` read a height. A 0.15 m kerb was
+exactly as solid as a 5 m building.
+
+It is true now because the user decided it should be (Open decisions), and
+`spansOverlap()` in `src/geom.js` is the dozen lines. Every rectangle may carry
+a `{y0, y1}` span; obstacles stand on the ground so theirs is `[0, h]`, and the
+vehicle's parts carry their own. **The kerb is still as solid as the building
+to everything that matters**, because a vehicle body spans from the ground up
+and so meets both. What passes over a kerb is the door mirror, which is 1.2 m
+in the air on a hatchback and 2.5 m on a bus. Kerbside and Bus Stop are
+unharmed, and they were checked rather than assumed: see the measurement in the
+Open decisions entry.
+
+So the axis is open, but it is open a crack. A rectangle without a span still
+reaches from the ground to the sky, which is what every collider did before
+spans existed, so nothing that was not given a height behaves differently.
 
 *Held by:* the reader, `src/camera.js` for the three modes, and
 `src/mirrors.js` for the panels.
@@ -931,12 +939,12 @@ hand: it is `spec.body`, a side outline given in *fractions* of `length` and
 which only ever moves geometry inward. So the body cannot leave its rectangle
 by being drawn wrong, only by being written wrong.
 
-Everything else is now zero — except one. The tow car's ball sits 0.230 m behind the car's
-rectangle because that is where the hitch physically is, and the drawbar spans
-1.3 m of open air between the car's rectangle and the trailer's. Drawing that
-inside a rectangle would misplace the hitch; giving it a rectangle of its own
-would change what fits, and so needs the levels re-checked by hand. It is in
-Open decisions rather than closed by default.
+Everything else is now zero — except one. The tow car's ball sits 0.230 m behind
+the car's rectangle because that is where the hitch physically is. The drawbar
+that used to hang in the same open air no longer does: `drawbarRect` is the
+bar's own footprint, 0.12 m by 1.30 m, and it collides. So the ball is the last
+part of any vehicle drawn outside a rectangle, and it is outside by the length
+of a tow ball rather than by the length of a drawbar.
 
 *Enforced by:* construction for the body, and by nothing for the rest. Body
 parts are placed as fractions of `spec.body`, which are in [0,1] of the
@@ -1473,18 +1481,68 @@ search (constraint 4), so it has no baseline either way.
 `src/colliders.js` for parked combinations, which carry one for the same reason
 their mirrors do.
 
-**Whether obstacles get a height.** Found by measurement, not assumed: collision
-is two-dimensional. `collidersOf()` drops `h`, `overlaps()` is a separating-axis
-test on flat rectangles, and `Game.isFree` does not read a height — so a
-0.15 m kerb stops a semi exactly as a 5 m
-building does, and Kerbside and Bus Stop depend on that. Giving obstacles a
-`clearance` compared against a vehicle height in those two tests is about a
-dozen lines. It would open overhangs, canopies and low bars as level material,
-which is the one class of obstacle an outside camera reads better than a plan
-view. It also adds a rule the player must learn without being told (constraint
-12 forbids telling them), and a vehicle that fits under one thing and not
-another is a *measurement* difficulty unless the level is built so the height
-changes the route. Not decided.
+**Obstacles have a height, and so do the vehicle's parts. Decided by the user**,
+who framed it rather than picking from the options offered: obstacles "should be
+regular 3D objects, with unsurprising collision boxes". The version that
+compares an obstacle's `h` against a vehicle's `height` was offered and is
+*not* what was built — it would have made a 0.15 m kerb passable by everything
+and broken Kerbside and Bus Stop. A genuine box does not do that, because a
+vehicle's box starts at the ground.
+
+What was built is `spansOverlap()` in `src/geom.js`: a rectangle may carry a
+`{y0, y1}` span, and two rectangles collide only where both overlap in plan
+*and* in height. Obstacles stand on the ground, so an obstacle's span is
+`[0, h]`. The vehicle's parts carry their own — the body `[0, height]`, the
+trailer likewise, the drawbar the 0.12 m of steel `carMesh.js` draws, and the
+mirrors the housing at `mirrors.y`. A rectangle with no span reaches from the
+ground to the sky, so anything never given a height collides exactly as it did
+before spans existed.
+
+**The blast radius was measured, not argued.** The change can only ever free a
+pose, never block one, so the whole of it is the set of poses the flat test
+refused and the height-aware test allows. Sampling every level's arena at
+0.25 m and 7.5°:
+
+| | freed | of sampled | first freed pair |
+|---|---|---|---|
+| twelve levels | **0** | — | none — provably unaffected |
+| Wide Circle | 484 | 0.108% | mirror over parked |
+| Van Life | 513 | 0.094% | mirror over wall |
+| Kerbside | 236 | 0.064% | mirror over kerb |
+| Bus Stop | 497 | 0.058% | mirror over kerb |
+| The Impossible Gap | 98 | 0.022% | mirror over cone |
+| Yard Full | 232 | 0.017% | mirror over parked |
+| Trailer Trouble | 71 | 0.012% | mirror over cone |
+| Artic Dock | 111 | 0.007% | mirror over cone |
+| Dead End | 14 | 0.007% | mirror over cone |
+| Loading Dock | 5 | 0.001% | mirror over cone |
+
+The part freed is **always the mirror**. Not one pose in any level is freed by
+the body, the trailer or the drawbar, so the thing the player steers collides
+where it always did and only the glass on its stalks now passes over knee-high
+obstacles. That is why Kerbside and Bus Stop survive a change that lets a mirror
+cross a kerb: a wheel still cannot.
+
+What this opens as level material is overhangs, canopies and low bars — the one
+class of obstacle an outside camera reads better than a plan view. What it costs
+is a rule the player must learn without being told (constraint 12 forbids
+telling them). The bet is that this rule needs no telling, because it is the
+rule everyone already has about mirrors and cones.
+
+The route search was run over the affected levels under both collision models
+as a second check, and every level it can solve came back at the same cost:
+Kerbside 2, Dead End 4, Van Life 1, Loading Dock 0, Wide Circle 1 and Trailer
+Trouble 2, flat and height-aware alike. That is weaker evidence than the table
+above — the search returns an upper bound and its route is not the player's —
+but it agrees with it. Bus Stop and The Impossible Gap are excluded because the
+search returns non-results on both, and a non-result compares to nothing.
+
+Neither the sampler nor the search is in the repo, for the same reason the
+solver is not (constraint 4). The table is a record of what it said on the set
+as it stood, not something a later change re-establishes.
+
+*Held by:* `spansOverlap` in `src/geom.js`, the `y0`/`y1` on every rect in
+`src/vehicle.js`, and `collidersOf` in `src/colliders.js`.
 
 **The set against the difference rule.** Measured once, and the measurement is
 kept here because the levels were cut against it. The probe shrank every

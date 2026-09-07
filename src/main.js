@@ -19,7 +19,7 @@ import { Editor } from './editor.js';
 import {
   loadLevels, saveLevels, loadBests, saveBests, blank, copyOf, shippedSource,
 } from './userLevels.js';
-import { overlaps, rectInsideRect, rectDistance, corners, clamp, normalizeAngle } from './geom.js';
+import { overlaps, rectInsideRect, rectDistance, corners, clamp, normalizeAngle, spansOverlap } from './geom.js';
 import { SCHEMA } from './objects.js';
 
 // Versioned with the scoring unit, and with the level order: `progress.unlocked`
@@ -397,7 +397,7 @@ class Game {
     for (const body of this.vehicle.rects(state)) {
       if (!rectInsideRect(body, this.world.arena)) return false;
       for (const c of this.world.colliders) {
-        if (overlaps(body, c, -0.015)) return false;
+        if (spansOverlap(body, c) && overlaps(body, c, -0.015)) return false;
       }
     }
     return true;

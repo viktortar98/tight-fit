@@ -378,6 +378,7 @@ export function bodyRect(spec, s) {
     x: s.x + Math.sin(s.yaw) * off,
     z: s.z + Math.cos(s.yaw) * off,
     w: spec.width, d: spec.length, rot: s.yaw,
+    y0: 0, y1: spec.height,
   };
 }
 
@@ -393,6 +394,13 @@ export function trailerAxle(spec, s) {
     x: h.x - Math.sin(s.trailerYaw) * t.axleFromHitch,
     z: h.z - Math.cos(s.trailerYaw) * t.axleFromHitch,
   };
+}
+
+// How high the trailer deck sits. carMesh.js hangs the deck, the drawbar, the
+// kingpin and the legs off this and drawbarRect collides off it, so it belongs
+// to neither of them.
+export function deckHeight(t) {
+  return t.wheelRadius + 0.28;
 }
 
 // The drawbar, for the combinations that have one. It is here because it is
@@ -413,10 +421,12 @@ export function drawbarRect(spec, s) {
   const len = t.axleFromHitch - t.axleToFront + 0.3;   // carMesh.js draws this
   const off = t.axleFromHitch - (t.axleFromHitch - t.axleToFront) / 2;
   const a = trailerAxle(spec, s);
+  const y = deckHeight(t) - 0.12;                      // and draws it here
   return {
     x: a.x + Math.sin(s.trailerYaw) * off,
     z: a.z + Math.cos(s.trailerYaw) * off,
     w: 0.12, d: len, rot: s.trailerYaw,
+    y0: y - 0.06, y1: y + 0.06,
   };
 }
 
@@ -428,6 +438,7 @@ export function trailerRect(spec, s) {
     x: a.x + Math.sin(s.trailerYaw) * off,
     z: a.z + Math.cos(s.trailerYaw) * off,
     w: t.width, d: trailerLength(t), rot: s.trailerYaw,
+    y0: 0, y1: t.height,
   };
 }
 
@@ -482,6 +493,7 @@ export function mirrorRect(spec, s) {
     x: s.x + Math.sin(s.yaw) * m.z,
     z: s.z + Math.cos(s.yaw) * m.z,
     w: spec.width + 2 * m.out, d: m.d, rot: s.yaw,
+    y0: m.y - m.h / 2, y1: m.y + m.h / 2,
   };
 }
 

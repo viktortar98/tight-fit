@@ -71,19 +71,21 @@ export class Hud {
       b.onclick = () => this.h.play(i);
       this.el.grid.appendChild(b);
     });
-    this.renderUser(progress, userLevels, userBests);
+    this.renderUser(userLevels, userBests);
   }
 
   // The player's own levels. A tile is two buttons rather than one, because a
   // level you wrote has two things you do to it and neither is the obvious
   // one: playing it and going back into it are equally likely.
-  renderUser(progress, userLevels, userBests) {
+  renderUser(userLevels, userBests) {
     const pick = $('copy-level');
     pick.innerHTML = '';
     pick.add(new Option('a shipped level…', ''));
-    LEVELS.forEach((lvl, i) => {
-      if (i <= progress.unlocked) pick.add(new Option(lvl.name, String(i)));
-    });
+    // Every shipped level, not only the unlocked ones. The editor is a
+    // sandbox: taking a level apart is not a reward for having beaten it, and
+    // a designer who wants to see how the last one is built should not have to
+    // play their way there first.
+    LEVELS.forEach((lvl, i) => pick.add(new Option(lvl.name, String(i))));
     this.el.userGrid.innerHTML = '';
     for (const lvl of userLevels) {
       const best = userBests[lvl.id];

@@ -1,5 +1,6 @@
 // 2D oriented-rectangle math. The whole game collides on the XZ plane:
-// rects are {x, z, w (local X), d (local Z), rot (radians, Y axis)}.
+// rects are {x, z, w (local X), d (local Z), rot (radians, Y axis)}, with an
+// optional {y0, y1} vertical span for the things that pass over each other.
 
 const TAU = Math.PI * 2;
 
@@ -45,6 +46,14 @@ function project(pts, axis) {
     if (v > max) max = v;
   }
   return [min, max];
+}
+
+// Do two rects occupy any of the same height? A rect without a span reaches
+// from the ground to the sky, so anything that has not been given a height
+// collides exactly the way it did before spans existed.
+export function spansOverlap(a, b) {
+  if (a.y0 === undefined || b.y0 === undefined) return true;
+  return a.y0 < b.y1 && b.y0 < a.y1;
 }
 
 // Separating-axis test. Rectangles only, so four candidate axes.

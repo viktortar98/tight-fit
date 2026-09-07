@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { axleRows, trailerBogie, trailerCenterOffset, trailerLength } from './vehicle.js';
+import { axleRows, deckHeight, trailerBogie, trailerCenterOffset, trailerLength } from './vehicle.js';
 
 // Vehicle groups have their origin at the physics reference point: the centre
 // of the rear axle for a tractor, the axle for a trailer. Placing one is then
@@ -452,7 +452,7 @@ function buildTrailer(t, paint, lights, wheels) {
   const group = new THREE.Group();
   const len = trailerLength(t);
   const off = trailerCenterOffset(t);
-  const deckY = t.wheelRadius + 0.28;
+  const deckY = deckHeight(t);
   const tailZ = off - len / 2;
   const bogie = trailerBogie(t);
   const body = { ...TRAILER_BODY, sill: deckY / t.height };

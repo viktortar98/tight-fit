@@ -23,5 +23,11 @@ export function collidersOf(o) {
     }
     return out;
   }
-  return [{ x: o.x, z: o.z, w: o.w, d: o.d, rot: o.rot ?? 0, type: o.type }];
+  // Everything in the palette stands on the ground, so an obstacle's span is
+  // its own height. One without a height reaches all the way up, which is what
+  // the collider did before it had a span at all.
+  return [{
+    x: o.x, z: o.z, w: o.w, d: o.d, rot: o.rot ?? 0, type: o.type,
+    y0: 0, y1: o.h ?? Infinity,
+  }];
 }
