@@ -395,6 +395,31 @@ export function trailerAxle(spec, s) {
   };
 }
 
+// The drawbar, for the combinations that have one. It is here because it is
+// drawn: src/carMesh.js builds a 0.12 m bar running from the trailer's nose to
+// the hitch, and until this existed nothing collided with it -- a cone or a
+// pillar could stand on the centreline between the car's rectangle and the
+// trailer's, untouched, while the two passed either side of it (DESIGN.md,
+// Open decisions). The rectangle is the bar's own footprint and not the whole
+// gap, because the gap is 1.9 m wide and the steel in it is 0.12 m: something
+// standing beside the drawbar really does clear it, and a collider that
+// claimed otherwise would be the same kind of lie in the other direction.
+//
+// It hangs off the trailer, not the car: the bar pivots at the hitch and lies
+// along the trailer's heading, which is why it is placed from the trailer axle
+// like the body is.
+export function drawbarRect(spec, s) {
+  const t = spec.trailer;
+  const len = t.axleFromHitch - t.axleToFront + 0.3;   // carMesh.js draws this
+  const off = t.axleFromHitch - (t.axleFromHitch - t.axleToFront) / 2;
+  const a = trailerAxle(spec, s);
+  return {
+    x: a.x + Math.sin(s.trailerYaw) * off,
+    z: a.z + Math.cos(s.trailerYaw) * off,
+    w: 0.12, d: len, rot: s.trailerYaw,
+  };
+}
+
 export function trailerRect(spec, s) {
   const t = spec.trailer;
   const a = trailerAxle(spec, s);
@@ -469,7 +494,10 @@ export function rearBodyRect(spec, s) {
 
 function bodyRects(spec, s) {
   const r = [bodyRect(spec, s), mirrorRect(spec, s)];
-  if (spec.trailer) r.push(trailerRect(spec, s));
+  if (spec.trailer) {
+    r.push(trailerRect(spec, s));
+    if (spec.trailer.drawbar) r.push(drawbarRect(spec, s));
+  }
   return r;
 }
 

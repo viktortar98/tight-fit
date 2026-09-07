@@ -2,7 +2,7 @@
 // The renderer draws from the objects and the physics collides with these, so
 // the two cannot disagree about where the walls are.
 
-import { VEHICLES, bodyRect, mirrorRect, trailerRect } from './vehicle.js';
+import { VEHICLES, bodyRect, mirrorRect, trailerRect, drawbarRect } from './vehicle.js';
 
 export function collidersOf(o) {
   if (o.type === 'parked') {
@@ -16,7 +16,11 @@ export function collidersOf(o) {
       { ...bodyRect(spec, state), type: 'parked' },
       { ...mirrorRect(spec, state), type: 'parked' },
     ];
-    if (spec.trailer) out.push({ ...trailerRect(spec, state), type: 'parked' });
+    if (spec.trailer) {
+      out.push({ ...trailerRect(spec, state), type: 'parked' });
+      // A parked combination's drawbar is drawn too, so it collides too.
+      if (spec.trailer.drawbar) out.push({ ...drawbarRect(spec, state), type: 'parked' });
+    }
     return out;
   }
   return [{ x: o.x, z: o.z, w: o.w, d: o.d, rot: o.rot ?? 0, type: o.type }];

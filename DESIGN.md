@@ -1439,16 +1439,39 @@ corrected to 0 there. Nothing else about the level changes; the approach trim it
 received stands, because that only stopped it wasting the player's time on the
 way in.
 
-**Whether the tow car's drawbar gets a collision rectangle.** The one gap left
-by constraint 17. The car's rectangle ends 0.95 m behind its rear axle, the
-trailer's begins 2.25 m behind it, and the 1.30 m between them holds a hitch
-ball and a drawbar that nothing collides with. A pillar or a cone can sit in
-that slot untouched while the two rectangles pass either side of it. Closing it
-means a third rectangle on the combination, which changes what fits and so
-needs Trailer Trouble and Fold driven again — the same cost as widening a
-vehicle.
-Leaving it means the tow car has 1.3 m of visible steel that is not there as
-far as the physics is concerned. Not decided.
+**The tow car's drawbar collides. Decided by the user.** This was the one gap
+left by constraint 17, and it is closed.
+
+The numbers recorded here before were wrong, and they were wrong in the
+direction that made the gap sound larger than it is. Measured off the specs by
+driving the game's own `trailerRect`: the car's rectangle ends 0.95 m behind
+its rear axle and the trailer's begins **2.10 m** behind it, so the gap is
+**1.15 m**, not the 2.25 m and 1.30 m this file used to claim. Nothing had ever
+checked those figures against the code.
+
+`drawbarRect` in `src/vehicle.js` is the third rectangle, and it is the bar's
+own footprint rather than the gap: 0.12 m wide by 1.30 m long, which is exactly
+what `src/carMesh.js` draws, hung off the trailer's heading because the bar
+pivots at the hitch. It spans 0.95 m to 2.25 m behind the rear axle, so it
+overlaps both neighbours and leaves no seam on the centreline.
+
+Sizing it to the gap instead was considered and rejected. The gap is 1.9 m wide
+and the steel in it is 0.12 m, so a cone standing 0.30 m off the centreline
+really does clear a real drawbar; a rectangle that stopped it would be the same
+class of error as the one being fixed, pointing the other way. What the change
+buys is that an obstacle on the centreline is no longer driven through. Both
+cases were checked.
+
+The re-drive that this was expected to cost came to nothing: all twenty-one
+levels still start legally, and Trailer Trouble still completes — at 2 direction
+changes with 5 cm of clearance, though no pre-change figure at that clearance
+exists to compare it against, so this is evidence the level survives and not a
+measurement of what the drawbar cost it. Fold has never been solved by any
+search (constraint 4), so it has no baseline either way.
+
+*Held by:* `drawbarRect` in `src/vehicle.js`, and `collidersOf` in
+`src/colliders.js` for parked combinations, which carry one for the same reason
+their mirrors do.
 
 **Whether obstacles get a height.** Found by measurement, not assumed: collision
 is two-dimensional. `collidersOf()` drops `h`, `overlaps()` is a separating-axis
