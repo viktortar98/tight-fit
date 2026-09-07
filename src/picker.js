@@ -290,6 +290,15 @@ export class Picker {
     this.held.clear();
     this.drag = null;
     this.el.classList.add('hidden');
+    // Hand the renderer back whole. A viewport and a scissor rectangle are
+    // renderer state and not per-frame state, so the last tile this screen
+    // drew would otherwise still be the rectangle the game and the editor draw
+    // into — a level rendered into a 320 x 140 box in the corner of a blank
+    // canvas, with nothing in the failure naming the screen that caused it.
+    const size = this.renderer.getSize(new THREE.Vector2());
+    this.renderer.setScissorTest(false);
+    this.renderer.setViewport(0, 0, size.x, size.y);
+    this.renderer.setScissor(0, 0, size.x, size.y);
     this.onDone(picked);
   }
 
