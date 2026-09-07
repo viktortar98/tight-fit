@@ -50,6 +50,11 @@ function swing(spec) {
 // and then what sticks out while it goes round. The articulated pair is added
 // only where there is a trailer, because a rigid vehicle has no answer to give
 // rather than a zero.
+//
+// Every note is written to fit one line in the narrowest the panel gets, which
+// is the 300 px floor its column is given: about 48 characters at 11 px. A note
+// that wraps costs the row 15 px, and seven wrapped rows are what pushes an
+// articulated vehicle's last two numbers off a short window.
 export function statsOf(spec) {
   const { nose, tail } = swing(spec);
   const rows = [
@@ -61,7 +66,7 @@ export function statsOf(spec) {
     {
       label: 'steering lock',
       value: `${deg(spec.maxSteer).toFixed(0)}°`,
-      note: 'how far the wheels go over — the radius is this and the wheelbase together',
+      note: 'the angle alone — radius is this and wheelbase',
     },
     {
       label: 'steering rate',
@@ -71,19 +76,19 @@ export function statsOf(spec) {
     {
       label: 'nose swing',
       value: `${nose.toFixed(2)} m`,
-      note: 'how far the front corner reaches outside the flank on the way round',
+      note: 'how far the front corner reaches past the flank',
     },
     {
       label: 'tail swing',
       value: `${tail.toFixed(2)} m`,
-      note: 'how far the back corner swings out the opposite way',
+      note: 'how far the back corner swings the other way',
     },
   ];
   if (spec.trailer) {
     rows.push({
       label: 'reverse response',
       value: `${spec.trailer.axleFromHitch.toFixed(2)} m`,
-      note: 'hitch to trailer axle — short folds quickly, long answers slowly',
+      note: 'hitch to axle — short folds fast, long slowly',
     });
     rows.push({
       label: 'jackknife limit',
