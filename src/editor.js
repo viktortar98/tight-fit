@@ -359,11 +359,11 @@ export class Editor {
   renderHeader() {
     const l = this.level;
     $('ed-name').value = l.name;
-    const veh = $('ed-vehicle');
-    if (!veh.options.length) {
-      for (const id of SLOT_IDS) veh.add(new Option(VEHICLES[id].name, id));
-    }
-    veh.value = l.vehicle;
+    // The level's own vehicle is chosen in the picker, so the bar carries the
+    // name it settled on rather than a list of twenty-eight. The slot pickers
+    // below are still plain selects: a parked car is scenery, and nothing
+    // about it is worth comparing.
+    $('ed-vehicle').textContent = (VEHICLES[l.vehicle] ?? VEHICLES.hatch).name;
     const th = $('ed-theme');
     if (!th.options.length) for (const id of Object.keys(THEMES)) th.add(new Option(id, id));
     th.value = l.theme;

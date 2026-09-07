@@ -16,6 +16,7 @@ import { TurnCircles } from './turnCircles.js';
 import { Ghosts, ContactGhost } from './ghosts.js';
 import { load as loadSettings, save as saveSettings, gains } from './settings.js';
 import { Editor } from './editor.js';
+import { Picker } from './picker.js';
 import {
   loadLevels, saveLevels, loadBests, saveBests, blank, copyOf, shippedSource,
 } from './userLevels.js';
@@ -129,6 +130,7 @@ class Game {
     this.navLatch = 0;
     this.padSeen = true;
     this.padWasConnected = false;
+    this.picker = null;
     this.carMesh = null;
     this.circles = null;
     this.traces = null;
@@ -279,6 +281,7 @@ class Game {
     this.userLevel = null;
     this.clearPlayfield();
     if (this.editor) this.editor.close();
+    if (this.picker) this.picker.close();
     this.hud.showMenu(this.progress, this.userLevels, this.userBests);
   }
 
@@ -303,6 +306,30 @@ class Game {
     this.editor.open(level, () => saveLevels(this.userLevels));
   }
 
+  // The picker is built the first time it is asked for and kept: it holds a
+  // mesh per vehicle, and a level is edited by opening and closing this screen
+  // rather than by opening it once.
+  pickVehicle() {
+    if (!this.picker) {
+      this.picker = new Picker({
+        renderer: this.renderer,
+        environment: this.scene.environment,
+        onDone: (id) => {
+          document.getElementById('editor').classList.remove('hidden');
+          if (!id) return;
+          this.editing.vehicle = id;
+          this.editor.rebuild();
+        },
+      });
+    }
+    // The picker is modal over the editor rather than beside it: its tiles are
+    // holes cut in the UI down to the canvas, so anything the editor is still
+    // painting lands on top of a vehicle. Hiding the editor also stops its
+    // pointer handlers, which test for exactly this class.
+    document.getElementById('editor').classList.add('hidden');
+    this.picker.show(this.editing.vehicle);
+  }
+
   wireEditor() {
     const ed = this.editor;
     document.getElementById('ed-name').oninput = (e) => {
@@ -310,10 +337,7 @@ class Game {
       saveLevels(this.userLevels);
       ed.renderList();
     };
-    document.getElementById('ed-vehicle').onchange = (e) => {
-      this.editing.vehicle = e.target.value;
-      ed.rebuild();
-    };
+    document.getElementById('ed-vehicle').onclick = () => this.pickVehicle();
     document.getElementById('ed-theme').onchange = (e) => {
       this.editing.theme = e.target.value;
       ed.rebuild();
@@ -756,8 +780,16 @@ class Game {
     // Editing is its own loop: an overhead camera over a world with no vehicle
     // in it, so none of the driving, scoring or panel work below applies.
     if (this.state === 'editing') {
-      this.editor.update();
-      this.renderer.render(this.scene, this.camera);
+      // The picker takes the whole canvas while it is open: it clears it and
+      // draws one viewport per vehicle, so nothing of the level underneath is
+      // rendered and the editor's own pointer handlers never see an event.
+      if (this.picker?.open) {
+        this.picker.update(dt, input, this.pad);
+        this.picker.render();
+      } else {
+        this.editor.update();
+        this.renderer.render(this.scene, this.camera);
+      }
       input.endFrame();
       return;
     }

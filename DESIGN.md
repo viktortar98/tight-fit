@@ -1296,6 +1296,85 @@ remembered angle is on the rewind tape with everything else (constraint 18).
 and `Game.frame` for the seat rule and the standing-in-it rule. Nothing checks
 any of it; `dev.html#ghosts` is where it is looked at (constraint 22).
 
+## 24. A vehicle is chosen by looking at it, not by reading its name
+
+The roster is a coverage map of the manoeuvring space (the table under "Open
+decisions"), and until now the only place that map was legible was this file.
+The editor chose a vehicle from a `<select>` of twenty-eight names, and a name
+is the one thing about a vehicle that carries none of the information: nothing
+in "Crane Carrier" says whether it turns tighter than a fire engine, and the
+answer is that it turns on less than half the circle — 4.25 m against 9.92.
+
+So the editor's vehicle control opens a screen that draws them. Every vehicle
+is built with the game's own mesh builder, standing on a 1 m grid inside one
+marked bay, at the 2.5 x 5 m `src/objects.js` gives a bay by default.
+
+**There is no shared scale, and the bay is why there does not need to be one.**
+The first shape of this was "to scale compared to each other", and the roster's
+own numbers argue against it: 1.10 m to 4.20 m tall, 2.90 m to 16.65 m long.
+One scale across that range makes the tunnel tug a smudge in order to make the
+semi honest. What replaces a shared scale is a shared *reference*. Each tile
+frames its own vehicle, and the constant is the bay underneath — so the tiles
+say "fills a bay", "overhangs one by half its length", "wider than one", which
+is the comparison the game is actually about. The reference is not an arbitrary
+object added to the scene for the sake of scale: it is the thing every level
+asks you to get into.
+
+**The model turns over, and that is what a plan drawing would have been for.**
+A top-down blueprint was the alternative for the one property a static
+three-quarter view hides — wheels inboard or outboard of the flanks, body wider
+or narrower than the track. Looking at the model from underneath answers it
+without adding a second description of a vehicle that could drift from the
+first. So the orbit reaches directly overhead and directly below, and when the
+camera passes under y = 0.02 the solid floor stands down; the grid and the
+2 cm paint stay, because a line and a slab read from either side and they are
+what the scale is read off.
+
+**The orbit has no roll.** Yaw and pitch, with the camera's up vector locked to
+the world's, so the vehicle is never seen tipped onto a corner. Pitch stops at
++/-1.53 rad rather than +/-pi/2, because a view direction parallel to up is
+where `lookAt` has no answer. The user set this: "the camera should be kept
+vertically, horizontally, like a normal camera angle. Camera should not be
+rotatable along the projection axis."
+
+**The numbers are only what the model does not show.** Length, width, height
+and wheel placement are in the picture, and printing them beside it is printing
+the caption of the photograph. What is printed is the part of a spec that has
+no shape: turning radius, steering lock, steering rate, nose swing, tail swing,
+and for a combination the hitch-to-axle distance and the jackknife angle.
+
+**The radius leads and the lock stands beside it**, because a lock alone is not
+comparable: the wheeled loader and the micro pod both lock to 45 degrees and
+turn on 3.30 m and 2.25 m. A radius is a lock *and* a wheelbase, and a picker
+that printed only the angle would be inviting a wrong comparison rather than
+declining to make one.
+
+**The turning circle is a toggle, default off.** It is the vehicle's own circle
+drawn on empty ground with no level around it, so it describes the vehicle and
+not the solution (constraint 10), and it is off by default because the numbers
+above already answer the question for most of the roster. Switching it on lifts
+a low camera to 0.95 rad, because a ring on the ground seen from a
+three-quarter view is a sliver; nothing lowers the camera back, so the view
+stays where the last deliberate act put it.
+
+**The screen paints no background of its own.** The canvas sits behind the
+whole UI, so every tile is a hole down to it and anything the picker painted
+would be paint over a vehicle. One renderer draws twenty-nine viewports with
+the scissor test — twenty-eight tiles and the detail pane — clearing to the
+base colour itself. `.overlay` could not be reused for the same reason: its
+backdrop blur has nothing to blur here except the thing being looked at. New
+meshes are capped at two per frame so opening the screen does not build
+twenty-eight of them in one, and the selected vehicle is drawn whatever the cap
+says.
+
+It is editor-only. The shipped levels name their own vehicle in source, and
+constraint 12 is untouched: none of this is on screen during a run.
+
+*Held by:* `src/picker.js` for the screen, `src/vehicleStats.js` for which
+numbers and why, the `.picker` block in `src/style.css`, `#picker` in
+`index.html`, and `Game.pickVehicle` with the editing branch of `Game.frame`.
+Nothing checks it; it is looked at.
+
 ## Where the rules are enforced
 
 | Constraint | Enforced by | Fails how |
@@ -1306,11 +1385,11 @@ any of it; `dev.html#ghosts` is where it is looked at (constraint 22).
 | 17 — a mirror is on the vehicle, not beside it | `window.dev.mirrors()` on `dev.html` | names each floating mirror and its gap |
 | 21 — the editor writes calls the builders accept | `window.dev.builders()` on `dev.html` | prints `BAD <type>` |
 | 22 — no two surfaces at one depth | `window.dev.coplanar(id)` on `dev.html` | names the shared plane |
-| 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 19, 20, 23 | nothing | silent |
+| 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 19, 20, 23, 24 | nothing | silent |
 | 17, for everything else | nothing; the script that did it went with the solver | silent |
 | 3, 4 | withdrawn | — |
 
-**Four of twenty-one live constraints are machine-checked**, and three of the four
+**Four of twenty-two live constraints are machine-checked**, and three of the four
 have to be asked rather than run. That is the honest
 state of it, and it got worse on purpose: constraints 3, 4, 7, 16 and 1's probe
 were all held by `tools/validate.js`, and the tool was removed. What it bought

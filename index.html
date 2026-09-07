@@ -123,7 +123,7 @@
     <div id="editor" class="editor hidden">
       <div class="ed-bar">
         <input id="ed-name" class="ed-title" aria-label="level name" />
-        <label class="ed-pick"><span>vehicle</span><select id="ed-vehicle"></select></label>
+        <label class="ed-pick"><span>vehicle</span><button id="ed-vehicle" class="ed-veh">Hatchback</button></label>
         <label class="ed-pick"><span>theme</span><select id="ed-theme"></select></label>
         <span class="ed-gap"></span>
         <button id="ed-play" class="primary">Test drive</button>
@@ -151,6 +151,37 @@
         <div class="row">
           <button id="ed-copy" class="primary">Copy</button>
           <button id="ed-export-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- The vehicle picker. It has no background of its own on purpose: the
+         3D of every tile is rendered into the canvas behind the whole UI, so
+         anything this element paints is a hole punched over a vehicle. -->
+    <div id="picker" class="picker hidden">
+      <div class="pk-main">
+        <div class="pk-head">
+          <span class="kicker">vehicle</span>
+          <p class="pk-hint">Drag the preview, or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>,
+            to turn it over &mdash; underneath as well. Wheel or <kbd>+</kbd><kbd>&minus;</kbd>
+            zooms, <kbd>&#8592;&#8594;</kbd> move, <kbd>T</kbd> draws the turning circle,
+            <kbd>Z</kbd> puts the view back.</p>
+        </div>
+        <div id="pk-grid" class="pk-grid"></div>
+      </div>
+      <div class="pk-detail">
+        <div id="pk-view" class="pk-view"></div>
+        <div class="pk-info">
+          <h3 id="pk-name">Hatchback</h3>
+          <div id="pk-stats" class="pk-stats"></div>
+          <div class="pk-tools">
+            <button id="pk-circle">Turning circle</button>
+            <button id="pk-home">Reset view</button>
+          </div>
+          <div class="buttons">
+            <button id="pk-use" class="primary">Use this vehicle</button>
+            <button id="pk-cancel">Cancel</button>
+          </div>
         </div>
       </div>
     </div>

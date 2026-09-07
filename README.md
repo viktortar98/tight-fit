@@ -457,6 +457,24 @@ a clearance that came out of a mouse is exactly what
 number, not a replacement for it. **Test drive** plays it immediately; **Export**
 prints it as `src/levels.js` source, which is how a level leaves the browser.
 
+**The vehicle is chosen by looking at it.** The bar's vehicle control opens a
+screen that draws all twenty-eight, each standing on a metre grid inside one
+marked 2.5 x 5 m bay. They are not drawn to one scale — a roster running 2.90 m
+to 16.65 m makes the small end a smudge if it is — the bay under each is the
+constant, so a tile says "fills a bay" or "overhangs one by half its length".
+Drag the preview, or hold <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, to
+turn the model over: directly overhead and directly underneath both work, and
+underneath is where you see whether the wheels sit inside the flanks. There is
+no roll — the camera stays upright.
+
+The numbers beside it are only the ones the model cannot show: turning radius,
+steering lock, steering rate, nose swing, tail swing, and for an articulated
+combination the hitch-to-axle distance and the jackknife angle. The radius
+leads rather than the lock, because a lock on its own is not comparable — the
+wheeled loader and the micro pod both go over to 45 degrees and turn on 3.30 m
+and 2.25 m. <kbd>T</kbd> draws the vehicle's own turning circle on the empty
+ground when the numbers are not enough.
+
 Your levels have their own bests and unlock nothing. A bay you widened yourself
 is not a key to the next level.
 
