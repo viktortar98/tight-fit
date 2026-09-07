@@ -8,6 +8,40 @@ account of it without a deliberate decision.** Twenty-one levels were cut
 against the current numbers; a spec edit silently re-cuts all of them. What
 follows is evidence, not a patch.
 
+## Read this before treating any "wrong" below as a defect
+
+The audit was commissioned to find out whether the specs were sourced. They were
+not — there were no web lookups anywhere in the project's history, so every
+number was written from memory. That question is now answered, and the answer is
+useful. **The follow-up question — whether to correct them — has been decided,
+and the answer is no.**
+
+The user's ruling, after seeing everything below: *"what I want is to have
+varied options, a wide range of different body shapes and wheel placements and
+sizes, to explore all kinds of manoeuvring challenges. Realistic is not
+important."*
+
+So the roster's purpose is **coverage of the manoeuvring space**, not fidelity
+to any real vehicle. That inverts several of the verdicts in §3 and §4 without
+changing any of their measurements:
+
+- The roster spans 2.94–6.37 m of turning radius where the real classes span
+  3.33–5.41 m. §4 records this as the set being "more spread out than reality".
+  Under the actual goal that is the point, not a flaw.
+- The step van's 1.20 m rear overhang and the SUV's 1.95 m width are called
+  fictions below, correctly. **Both are deliberate and both stay** — each exists
+  to isolate one variable against a near-twin, which is a design instrument
+  rather than a claim about a real vehicle.
+- Every lock angle §3 calls "materially wrong" is wrong only against a class
+  average. None of them is wrong as a choice about how a vehicle should feel.
+
+**What this document is still good for**, and it is a lot: it is the only place
+that says what real geometry looks like, so it is the reference for judging
+whether a *new* vehicle would open a manoeuvring problem the roster does not
+already have. Read §3 as a map of the space rather than a list of corrections.
+The measurements are sound; only the verdicts were written against the wrong
+objective.
+
 ---
 
 ## 0. Method, and a bias to declare
