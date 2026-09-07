@@ -22,13 +22,18 @@ vehicles do it for you — the throttle is analog, but first gear is all there i
 
 ## Play it
 
-- [v7 — the current build](https://viktortar98.github.io/tight-fit/v7/):
+- [v8 — the current build](https://viktortar98.github.io/tight-fit/v8/):
+  collision boxes with heights, so a door mirror clears a kerb and a traffic
+  cone and still catches a wall; the tow car's drawbar collides with what it
+  is drawn through; and every shipped level can be cloned into the editor
+  without unlocking it first (commit `d66e292`). The
+  [root URL](https://viktortar98.github.io/tight-fit/) serves the newest
+  version, which is v8 today.
+- [v7](https://viktortar98.github.io/tight-fit/v7/):
   twenty-one levels instead of fourteen, so every one of the thirteen vehicles
   is driven somewhere; a level editor with its own list and its own bests; a
   ghost left at each direction change, fading with age; and every level now
-  starting where the steering starts (commit `ba2e702`). The
-  [root URL](https://viktortar98.github.io/tight-fit/) serves the newest
-  version, which is v7 today.
+  starting where the steering starts (commit `ba2e702`).
 - [v6](https://viktortar98.github.io/tight-fit/v6/): v5
   with a cabin you can see from the driver's seat, a reversing panel that stays
   in that seat, fainter tyre marks, and turning circles you can switch on
