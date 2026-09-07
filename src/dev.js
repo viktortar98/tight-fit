@@ -18,7 +18,7 @@ import { Ghosts } from './ghosts.js';
 // looked at a hatchback's roof from two metres away.
 //
 // So this renders every case at once into a single frame: thirteen vehicles by
-// five views, or fourteen levels from above. One image is one look at the whole
+// five views, or twenty-one levels from above. One image is one look at the whole
 // matrix, which is the only way looking at all of it stays cheap enough to do
 // every time. `report()` is the same sheet as text for anything countable.
 //

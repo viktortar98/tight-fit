@@ -107,6 +107,43 @@ export const LEVELS = [
     ],
   },
 
+  // Asks: what happens when the bay is not square to the aisle? These are cut at
+  // 45 degrees, which makes them one-way. A bay opens along (sin rot, cos rot),
+  // so at 45 degrees the mouths face north-east and driving into one nose-first
+  // means arriving westbound — and the level starts you eastbound. The answer
+  // everywhere else in the series is to come back the other way, and there is
+  // nowhere here to do it: the widest clear space in the arena is the 2.95 m
+  // aisle, against a 4.78 m circle for the city car at full lock. So the entry
+  // is a reverse into an angled slot, and it is the only one in the game.
+  //
+  // The city car is the control vehicle and nothing here is the size of it:
+  // 2.95 m of aisle and a 2.77 m gap between the neighbours would be the same
+  // problem in anything that fits down it. Driving the game's own integrate(),
+  // it parks in 1 direction change.
+  {
+    id: 'herringbone',
+    name: 'Herringbone',
+    vehicle: 'citycar',
+    theme: 'lot',
+    bounds: { minX: -14, maxX: 9, minZ: -7, maxZ: 5 },
+    start: { x: -1.5, z: 0.9, yaw: P2 },
+    target: { x: 0, z: -2.6, w: 2.2, d: 4.6, rot: Math.PI / 4 },
+    objects: [
+      // 2.2 m of bay at 45 degrees is 3.11 m of frontage, so the row pitch is
+      // 2.2 / cos(45) and the bays meet edge to edge along the aisle.
+      bay(-9.333, -2.6, { w: 2.2, d: 4.6, rot: Math.PI / 4, slot: 'citycar' }),
+      bay(-6.222, -2.6, { w: 2.2, d: 4.6, rot: Math.PI / 4 }),
+      bay(-3.111, -2.6, { w: 2.2, d: 4.6, rot: Math.PI / 4, slot: 'citycar' }),
+      bay(0, -2.6, { w: 2.2, d: 4.6, rot: Math.PI / 4 }),
+      bay(3.111, -2.6, { w: 2.2, d: 4.6, rot: Math.PI / 4, slot: 'citycar' }),
+      wall(-2.5, 3.55, 23, 1.6, { h: 3.0, color: 0xd6c9bb }),
+      wall(-2.5, -6.2, 23, 1.6, { h: 3.0, color: 0xd6c9bb }),
+      // the dead end, which is what makes the row one-way rather than merely
+      // awkward: there is nowhere to become westbound
+      wall(7.5, -1.3, 1.6, 8.2, { h: 3.0, color: 0xd6c9bb }),
+    ],
+  },
+
   // Asks: what do you do when there is no room to pull past on either side?
   // The yard is 11.6 m long, and a reverse-in needs 6.5 m of it on one side of
   // the bay; a nose-first entry needs 4.1 m of run-up and 1.95 m beyond, and
@@ -128,6 +165,38 @@ export const LEVELS = [
       // for either entry. It is the length that stopped being enough.
       room(0, -8.475, 9.2, 10.35),
       bays(0, -11, ['hatch', null, 'hatch'], { w: 2.6, d: 5 }),
+    ],
+  },
+
+  // Asks: what if the aisle a reverse-in needs is round a corner? The bay opens
+  // west off a 3.6 m leg, and that leg turns east 3.9 m south of the bay, so
+  // the room the manoeuvre wants is bent in the middle — the nose swings into
+  // the other leg while the tail goes into the bay.
+  //
+  // The saloon is here because 1.96 m of it hangs off the ends of the
+  // wheelbase, 0.31 m more than the hatchback behind the rear axle, and the
+  // ends are what a bent aisle catches. Driving the game's own integrate(), it
+  // parks in 2 direction changes.
+  {
+    id: 'elbow',
+    name: 'The Elbow',
+    vehicle: 'saloon',
+    theme: 'garage',
+    bounds: { minX: -9, maxX: 12, minZ: -8, maxZ: 13 },
+    start: { x: -0.2, z: 6.5, yaw: Math.PI },
+    target: { x: -4.7, z: 3.0, w: 2.9, d: 5.4, rot: P2 },
+    objects: [
+      wall(-2.8, 8.75, 1.6, 8.1, { h: 3.2, color: 0xd6c9bb }),
+      wall(-2.8, -2.75, 1.6, 8.1, { h: 3.2, color: 0xd6c9bb }),
+      // the recess: 3.4 m clear around a 2.9 m bay, 5.4 m deep
+      wall(-5.1, 5.5, 6.2, 1.6, { h: 3.2, color: 0xd6c9bb }),
+      wall(-5.1, 0.5, 6.2, 1.6, { h: 3.2, color: 0xd6c9bb }),
+      wall(-8.2, 3.0, 1.6, 6.6, { h: 3.2, color: 0xd6c9bb }),
+      // the block the aisle turns around
+      wall(6.7, 5.3, 10.2, 15.4, { h: 3.2, color: 0xd6c9bb }),
+      wall(4.5, -6.8, 14.6, 1.6, { h: 3.2, color: 0xd6c9bb }),
+      wall(10.8, -4.6, 1.6, 5.2, { h: 3.2, color: 0xd6c9bb }),
+      bay(-4.7, 3.0, { w: 2.9, d: 5.4, rot: P2 }),
     ],
   },
 
@@ -158,6 +227,38 @@ export const LEVELS = [
       car(-3.7, 2.8, P2, 'van'),
       cone(-6, -2.4),
       cone(-6, 2.4),
+    ],
+  },
+
+  // Asks: how square do you have to be *before* the gap rather than in it? The
+  // gate is 2.9 m and the SUV is 1.95 m across the body and 2.25 m across the
+  // mirrors, so it passes — pointing straight at it and no other way. The lane
+  // outside is 4.2 m deep, which is not enough to finish the 90 degrees in, so
+  // the squaring up happens in the lane and the gate is driven, not steered.
+  //
+  // The SUV is the width control: the saloon's length to within 3 cm and 12 cm
+  // wider. Anything it cannot do here is about the gap. Driving the game's own
+  // integrate(), it parks in 3 direction changes.
+  {
+    id: 'pinch',
+    name: 'The Pinch',
+    vehicle: 'suv',
+    theme: 'lot',
+    bounds: { minX: -15, maxX: 10, minZ: -11, maxZ: 9 },
+    start: { x: -5, z: 5.1, yaw: P2 },
+    target: { x: 0, z: -4.6, w: 3.0, d: 5.6, rot: 0 },
+    objects: [
+      wall(-3.0, 8.1, 23.8, 1.8, { h: 3.2, color: 0xd6c9bb }),
+      // the gate: two runs of wall 2.9 m apart
+      wall(-8.175, 2.1, 13.45, 1.8, { h: 3.2, color: 0xd6c9bb }),
+      wall(5.175, 2.1, 7.45, 1.8, { h: 3.2, color: 0xd6c9bb }),
+      wall(8.9, 5.1, 1.8, 6.0, { h: 3.2, color: 0xd6c9bb }),
+      wall(-5.4, -2.5, 1.8, 12.0, { h: 3.2, color: 0xd6c9bb }),
+      wall(5.4, -2.5, 1.8, 12.0, { h: 3.2, color: 0xd6c9bb }),
+      wall(0, -8.9, 12.6, 1.8, { h: 3.2, color: 0xd6c9bb }),
+      bay(0, -4.6, { w: 3.0, d: 5.6 }),
+      cone(-3.6, 0.6),
+      cone(3.6, 0.6),
     ],
   },
 
@@ -220,8 +321,11 @@ export const LEVELS = [
   // The reason is the throat. It is 8.5 m wide for a 3.2 m bay, and the aisle
   // is 9 m deep where a van needs 5.32 m to swing in nose-first, so the whole
   // right-angle turn is slack and a single arc walks through it. Everything
-  // below is drive and none of it is game. It wants re-cutting, not trimming,
-  // and the trim here only stops it wasting the player's time on the way.
+  // below is drive and none of it is game. It wants re-cutting, not trimming --
+  // and the re-cut was put to the user with that cost and declined: the level
+  // stays as it is. So do not "fix" this one back to costing something. The
+  // trim here stops it wasting the player's time on the way in, which is all
+  // it was ever going to do.
   {
     id: 'loading-dock',
     name: 'Loading Dock',
@@ -245,6 +349,83 @@ export const LEVELS = [
     ],
   },
 
+  // An ordinary two-row car park, and the pickup cannot use it. 3.68 m of
+  // wheelbase and 30 degrees of lock give it a 6.37 m turning radius where the
+  // hatchback has 3.37, so the 5.0 m aisle First Bay's car swings across is one
+  // this truck can only reverse into, and the run past the bay that the reverse
+  // needs is 11 m — most of the row. The long drive here is the manoeuvre and
+  // not the approach to it, which is the one place in the series where distance
+  // is the point. Driving the game's own integrate(), it parks in 1.
+  {
+    id: 'wide-circle',
+    name: 'Wide Circle',
+    vehicle: 'pickup',
+    theme: 'lot',
+    bounds: { minX: -16, maxX: 12, minZ: -18, maxZ: 2.5 },
+    start: { x: -1.0, z: -7.6, yaw: -P2 },
+    target: { x: 0, z: -13.6, w: 3.0, d: 7.0, rot: 0 },
+    objects: [
+      bays(0, -13.6, ['hatch', null, 'suv', null, 'saloon', null, 'hatch'], { w: 3.0, d: 7.0 }),
+      bays(0, -1.6, ['hatch', null, 'hatch', null, 'hatch', null, 'hatch'],
+        { w: 3.0, d: 7.0, rot: Math.PI }),
+    ],
+  },
+
+  // 2.35 m of the box lorry is behind its rear axle, so the tail is in the bay
+  // long before the axle is, and the nose sweeps the aisle the other way while
+  // it happens. The two numbers were swept rather than guessed: with the
+  // neighbours 6.05 m apart across a 4.2 m aisle the lorry drives in nose-first
+  // and the level costs nothing, and at 4.45 m across a 4.0 m aisle there is no
+  // route at all. It ships at 5.25 m and 4.4 m, between the two. Driving the
+  // game's own integrate(), it parks in 1.
+  {
+    id: 'tail-sweep',
+    name: 'Tail Sweep',
+    vehicle: 'lorry',
+    theme: 'garage',
+    bounds: { minX: -15, maxX: 15, minZ: -17, maxZ: 0 },
+    start: { x: 5.0, z: -5.5, yaw: -P2 },
+    target: { x: 0, z: -12.0, w: 3.8, d: 8.6, rot: 0 },
+    objects: [
+      bays(0, -12.0, ['lorry', null, 'lorry'], { w: 3.8, d: 8.6 }),
+      wall(0, -2.4, 30, 1.8, { h: 4.2, color: 0xd9cfc2 }),
+    ],
+  },
+
+  // The step van is the box lorry with its wheels moved to the ends: 1.20 m of
+  // rear overhang against 2.35 m, on the same turning circle. That is what lets
+  // it tuck into a slot off an alley — the tail stops swinging as soon as the
+  // axle is through the mouth, and the lorry's would not have stopped. The
+  // alley is 5.6 m and the slot 4.6 m clear, and 5.6 m is not enough depth for
+  // a 7.3 m van to swing in nose-first. Driving the game's own integrate(), it
+  // parks in 1.
+  //
+  // The paint is 4.0 m and not the 3.6 m it was cut at, because 3.6 m made the
+  // level unpassable in a way no route dump showed. A van that comes out of
+  // that alley is 0.6 m off the slot's centreline and a third of a degree off
+  // square — it fits between the walls with room, and at 3.6 m it finished
+  // 0.6 mm outside the paint, which is 0.0006 m of level design deciding
+  // whether the game says parked. Paint the slot the van can actually reach:
+  // at 4.0 m the same one-shunt route has 3 cm of slack on every side.
+  {
+    id: 'back-alley',
+    name: 'Back Alley',
+    vehicle: 'stepvan',
+    theme: 'alley',
+    bounds: { minX: -9, maxX: 21, minZ: -12, maxZ: 6 },
+    start: { x: 1.0, z: 2.2, yaw: P2 },
+    target: { x: -2.6, z: -5.1, w: 4.0, d: 9.0, rot: 0 },
+    objects: [
+      wall(6.0, 5.9, 29.8, 1.8, { h: 4.2, color: 0xd6c9bb }),
+      wall(-7.0, -1.5, 3.8, 1.8, { h: 4.2, color: 0xd6c9bb }),
+      wall(10.4, -1.5, 21.0, 1.8, { h: 4.2, color: 0xd6c9bb }),
+      wall(-5.8, -5.45, 1.8, 9.7, { h: 4.2, color: 0xd6c9bb }),
+      wall(0.6, -5.45, 1.8, 9.7, { h: 4.2, color: 0xd6c9bb }),
+      wall(-2.6, -10.5, 8.2, 1.8, { h: 4.2, color: 0xd6c9bb }),
+      bay(-2.6, -5.1, { w: 4.0, d: 9.0 }),
+    ],
+  },
+
   {
     id: 'bus-stop',
     name: 'Bus Stop',
@@ -263,6 +444,36 @@ export const LEVELS = [
       wall(5.45, -1.75, 1.2, 6, { h: 2.6, color: 0xe1d7c9 }),
       car(-5.2, -21, 0, 'hatch'),
       cone(-5.2, 6),
+    ],
+  },
+
+  // The yard ends 13 m east of the bay, which is not enough room for a 10.9 m
+  // bus to build its angle going forwards. So the angle is built going
+  // backwards first and the bay is entered on the sweep that follows: reverse
+  // 8.2 m, then 10.2 m of forward arc, and the direction change between them is
+  // the level.
+  //
+  // Both numbers came out of the game's own integrate(), and so did the reason
+  // this vehicle is the one in it. The school bus parks it in 1 direction
+  // change. Put the CITY BUS here — the same box to within 10 cm, on a turning
+  // radius 2.6 m smaller — and it needs 2, and its last leg is a straight
+  // reverse to seat itself. Which way round that goes does not follow from
+  // either vehicle's radius, and it is the clearest thing in the game against
+  // reading the roster as a size ladder.
+  {
+    id: 'depot',
+    name: 'Depot',
+    vehicle: 'schoolbus',
+    theme: 'lot',
+    bounds: { minX: -20, maxX: 7, minZ: -21, maxZ: -2.45 },
+    start: { x: -7, z: -5.45, yaw: P2 },
+    target: { x: -8, z: -14.2, w: 4.6, d: 11.9, rot: 0 },
+    objects: [
+      bays(-8, -14.2, ['schoolbus', null, 'schoolbus'], { w: 4.6, d: 11.9 }),
+      // the far side of the yard, 5.6 m from the bay mouth
+      wall(-6, -1.75, 30, 1.8, { h: 4.6, color: 0xd9cfc2 }),
+      // the end of the yard, 13 m east of the bay
+      wall(5.9, -10, 1.8, 22, { h: 4.6, color: 0xd9cfc2 }),
     ],
   },
 
@@ -308,7 +519,7 @@ export const LEVELS = [
     start: { x: 9, z: -5.5, yaw: -P2 },
     target: { x: 0, z: -13.9, w: 2.9, d: 4.1, rot: 0, part: 'trailer' },
     objects: [
-      wall(-1, -0.4, 32, 0.8, { h: 1.5 }),
+      wall(-0.5, -0.4, 33, 0.8, { h: 1.5 }),
       // the neighbours are 1.65 m proud of their bays, which is what makes the
       // trailer's slot a slot rather than an open row
       bays(0, -13.9, [null, 'van', null, 'hatch', null, 'hatch', null, 'hatch', null],

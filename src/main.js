@@ -22,9 +22,12 @@ import {
 import { overlaps, rectInsideRect, rectDistance, corners, clamp, normalizeAngle } from './geom.js';
 import { SCHEMA } from './objects.js';
 
-// Versioned with the scoring unit. When the unit changes this key changes,
-// and there is nothing to migrate — a best in an abandoned unit is not data.
-const STORE = 'tight-fit.v4';
+// Versioned with the scoring unit, and with the level order: `progress.unlocked`
+// is an index into LEVELS, so inserting a level mid-series changes what a saved
+// index means. When either changes this key changes, and there is nothing to
+// migrate — a best in an abandoned unit is not data, and neither is a place in
+// an order that no longer exists.
+const STORE = 'tight-fit.v5';
 const PHYS_DT = 1 / 120;
 // How much faster than real time the tape runs backwards. Fast enough to undo
 // half a minute without waiting for it, slow enough to release on the frame
@@ -657,7 +660,7 @@ class Game {
     const clean = this.collisions === 0;
     const better = clean && (!prev || this.shunts < prev.shunts);
     if (better) store[id] = { shunts: this.shunts };
-    // A level the player wrote unlocks nothing: the fourteen are a sequence,
+    // A level the player wrote unlocks nothing: the shipped levels are a sequence,
     // and a bay you widened yourself is not a key to the next one.
     if (!this.userLevel && this.index === this.progress.unlocked) {
       this.progress.unlocked = Math.min(LEVELS.length - 1, this.index + 1);

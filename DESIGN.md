@@ -671,7 +671,7 @@ because the derivation generalises:
   overruled it — "each level should name which vehicle is on the level" — and
   the reason the derivation failed is that it treated the name as a label on
   the *car*. It is a label on the *level*. The roster is a content axis (Open
-  decisions): several of the fourteen repose an earlier level's geometry with a
+  decisions): several of the twenty-one repose an earlier level's geometry with a
   heavier or worse-steering vehicle, and on those the vehicle is the whole
   difference between one level and another. A player looking at a paused card
   that says only "The Alcove" is not being told which of the two problems by
@@ -1068,7 +1068,7 @@ describes the call it claims to.
 **Player levels are their own list.** Separate bests, and they unlock nothing.
 A level you wrote and a level the game shipped are not comparable — you can
 build a four-metre bay and park in it first go — so a best on one must not
-appear where the other's do, and the fourteen stay a sequence.
+appear where the other's do, and the twenty-one stay a sequence.
 
 *Held by:* `src/editor.js`, `SCHEMA` in `src/objects.js`, `src/userLevels.js`.
 
@@ -1083,7 +1083,7 @@ from one of three cameras, in one level, and reaching a fault means driving to
 it first.
 
 So `dev.html` renders the whole matrix in one frame: thirteen vehicles by six
-views, or fourteen levels from above, or the turning circles at six locks. One
+views, or twenty-one levels from above, or the turning circles at six locks. One
 image is one look at all of it, which is what keeps looking cheap enough to do
 on every change. `window.dev` on that page answers the countable half —
 `report()`, `coplanar()`, `builders()`.
@@ -1355,6 +1355,90 @@ Bus Stop does not use it. A tail that swings outboard on the side opposite the
 turn is a placement property, not a width property, which is the class the
 probe said survives.
 
+**The approach is not the level.** Raised by the user: "a lot of the current
+levels require a lot of upfront movement that is unnecessary … getting to the
+place where I can start maneuvering takes a lot of time and it doesn't make
+sense because this is not a travel game." The low top speeds stay — constraint
+15, and the complaint is about distance, not speed.
+
+Measured before anything moved, and the measurement is the whole argument. The
+route finder's leg dumps for the shipped starts all opened the same way: `F0:9.0`
+— nine metres at zero steer, which is the longest leg the search offers and the
+only one with no decision in it. First Bay, Kerbside and Dead End each began
+with one; Bus Stop began with two, eighteen metres of it.
+
+The fix is that `start` moves forward along its own heading to the pose where
+the first steering input happens, and `bounds` follows it in. That is
+**route-preserving by construction**, and it was checked rather than assumed:
+driving the *original* geometry straight ahead from the original start reaches
+the new start every time — 3.5 m for First Bay, 6.5 m for Kerbside, 2.0 m for
+Dead End, 6.0 m for Loading Dock, 5.0 m for Bus Stop, 4.0 m for Trailer
+Trouble — and for Fold and Artic Dock, where the search cannot finish, the new
+start reverses straight back to the old one, 3.5 m and 3.0 m. Every old route
+survives with a prefix removed, and shrinking `bounds` can only remove routes,
+never add one.
+
+Six levels needed nothing. Measured nose-to-first-constraining-obstacle rather
+than axle-to-target — the distinction matters, because measuring from the axle
+overstates the lead-in of a long vehicle by most of its own length — The Short
+Side, The Alcove, The Impossible Gap, Van Life, Tail Swing and Yard Full already
+begin at the manoeuvre.
+
+**The seven unused vehicles now have levels**, which is the other half of the
+same request: "all vehicles that don't appear on any levels at the moment should
+have levels that they appear on." Herringbone (city car, 45-degree bays and a
+dead end, 1), The Elbow (saloon, a reverse whose run-up turns a corner, 2), The
+Pinch (SUV, a 2.9 m gate that must be entered square, 3), Wide Circle (pickup,
+an ordinary car park and 6.37 m of radius, 1), Tail Sweep (box lorry, 2.35 m of
+overhang arriving first, 1), Back Alley (step van, a slot the short overhang
+tucks into, 1), Depot (school bus, a yard too short to build the angle
+forwards, 1). Each is interleaved by the question it asks rather than by the
+length of its vehicle, and each cost above was measured by driving the game's
+own `integrate()`.
+
+Two things the cutting taught, both of which contradict how the levels above
+were reasoned about:
+
+- **The envelope constants say what a level probably costs, not what it does.**
+  Both bay-entry envelopes were re-measured for all thirteen vehicles, and the
+  along-aisle figures reproduce the numbers this file already records to within
+  0.05 m. The *depth* figures do not bind where they were expected to: The Elbow
+  ships with 3.6 m of aisle against a 4.13 m nose-first depth for the saloon and
+  the saloon still enters nose-first, because the recess and the open leg give it
+  room the straight-aisle envelope does not model. Tail Sweep had to be swept
+  rather than derived — 6.05 m of mouth across a 4.2 m aisle costs nothing,
+  4.45 m across 4.0 m has no route at all, and it ships at 5.25 m and 4.4 m.
+- **The finder is an upper bound and it is loose enough to mislead.** It reported
+  Trailer Trouble at 2 before the trim and 1 after, which looks like the trim
+  making a level cheaper. It is not: the new start is 4.0 m straight ahead of the
+  old one in the old geometry, so the 1 that it found after is a route the level
+  always had and the 2 it found before was an overestimate. A count from this
+  tool can only ever say *no more than*.
+
+Still owed: playing them. A found route is evidence the level is completable,
+not evidence it is good to drive.
+
+**Loading Dock costs zero.** Found while trimming it, and it is worse than the
+1 recorded in the difference-rule table above. Driven by `integrate()` it parks
+in **0** direction changes — one continuous forward curve out of the corridor
+into the dock — and it did so before the start moved as well as after, so the
+count belongs to the level. The throat is 8.5 m wide for a 3.2 m bay and the
+aisle is 9 m deep where a van needs 5.32 m to swing in nose-first, so the
+right-angle turn it claims is slack in both directions at once. It has been
+trimmed like the rest, which only stops it wasting the player's time; what it
+needs is a re-cut, and that is a decision about what the level should ask
+rather than a repair. Its source comment says all of this in place.
+
+Put to the user with the re-cut costed, and **decided: it stays as it is.**
+"Let it be." So the zero is deliberate, and the set now contains one level that
+asks nothing — which is a smaller cost than it looks, because the difference
+rule (constraint 1) is about levels differing from each other, and a level that
+is simply easy does not make any other level less itself. The 1 in the
+difference-rule table below was an overestimate from the withdrawn solver and is
+corrected to 0 there. Nothing else about the level changes; the approach trim it
+received stands, because that only stopped it wasting the player's time on the
+way in.
+
 **Whether the tow car's drawbar gets a collision rectangle.** The one gap left
 by constraint 17. The car's rectangle ends 0.95 m behind its rear axle, the
 trailer's begins 2.25 m behind it, and the 1.30 m between them holds a hitch
@@ -1390,7 +1474,7 @@ re-checked against.
 
 | level | δ=0 | δ=0.15 | δ=0.30 | reading |
 |---|---|---|---|---|
-| Loading Dock | 1 | 0 | 0 | **all of it is clearance** |
+| Loading Dock | 0 | 0 | 0 | **asks nothing; kept by decision** |
 | Kerbside | 1 | 1 | 1 | structural outright |
 | Bus Stop | 1 | 1 | 1 | structural outright |
 | Trailer Trouble | 1 | 1 | 1 | structural outright |

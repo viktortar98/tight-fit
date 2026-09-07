@@ -1,7 +1,7 @@
 # Tight Fit
 
 A 3D parking game about threading a vehicle through spaces that look too small
-for it. Fourteen levels, six vehicles, no lap times and no "you were 4 cm off
+for it. Twenty-one levels, thirteen vehicles, no lap times and no "you were 4 cm off
 centre" scoring — a level is passed when the vehicle is inside the bay, stopped,
 and you say you are done with it.
 
@@ -154,7 +154,7 @@ find the bay on your first attempt.
 
 The corner also names the level and the vehicle it is driven with, and so do
 the pause and result cards. The vehicle is part of the level's identity rather
-than a label on the car: several of the fourteen set an earlier level's
+than a label on the car: several of the twenty-one set an earlier level's
 geometry against a longer body or a worse lock, and on those the vehicle is the
 whole difference between one problem and another.
 
@@ -232,21 +232,40 @@ its geometry, and finding it is the level.
 
 ## Vehicles
 
-| | Length | Turning | Top speed |
-|---|---|---|---|
-| Hatchback | 3.95 m | 2.83 m swept ring | 2.9 m/s |
-| Van | 5.30 m | 3.41 m | 2.7 m/s |
-| Bus | 11.0 m | 6.60 m | 2.5 m/s |
-| Tour Coach | 12.0 m | 6.61 m | 2.4 m/s |
-| Car + trailer | 4.60 m + 4.2 m | 3.05 m (car alone) | 2.6 m/s |
-| Semi | 6.30 m + 13.0 m | 4.53 m (tractor alone) | 2.3 m/s |
+| | Length | Turning | Minimum radius | Top speed |
+|---|---|---|---|---|
+| City Car | 3.57 m | 2.65 m swept ring | 2.94 m | 2.9 m/s |
+| Hatchback | 3.95 m | 2.83 m | 3.37 m | 2.9 m/s |
+| Saloon | 4.75 m | 3.03 m | 4.14 m | 2.85 m/s |
+| SUV | 4.72 m | 3.15 m | 4.34 m | 2.8 m/s |
+| Van | 5.30 m | 3.41 m | 5.12 m | 2.7 m/s |
+| Pickup Truck | 6.10 m | 3.43 m | 6.37 m | 2.7 m/s |
+| Step Van | 7.30 m | 4.92 m | 4.92 m | 2.55 m/s |
+| Box Lorry | 7.60 m | 4.28 m | 5.01 m | 2.5 m/s |
+| School Bus | 10.90 m | 5.65 m | 7.27 m | 2.45 m/s |
+| City Bus | 11.0 m | 6.60 m | 4.70 m | 2.5 m/s |
+| Tour Coach | 12.0 m | 6.61 m | 4.77 m | 2.4 m/s |
+| Car + trailer | 4.60 m + 4.2 m | 3.05 m (car alone) | 4.08 m | 2.6 m/s |
+| Semi | 6.30 m + 13.0 m | 4.53 m (tractor alone) | 4.65 m | 2.3 m/s |
 
-The coach and the bus turn almost identically — 4.77 m against 4.70 m of
-minimum radius — and are a metre apart in length. What separates them is where
-the wheels sit: the coach's rear axle is 3.9 m forward of its tail, so 1.15 m of
-it swings outside its own turning circle, against 0.67 m for the bus and 0.07 m
-for the hatchback. Bigger is not harder in this roster; the worst-steering
-vehicle in the game is the van, at 5.12 m.
+**Bigger is not harder in this roster**, and the table is arranged by length to
+show it. The two columns disagree all the way down. The city bus turns inside
+every truck in the game on a 4.70 m radius; the school bus is its length and
+width to within 10 cm and needs 7.27 m, because the engine ahead of its
+windscreen pushes the front axle a metre back down the body. The pickup is
+barely wider than a van and wants 6.37 m where the van wants 5.12. And the
+worst-steering vehicle in the game is not the longest one — it is the school
+bus, which is only the ninth longest.
+
+Three pairs exist to isolate one variable each. The saloon and the SUV are the
+same length to within 3 cm and 12 cm apart in width, so whatever one can do and
+the other cannot is about the gap. The box lorry and the step van are the same
+box to within 30 cm on nearly the same circle, and differ only in where the
+axle sits under it: 2.35 m of lorry hangs behind the rear axle against 1.20 m
+of step van, which is why one sweeps a corner the other cannot. The coach and
+the bus are a metre apart in length and 7 cm apart in radius, and what separates
+them is that 1.15 m of coach swings outside its own turning circle against
+0.67 m for the bus and 0.07 m for the hatchback.
 
 The two articulated combinations are one hinge each — a drawbar behind the tow
 car's rear axle, a fifth wheel just in front of the tractor's. Both fold if you
@@ -261,35 +280,66 @@ know which shape you are.
 
 The hatchback series is built so each level asks something the one before it
 did not — a new kind of problem rather than a tighter version of the last one.
+The rest of the roster is interleaved with it: a vehicle appears where the
+question it is good for appears, not where its length would put it.
+
+Every level starts you at the point where the steering starts. None of them
+open with a straight line across the car park — that stretch is not the game,
+and driving it slowly was never the difficulty.
 
 | # | Level | Vehicle | What it asks |
 |---|---|---|---|
 | 1 | First Bay | Hatchback | A 2.9 m aisle. The bay is behind your shoulder. |
 | 2 | The Short Side | Hatchback | The room is 1.45 m past the bay and 15 m behind it. |
 | 3 | Kerbside | Hatchback | The bay is beside the aisle, not across it. |
-| 4 | The Alcove | Hatchback | 4.6 m each side. Reversing in wants 6.5. |
-| 5 | The Impossible Gap | Hatchback | Can you tell it fits before you commit? |
-| 6 | Dead End | Hatchback | The room you need is behind you, going nowhere. |
-| 7 | Van Life | Van | Same puzzle, half a metre more vehicle. |
-| 8 | Loading Dock | Van | A right-angle turn out of a corridor, into a bay between two vans. |
-| 9 | Bus Stop | Bus | Parallel park 11 m of bus into a 13.5 m gap. |
-| 10 | Tail Swing | Tour Coach | Out of your bay and into one two along, with 1.15 m of tail. |
-| 11 | Trailer Trouble | Car + trailer | Reverse a drawbar trailer into a bay row. |
-| 12 | Fold | Car + trailer | The trailer goes in the bay. Where does the cab go? |
-| 13 | Artic Dock | Semi | 16.6 m, hinged, into a dock between two others. |
-| 14 | Yard Full | Semi | The same dock from the far side, in a yard with pillars in it. |
+| 4 | Herringbone | City Car | The bays are cut at 45 degrees, and they face the way you came. |
+| 5 | The Alcove | Hatchback | 4.6 m each side. Reversing in wants 6.5. |
+| 6 | The Elbow | Saloon | The aisle the reverse needs turns a corner halfway along it. |
+| 7 | The Impossible Gap | Hatchback | Can you tell it fits before you commit? |
+| 8 | The Pinch | SUV | A 2.9 m gate you have to be straight for before you reach it. |
+| 9 | Dead End | Hatchback | The room you need is behind you, going nowhere. |
+| 10 | Van Life | Van | Same puzzle, half a metre more vehicle. |
+| 11 | Loading Dock | Van | A right-angle turn out of a corridor, into a bay between two vans. |
+| 12 | Wide Circle | Pickup Truck | An ordinary car park, and 6.37 m of turning radius. |
+| 13 | Tail Sweep | Box Lorry | 2.35 m of lorry behind the rear axle, arriving first. |
+| 14 | Back Alley | Step Van | A slot off an alley, for the van whose wheels are at the ends. |
+| 15 | Bus Stop | City Bus | Parallel park 11 m of bus into a 13.5 m gap. |
+| 16 | Depot | School Bus | A yard 13 m too short to build the angle going forwards. |
+| 17 | Tail Swing | Tour Coach | Out of your bay and into one two along, with 1.15 m of tail. |
+| 18 | Trailer Trouble | Car + trailer | Reverse a drawbar trailer into a bay row. |
+| 19 | Fold | Car + trailer | The trailer goes in the bay. Where does the cab go? |
+| 20 | Artic Dock | Semi | 16.6 m, hinged, into a dock between two others. |
+| 21 | Yard Full | Semi | The same dock from the far side, in a yard with pillars in it. |
+
+Loading Dock is the exception and is marked as one in its own source comment:
+driven by the game's own physics it parks in **zero** direction changes, which
+means it asks nothing. It stays that way on purpose: the re-cut was costed and
+declined, and one easy level costs the set less than it looks, because no other
+level is made less itself by it.
 
 ## Why the levels are the size they are
 
-A vehicle at full lock sweeps a ring of a fixed width — 2.83 m for the
-hatchback, 6.60 m for the bus. Any corridor narrower than that cannot be turned
-out of in one arc, which is the line between "drive in" and "shunt it in", and
-the two corridor levels straddle it deliberately.
+A vehicle at full lock sweeps a ring of a fixed width — 2.65 m for the city
+car, 2.83 m for the hatchback, 6.60 m for the bus. Any corridor narrower than
+that cannot be turned out of in one arc, which is the line between "drive in"
+and "shunt it in", and the two corridor levels straddle it deliberately.
 
 Bay levels are cut against different numbers, measured by driving the physics
-out of a bay at full lock: reversing in needs 6.54 m of aisle past the bay,
-nose-first needs 1.95 m past it and 4.09 m before it. Which of those you take
-away *is* the level.
+out of a bay at full lock: for the hatchback, reversing in needs 6.54 m of aisle
+past the bay, nose-first needs 1.95 m past it and 4.09 m before it. Which of
+those you take away *is* the level. The same numbers were measured for every
+vehicle in the roster before the levels below were cut, and they do not scale
+with length: the pickup wants 11.1 m of aisle past a bay where the hatchback
+wants 6.5, and it is 2.15 m longer.
+
+Those constants say what a level probably costs. They do not say what it does
+cost, and twice in cutting these they were wrong about which one binds. The
+number a level ships against is the one measured on the level itself: the
+fewest direction changes a route finder driving the game's own `integrate()`
+could find. That is an upper bound — a route it finds is real, a route it
+misses proves nothing — so it can only ever say a level costs *no more* than
+some number. Where a level's comment gives a count, that is the count, and
+where a level was tuned, the sweep that tuned it is written down beside it.
 
 Tight levels are easy to make impossible by accident. There used to be a
 hybrid-A* solver in `tools/` that proved each one and printed the fewest
@@ -323,7 +373,7 @@ parked in it a metre apart. An editor edits the parameters.
 
 ## Build your own
 
-The menu has a second list under the fourteen: levels you made. **+ new level**
+The menu has a second list under the twenty-one: levels you made. **+ new level**
 starts an empty lot, or **or start from** copies a shipped one — a copy carries
 a *Reset to original*, because the original is still in the source and restoring
 it is re-copying rather than remembering.
@@ -341,7 +391,7 @@ is not a key to the next level.
 ## Looking at it
 
 `dev.html`, on the dev server only, is an inspection sheet: every vehicle from
-six angles, or all fourteen levels from above, or the turning circles at six
+six angles, or all twenty-one levels from above, or the turning circles at six
 locks, or every vehicle standing in front of two ghosts of itself — one frame
 each, so looking at the whole matrix costs one look.
 
@@ -363,7 +413,7 @@ check that would have caught the shell/lining z-fighting), and `builders()`
 | `src/vehicle.js` | kinematic bicycle model, articulation, the thirteen vehicle specs |
 | `src/colliders.js` | obstacles as flat rectangles, shared by renderer and physics |
 | `src/objects.js` | the palette a level is built from, and what expands it |
-| `src/levels.js` | all fourteen levels, in metres |
+| `src/levels.js` | all twenty-one levels, in metres |
 | `src/world.js` | scene construction, themes, lighting |
 | `src/carMesh.js` | vehicle and trailer models from `spec.body`, plus the cabin lining |
 | `src/camera.js` | chase / inside / overhead, body-relative |

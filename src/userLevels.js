@@ -7,7 +7,7 @@ import { LEVELS } from './levels.js';
 // there after a reload, without anything being written back into the source.
 // `export` (src/editor.js) is how one leaves the browser.
 //
-// Their bests are kept in their own key, apart from the fourteen. A level you
+// Their bests are kept in their own key, apart from the shipped ones. A level you
 // wrote and a level the game shipped are not comparable — you can build a bay
 // four metres wide and park in it first go — so a best on one must not appear
 // anywhere the other's bests appear, and neither may unlock anything.

@@ -184,13 +184,13 @@ export class Hud {
     this.el.pause.classList.toggle('hidden', !on);
   }
 
-  // A level the player wrote has no number in the fourteen, so it is labelled
+  // A level the player wrote has no number in the shipped series, so it is labelled
   // by where it came from instead.
   //
   // The vehicle is named everywhere the level is named — the tile, the play
   // HUD, the pause card and the result card. Decided by the user, against the
   // derivation in DESIGN.md 12 that put it only on the tile: on several of the
-  // fourteen the vehicle *is* what the level is, so naming it is naming the
+  // shipped levels the vehicle *is* what the level is, so naming it is naming the
   // level and not labelling the car.
   setLevel(index, level, best) {
     const veh = VEHICLES[level.vehicle] ?? { name: level.vehicle };
