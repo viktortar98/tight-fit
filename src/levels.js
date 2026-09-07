@@ -6,14 +6,32 @@
 // two numbers that decide that, measured for the hatchback by driving the
 // game's own integrate() out of a bay at full lock, are:
 //
-//   reverse in    1.60 m of aisle depth,  6.54 m of aisle past the bay,
-//                                         0.95 m short of it
-//   nose first    3.04 m of aisle depth,  4.09 m of run-up before the bay,
+//   reverse in    1.60 m of aisle depth,  6.57 m of aisle past the bay,
+//                                         1.02 m short of it
+//   nose first    3.12 m of aisle depth,  4.12 m of run-up before the bay,
 //                                         1.95 m past it
+//
+// All of it measured from the bay's centreline, and over every rectangle that
+// collides. Two of those numbers moved when the drive was repeated: the table
+// used to read 3.04 m of depth and 0.95 m short, which is the same drive with
+// the mirrors left out. They stick out and they collide (DESIGN.md 17), so
+// they count, and the depth a nose-first swing wants is 8 cm more than the
+// levels were told. Every level that cites these was re-read against the new
+// figures and none of its margins is 8 cm wide, so nothing moved. The other
+// two came back 3 cm larger than the recorded 6.54 and 4.09 on a re-measure;
+// the cause was not chased, and the larger number is the safe one to cut to.
+//
+// They are also measured on a bay standing on its own, and a bay in a row is
+// tighter than they say. A car seated between two neighbours cannot turn at
+// all until it has run about 1.6 m straight out, because what stops the swing
+// is the neighbour's mirror and not the aisle; sweeping the aisle depth of The
+// Short Side below, a constant-radius reverse-in into a row stops existing
+// somewhere between 3.3 and 3.1 m, where this table asks for 1.60. Read the
+// depth column as what a bay needs, not as what a row needs.
 //
 // Loosening the lock makes both numbers worse, so those are minima. They are
 // what the levels below are cut against: a wall closer than 1.95 m past a bay
-// forbids driving in, a yard shorter than 6.54 m past it forbids backing in,
+// forbids driving in, a yard shorter than 6.57 m past it forbids backing in,
 // and a level is the choice of which of those two you take away.
 //
 // `start` is a pose the route would pass through anyway, not the far corner of
@@ -40,7 +58,7 @@ export const LEVELS = [
   // Asks: where is the bay, what counts as parked, and which way do you go in?
   // Two rows and the aisle between them, which is what a car park is. The
   // aisle is 2.9 m from the bay mouth to the far row's bumpers: past the
-  // 1.60 m a reverse-in needs, short of the 3.04 m a nose-first swing needs.
+  // 1.60 m a reverse-in needs, short of the 3.12 m a nose-first swing needs.
   // So the bay is entered backwards, and the whole series is built on the
   // manoeuvre this level hands you on the first attempt. Nothing is in the way
   // and nothing is tight except the one number.
@@ -63,25 +81,50 @@ export const LEVELS = [
   },
 
   // Asks: where does the room for the manoeuvre come from, when it is not on
-  // the side you arrived from? Reversing in sweeps 6.5 m of aisle past the bay
-  // and 0.95 m short of it; this bay has 1.45 m on its far side and 15 m on
-  // the near one, so the only reverse-in is the one driven the other way up
-  // the aisle. Nothing else in the series asks you to arrive from elsewhere.
+  // the side you arrived from? You arrive westbound, and backing into this bay
+  // sweeps 6.57 m of aisle past it. West of it there is 1.20 m, because the
+  // aisle ends flush with the bay's own flank. So the only reverse-in is the
+  // one driven eastbound, and the level is the three moves that get you facing
+  // that way: back into the one gap in the far row, pull out of it heading
+  // east, back into the bay. Nothing else in the series asks you to arrive
+  // from elsewhere.
+  //
+  // The wall used to stand 1.45 m past the bay and that quarter-metre was the
+  // whole level. A nose-first swing wants 1.95 m past, so 1.45 did not forbid
+  // driving in — it made driving in cost a couple of shunts of fiddling, and a
+  // car 15 cm smaller each way wants 1.74 and drove in, which is a level whose
+  // cost is its clearances (DESIGN.md 1). Flush is as far as this axis goes: a
+  // 2.4 m bay hands the swing 1.20 m of its own width, so the most the
+  // geometry can withhold is 0.75 m, and the wrong approach here can be made
+  // expensive but not absent.
+  //
+  // What flush buys is the ordering. Every leg of the three-move answer was
+  // driven through the game's own integrate() and its own collision on this
+  // geometry, at full size and with the vehicle shrunk 0.15 and 0.30 m a side,
+  // and all three legs exist at all three sizes. The westbound reverse-in is
+  // short by more than 5 m at every one of them — 6.57 m wanted against 1.20 —
+  // which is the one block here that no amount of slack closes.
   {
     id: 'short-side',
     name: 'The Short Side',
     vehicle: 'hatch',
     theme: 'garage',
-    bounds: { minX: -1.6, maxX: 15.7, minZ: -14.5, maxZ: 1.1 },
+    bounds: { minX: -1.35, maxX: 15.7, minZ: -14.5, maxZ: 1.1 },
     start: { x: 13, z: -6.3, yaw: -P2 },
     target: { x: 0, z: -11, w: 2.4, d: 5, rot: 0 },
     objects: [
-      // the aisle is closed at both ends: 1.45 m past the bay, 15.6 m the other way
-      room(7.075, -6.775, 17.05, 13.75),
+      // the aisle is closed at both ends: flush with the bay on one side,
+      // 15.6 m away on the other
+      room(7.2, -6.775, 16.8, 13.75),
       bays(7.2, -11, [null, 'hatch', 'hatch', 'van', 'hatch', 'hatch', 'hatch'], { w: 2.4, d: 5 }),
-      // the row opposite is full but for one bay: 6.9 m of aisle is already
-      // enough to turn in, so the gap is not the turntable, it is the slack
-      // that keeps the turn from costing two extra shunts (measured: 4 vs 6)
+      // The row opposite is full but for one bay, and that bay is the level.
+      // Turning round in one arc wants a corridor twice the turning radius
+      // plus the width of the car — 8.50 m for the hatchback — against 4.45 m
+      // between the two rows of bumpers, so the direction of travel cannot be
+      // reversed in the aisle at all and has to be reversed into something.
+      // Backing into this gap wants 6.57 m of aisle west of it, and the dead
+      // end leaves 8.40: the wall that forbids the entry to the bay is the
+      // same wall that makes the answer to it fit.
       bays(7.2, -2.6, ['hatch', 'hatch', 'hatch', null, 'hatch', 'hatch', 'hatch'],
         { w: 2.4, d: 5, rot: Math.PI }),
     ],
@@ -147,7 +190,7 @@ export const LEVELS = [
   // Asks: what do you do when there is no room to pull past on either side?
   // The yard is 11.6 m long, and a reverse-in needs 6.5 m of it on one side of
   // the bay; a nose-first entry needs 4.1 m of run-up and 1.95 m beyond, and
-  // 3.04 m of depth. The yard is 5.2 m deep. The answer The Short Side and
+  // 3.12 m of depth. The yard is 5.2 m deep. The answer The Short Side and
   // Kerbside have taught is the one that does not fit here.
   {
     id: 'alcove',

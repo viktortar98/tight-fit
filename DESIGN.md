@@ -147,16 +147,36 @@ below refer to them and because the levels were cut against them.
 **What survives the withdrawal**, because the levels rest on it:
 
 - The entry minima for the hatchback, measured by driving `integrate()` out of a
-  bay at full lock. Reverse-in: 1.60 m of aisle depth, 6.54 m of aisle past the
-  bay, 0.95 m short of it. Nose-first: 3.04 m of depth, 4.09 m of run-up before
+  bay at full lock. Reverse-in: 1.60 m of aisle depth, 6.57 m of aisle past the
+  bay, 1.02 m short of it. Nose-first: 3.12 m of depth, 4.12 m of run-up before
   the bay, 1.95 m past it. These are minima — loosening the lock makes both
   worse — and they are the numbers the levels are cut against. They are written
   at the top of `src/levels.js`, where they are used.
-- **The window is 0.21 m wide.** A perpendicular bay costs a direction change
-  only while the aisle in front of it is between the hatchback's swept width
-  (2.83 m, below which it cannot turn at all) and the depth its nose-first swing
-  needs (3.04 m). Every aisle in the hatchback series is placed inside or below
-  that window on purpose. First Bay's is 2.90 m.
+  **Two of them were 8 and 7 cm too small**, and they were too small for the
+  same reason: the drive was measured over the body rectangle and the mirrors
+  were left out. Mirrors stick out and they collide, by constraint 17 and by the
+  user's ruling, so they belong in the envelope. Re-measured with them counted,
+  the nose-first depth is 3.12 rather than 3.04 and the reverse-in's room short
+  of the bay is 1.02 rather than 0.95. Every level that cites the table was
+  re-read against the corrected figures and no margin in the set is 8 cm wide,
+  so nothing had to move. The other two came back 3 cm larger on a re-measure
+  (6.57 against 6.54, 4.12 against 4.09); the cause was not chased and the
+  larger figure is the one to cut against.
+  **They describe a bay standing on its own, and a bay in a row is tighter.**
+  A car seated between two neighbours cannot turn at all until it has run about
+  1.6 m straight out, because what stops the swing is the neighbour's mirror
+  rather than the aisle. Sweeping The Short Side's aisle depth, a
+  constant-radius reverse-in into a row stopped existing between 3.3 and 3.1 m
+  where the table asks for 1.60. The depth column is what a bay needs, not what
+  a row needs, and a level that puts a bay in a row has to leave more than the
+  table says.
+- **The window is 0.29 m wide**, and it was recorded as 0.21 before the mirrors
+  were counted. A perpendicular bay costs a direction change only while the
+  aisle in front of it is between the hatchback's swept width (2.83 m, below
+  which it cannot turn at all) and the depth its nose-first swing needs
+  (3.12 m). Every aisle in the hatchback series is placed inside or below that
+  window on purpose. First Bay's is 2.90 m, which the correction moves further
+  from the edge rather than closer to it.
 - **Ten of thirteen levels were not asking for the score.** That was the
   solver's one substantial finding, and it is the reason constraint 1 exists in
   the shape it does. Three levels were re-cut in response and one was cut
@@ -260,8 +280,8 @@ nothing about it. Measured by driving `integrate()` out of a bay at full lock:
 
 | hatchback | aisle depth | aisle before the bay | aisle past the bay |
 |---|---|---|---|
-| reverse in | 1.60 m | 0.95 m | **6.54 m** |
-| nose first | **3.04 m** | 4.09 m | 1.95 m |
+| reverse in | 1.60 m | 1.02 m | **6.57 m** |
+| nose first | **3.12 m** | 4.12 m | 1.95 m |
 
 Loosening the lock worsens both numbers in both dimensions, so these are
 minima, not a trade to tune. The table lives in the header of `src/levels.js`,
@@ -1779,7 +1799,7 @@ re-checked against.
 | First Bay | 2 | 1 | 0 | half of it is clearance |
 | Van Life | 1 | 1 | 1 | structural outright, after re-cut |
 | Tail Swing | 2 | 2 | 2 | structural outright |
-| The Short Side | 2 | 0 | 0 | **all of it is clearance** |
+| The Short Side | 2 | 0 | 0 | **was all clearance; re-cut, see below** |
 | Tight Lane (cut) | 5 | 0 | — | all of it is clearance |
 
 Read it with two cautions. The solver was an upper bound, so ±1 is noise and
@@ -1792,24 +1812,56 @@ What it establishes:
 - **Tight Lane's cut is confirmed mechanically**, 5 → 0. Its entire cost was
   clearance, and its README line said so in its own voice: "Now aim it, with
   0.64 m of slack."
-- **The Short Side is mislabelled, and the hand audit had it in the holds
-  column.** It is 2 → 0 at the honest line. Sweeping the wall that closes the
-  aisle west of the bay shows why: flush with the bay costs 11 direction
-  changes, the shipped position costs 2, and 0.75 m further west costs 0. The
-  level stands on a spike about half a metre wide with a cliff on one side and
+- **The Short Side was mislabelled, and the hand audit had it in the holds
+  column.** It read 2 → 0 at the honest line. Sweeping the wall that closes the
+  aisle west of the bay showed why: flush with the bay cost 11 direction
+  changes, the shipped position cost 2, and 0.75 m further west cost 0. The
+  level stood on a spike about half a metre wide with a cliff on one side and
   a chasm on the other — a tolerance in the purest form the game contains.
-  And the constant it is tuned against is the wrong one. Its comment reasons
-  about the reverse-in envelope (6.54 m past the bay); the bay has 1.45 m,
-  which was never close, so the reverse-in is not what the wall decides. What
-  the wall decides is the **nose-first** entry, which wants 1.95 m. The level
-  ships half a metre short of it, and that half-metre is the whole level —
-  which is exactly why 0.15 m a side hands back enough to collapse it.
-  Constraint 7 says a level must be measured against the right constant; this
-  one is measured against 6.54 when 1.95 is binding. So the class it claims —
-  *the room is not on the side you arrived from* — is not built by anything in
-  the game, and it is buildable: by making the wrong approach **absent**, not
-  narrow. Shortening an aisle is a clearance, and clearances are what the probe
-  eats. Being re-cut.
+  And the constant it was tuned against was the wrong one. Its comment reasoned
+  about the reverse-in envelope (6.57 m past the bay); the bay had 1.45 m,
+  which was never close, so the reverse-in was not what the wall decided. What
+  the wall decided was the **nose-first** entry, which wants 1.95 m. The level
+  shipped half a metre short of it, and that half-metre was the whole level —
+  which is exactly why 0.15 m a side handed back enough to collapse it.
+  Constraint 7 says a level must be measured against the right constant; that
+  one was measured against 6.57 when 1.95 was binding.
+
+  **Re-cut, and the named fix turned out not to be available.** The instruction
+  written here was to make the wrong approach *absent* rather than narrow, on
+  the grounds that shortening an aisle is a clearance and clearances are what
+  the probe eats. Absence is not reachable for a perpendicular bay off an
+  aisle. The room a nose-first swing has past the bay is the room past the
+  bay's *edge* plus half the bay's own width, and the bay is 2.4 m wide, so
+  1.20 m of the 1.95 m it wants is supplied by the bay itself. Closing the
+  aisle flush against the bay's flank — which is what this re-cut does — is the
+  floor of that axis. It withholds 0.75 m at full size, 0.54 m against a car shrunk
+  0.15 m a side and 0.33 m against one shrunk 0.30, where the shipped wall
+  withheld 0.50, 0.29 and 0.08. That is a bigger margin at every point on the
+  probe and it is still a margin, not an absence, and this file should say so
+  rather than claim a block it does not have.
+
+  **What the flush wall does buy is the ordering.** The level's cost is now the
+  three moves that reverse the direction of travel — back into the one gap in
+  the far row, pull out of it heading east, back into the bay — rather than the
+  shuffle that used to be cheaper than them. Every leg of those three was
+  driven through the game's own `integrate()` and its own collision on the
+  shipped geometry, at full size and at both probe sizes, and all three exist
+  at all three. The westbound reverse-in is short by more than 5 m at every
+  size — 6.57 m wanted against 1.20 — which is the one block in the level that
+  no amount of slack closes: a corridor turn
+  wants twice the turning radius plus the width of the car, 8.50 m for the
+  hatchback against a 3.93 m aisle, so the gap opposite is the only place in
+  the arena where the direction of travel can be reversed at all.
+
+  Two things about that check are worth keeping. **The solver's 11 was an upper
+  bound and it missed the answer**: the three-move route exists at the flush
+  wall and costs 3, so the number recorded above for that sweep point is a
+  ceiling and not the level's cost. And at 0.30 m a side — the stress line,
+  which is smaller than a real car and not a fair pass — a nose-first entry
+  into the gap opposite appears, which would save one of the three moves. It
+  costs a direction change rather than the level, and it does not appear at
+  0.15.
 - **Kerbside is the soundest level in the game, not an at-risk one.** It holds
   at 30 cm of relief per side because a parallel park is non-holonomy in its
   pure form: a car cannot translate sideways, so a lateral displacement costs a
@@ -1960,10 +2012,11 @@ second-hardest of the seven and the second level a player meets, and its
 manoeuvre was First Bay's, so it introduced nothing. Loosening its bay to 0.79
 m would have brought it to 3 but made it roomier than First Bay's 0.74 m,
 which is the drift its rename was meant to end. It moved to position 7
-instead. The series is now First Bay 2, The Short Side 2, Kerbside 1, The
+instead. The series is now First Bay 2, The Short Side 3, Kerbside 1, The
 Alcove 2, The Impossible Gap 3, Dead End 4, Tight Lane 5 — ascending from
 position 3, with the dip at Kerbside being a different manoeuvre rather than
-an easier one. The move also gives Tight Lane a reason to exist that it did
+an easier one. The Short Side read 2 when this was written; the re-cut above
+made its cost the direction reversal, which is three moves rather than two. The move also gives Tight Lane a reason to exist that it did
 not have at position 2: at the end of the series every idea has already been
 handed over, so a level with no idea of its own is the exam rather than a
 lesson.
