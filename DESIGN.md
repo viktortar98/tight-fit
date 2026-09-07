@@ -1090,7 +1090,7 @@ two metres away, and nothing in the game puts you there — it shows one vehicle
 from one of three cameras, in one level, and reaching a fault means driving to
 it first.
 
-So `dev.html` renders the whole matrix in one frame: thirteen vehicles by six
+So `dev.html` renders the whole matrix in one frame: eighteen vehicles by six
 views, or twenty-one levels from above, or the turning circles at six locks. One
 image is one look at all of it, which is what keeps looking cheap enough to do
 on every change. `window.dev` on that page answers the countable half —
@@ -1350,6 +1350,38 @@ have, and that measurement is what would decide whether Van Life and Bus Stop
 are earning their place or merely occupying it. The probe is gone with the
 solver (constraint 4), so this is now a question for playing rather than for a
 tool. Being designed.
+
+**The roster is fictional on purpose, and accuracy is deferred rather than
+abandoned.** A sourced audit measured the original thirteen against published
+manufacturer figures (`VEHICLE-SOURCES.md`) and found real errors: the coach
+and the bus are inverted against their real counterparts, the step van's
+1.20 m rear overhang has no original, and several lock angles were written from
+memory. The corrections were applied to `src/vehicle.js` and then reverted
+unapplied, because the user reversed the goal mid-change: "what i want is to
+have varied options wide range of different body shapes and wheel placements
+and sizes, to exlore all kinds of manouvering challanges... realistic is not
+important", and "we can have fictional vehicles, the point is having many of
+them to choose from, to explore". Matching real counterparts is explicitly
+"later during development", so the audit is kept rather than deleted — it is a
+list of things to reconcile against, not a list of defects.
+
+What replaced accuracy as the acceptance test is **coverage of the manoeuvring
+space**, measured on four axes rather than argued. Five invented vehicles were
+written against measured gaps in it, and moved the spans:
+
+| | thirteen | eighteen |
+|---|---|---|
+| minimum radius | 2.94 – 7.27 m | 2.25 – 9.92 m |
+| wheelbase / length | 0.51 – 0.65 | 0.48 – 0.78 |
+| tail swing | 0.05 – 1.15 m, empty from 0.12 to 0.43 | 0.01 – 1.49 m, filled at 0.23 / 0.26 / 0.30 |
+| steering rate | 100 – 160°/s | 55 – 170°/s |
+
+What did not relax is constraint 17. A headless mesh check — build every
+vehicle, box every part, test the corners against the rectangles the physics
+actually collides with — passes all eighteen, and found one real violation on
+the way: the tow car's coupling ball flared to 0.16 m across where the drawbar
+rectangle claims 0.12, so 20 mm of steel on each side was outside every
+rectangle in the game. The ball is now the width of its own collider.
 
 The corollary the roster already supports and no level uses: the vehicles are
 not a size ladder. Steady-state articulation in a full-lock forward turn is

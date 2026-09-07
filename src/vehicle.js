@@ -36,6 +36,31 @@ const deg = (d) => (d * Math.PI) / 180;
 // 0.13 m under whatever roof is over that point -- the cab's roof on a lorry,
 // which is not the highest roof it has.
 export const VEHICLES = {
+  // Wheels at the corners and almost nothing hanging off either end: wb/L 0.78
+  // against 0.65 for the next-nearest, and 2.25 m of radius against the city
+  // car's 2.94. Nothing it does surprises you, because there is no part of it
+  // that is not between the axles. It is the control at the easy end of the
+  // roster, the way the semi is the control at the hard end.
+  pod: {
+    id: 'pod',
+    name: 'Micro Pod',
+    length: 2.90, width: 1.55, height: 1.62,
+    wheelbase: 2.25, rearOverhang: 0.30, trackWidth: 1.36,
+    wheelRadius: 0.28, wheelWidth: 0.17,
+    mirrors: { z: 1.350, out: 0.13, d: 0.1, h: 0.09, y: 1.15 },
+    maxSteer: deg(45), steerRate: deg(170),
+    accel: 3.2, brakeAccel: 6.2, rollDrag: 2.0,
+    maxSpeed: 2.9, maxReverse: 2.4, crawlSpeed: 1.0,
+    bodyColor: 0x35c4b5,
+    body: {
+      sill: 0.26, arch: 1.22, taper: [0.58, 0.88],
+      top: [[1.000, 0.50], [0.930, 0.62], [0.820, 0.96], [0.740, 1.000],
+        [0.180, 1.000], [0.060, 0.82], [0.000, 0.62]],
+      glass: [1, 4],
+      sides: [[0.28, 0.72, 0.66, 0.94]],
+      eye: [0.710, 0.860], look: [0.786, 0.890],
+    },
+  },
   // The bottom of the range, and the control for every level a bigger vehicle
   // has to fit into: short, narrow, and 38° of lock on a 2.30 m wheelbase.
   citycar: {
@@ -166,6 +191,31 @@ export const VEHICLES = {
       eye: [0.508, 0.870], look: [0.544, 0.902],
     },
   },
+  // Both ends swing. 3.45 m of wheelbase under 7.20 m of body puts wb/L at 0.48,
+  // below anything else here, with 1.95 m in front of the front axle and 1.80 m
+  // behind the rear one. So the nose sweeps 2.28 m outside the circle and the
+  // tail 0.30 m the other way, at the same time -- the coach has a tail and the
+  // step van has a nose, and until this there was nothing with both.
+  shuttle: {
+    id: 'shuttle',
+    name: 'Shuttle Bus',
+    length: 7.20, width: 2.10, height: 2.75,
+    wheelbase: 3.45, rearOverhang: 1.80, trackWidth: 1.80,
+    wheelRadius: 0.38, wheelWidth: 0.24,
+    mirrors: { z: 5.050, out: 0.18, d: 0.1, h: 0.28, y: 2.00 },
+    maxSteer: deg(39.5), steerRate: deg(120),
+    accel: 2.5, brakeAccel: 5.2, rollDrag: 1.9,
+    maxSpeed: 2.6, maxReverse: 2.05, crawlSpeed: 0.9,
+    bodyColor: 0x1f8fd8,
+    body: {
+      sill: 0.19, arch: 1.22, taper: [0.52, 0.97], dash: true,
+      top: [[1.000, 0.34], [0.982, 0.50], [0.950, 0.95], [0.935, 1.000],
+        [0.020, 1.000], [0.000, 0.90]],
+      glass: [1, 4],
+      sides: [[0.06, 0.90, 0.50, 0.88]],
+      eye: [0.900, 0.655], look: [0.930, 0.953],
+    },
+  },
   // The tail-swing vehicle, and the near-twin of the step van below. They are
   // the same box to within 30 cm and they turn on the same radius; what differs
   // is where the axle sits under it, which is the whole point of having both.
@@ -215,6 +265,56 @@ export const VEHICLES = {
   // is the city bus's length and width to within 10 cm, and it needs half again
   // as much room to turn, because the engine in front of the windscreen pushes
   // its front axle a metre back down the body.
+  // The widest circle in the game: 9.92 m of radius, against 7.27 m for the
+  // school bus, which held the record until this arrived. 6.20 m of wheelbase
+  // and only 32 deg of lock. It is not especially long and it will not go round
+  // anything -- the aisle a level gives it has to be an aisle it can use.
+  // The lock takes twice as long to wind on. 55 deg/s against a roster that runs
+  // 100 to 170, so the steering is a thing you commit to a second before you
+  // need it and cannot take back quickly. Everything else about it is ordinary;
+  // that one number is the whole vehicle.
+  mixer: {
+    id: 'mixer',
+    name: 'Concrete Mixer',
+    length: 8.40, width: 2.45, height: 3.55,
+    wheelbase: 5.10, rearOverhang: 1.95, trackWidth: 2.10,
+    wheelRadius: 0.50, wheelWidth: 0.32,
+    mirrors: { z: 5.450, out: 0.20, d: 0.1, h: 0.30, y: 2.28 },
+    maxSteer: deg(40), steerRate: deg(55),
+    accel: 1.9, brakeAccel: 4.4, rollDrag: 1.75,
+    maxSpeed: 2.3, maxReverse: 1.75, crawlSpeed: 0.8,
+    bodyColor: 0x9aa3ad,
+    body: {
+      sill: 0.18, arch: 1.22, taper: [0.50, 0.97], dash: true,
+      top: [[1.000, 0.28], [0.986, 0.42], [0.958, 0.66], [0.940, 0.70],
+        [0.830, 0.70], [0.830, 0.55], [0.760, 0.62], [0.620, 1.000],
+        [0.300, 1.000], [0.150, 0.72], [0.000, 0.52]],
+      glass: [1],
+      sides: [[0.845, 0.950, 0.46, 0.64]],
+      eye: [0.920, 0.521], look: [0.946, 0.660],
+    },
+  },
+  fire: {
+    id: 'fire',
+    name: 'Fire Engine',
+    length: 9.80, width: 2.45, height: 3.10,
+    wheelbase: 6.20, rearOverhang: 2.30, trackWidth: 2.08,
+    wheelRadius: 0.50, wheelWidth: 0.30,
+    mirrors: { z: 6.300, out: 0.20, d: 0.1, h: 0.30, y: 2.35 },
+    maxSteer: deg(32), steerRate: deg(95),
+    accel: 2.3, brakeAccel: 5.0, rollDrag: 1.8,
+    maxSpeed: 2.5, maxReverse: 1.95, crawlSpeed: 0.85,
+    bodyColor: 0xc21f1f,
+    body: {
+      sill: 0.19, arch: 1.22, taper: [0.50, 0.98], dash: true,
+      top: [[1.000, 0.32], [0.982, 0.46], [0.950, 0.92], [0.930, 1.000],
+        [0.720, 1.000], [0.720, 0.80], [0.680, 0.80], [0.680, 0.90],
+        [0.040, 0.90], [0.040, 0.80], [0.000, 0.78]],
+      glass: [1],
+      sides: [[0.730, 0.945, 0.46, 0.86]],
+      eye: [0.880, 0.560], look: [0.926, 0.831],
+    },
+  },
   schoolbus: {
     id: 'schoolbus',
     name: 'School Bus',
@@ -260,6 +360,31 @@ export const VEHICLES = {
   // and is only a metre longer, which is the point — what makes it different is
   // not its size or its lock but where its wheels are. Steer it by the nose and
   // the tail takes out whatever is behind and beside it.
+  // 4.30 m behind the rear axle on a 5.40 m wheelbase, turning on 4.22 m. The
+  // tail swings 1.49 m outside its own circle where the coach -- which exists
+  // to have a tail -- swings 1.15. Coming out of a bay, the back of this goes
+  // somewhere the front never went, and it goes there first.
+  refuse: {
+    id: 'refuse',
+    name: 'Refuse Truck',
+    length: 11.30, width: 2.50, height: 3.30,
+    wheelbase: 5.40, rearOverhang: 4.30, trackWidth: 2.10,
+    wheelRadius: 0.50, wheelWidth: 0.30,
+    mirrors: { z: 5.950, out: 0.20, d: 0.1, h: 0.30, y: 2.30 },
+    maxSteer: deg(52), steerRate: deg(100),
+    accel: 2.0, brakeAccel: 4.6, rollDrag: 1.8,
+    maxSpeed: 2.4, maxReverse: 1.85, crawlSpeed: 0.85,
+    bodyColor: 0x4b7a2f,
+    body: {
+      sill: 0.18, arch: 1.22, taper: [0.50, 0.98], dash: true,
+      top: [[1.000, 0.30], [0.988, 0.44], [0.962, 0.72], [0.945, 0.76],
+        [0.860, 0.76], [0.860, 1.000], [0.150, 1.000], [0.090, 0.86],
+        [0.000, 0.60]],
+      glass: [1],
+      sides: [[0.870, 0.955, 0.48, 0.70]],
+      eye: [0.930, 0.561], look: [0.949, 0.725],
+    },
+  },
   coach: {
     id: 'coach',
     name: 'Tour Coach',
