@@ -420,7 +420,9 @@ function buildBody(g, spec, paint, lights) {
   if (spec.trailer) {
     const t = spec.trailer;
     if (t.drawbar) {
-      const ball = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.22, 8), STEEL);
+      // No wider than the 0.12 m drawbar rectangle that collides for it: a
+      // flared base put 20 mm of steel outside every rectangle (DESIGN.md 17).
+      const ball = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.22, 8), STEEL);
       ball.position.set(0, sill - 0.05, t.hitch);
       g.add(ball);
     } else {
