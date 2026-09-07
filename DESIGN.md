@@ -1090,7 +1090,7 @@ two metres away, and nothing in the game puts you there — it shows one vehicle
 from one of three cameras, in one level, and reaching a fault means driving to
 it first.
 
-So `dev.html` renders the whole matrix in one frame: twenty-three vehicles by six
+So `dev.html` renders the whole matrix in one frame: twenty-eight vehicles by six
 views, or twenty-one levels from above, or the turning circles at six locks. One
 image is one look at all of it, which is what keeps looking cheap enough to do
 on every change. `window.dev` on that page answers the countable half —
@@ -1366,24 +1366,35 @@ them to choose from, to explore". Matching real counterparts is explicitly
 list of things to reconcile against, not a list of defects.
 
 What replaced accuracy as the acceptance test is **coverage of the manoeuvring
-space**, measured rather than argued. Ten invented vehicles were written
-against measured gaps in it, in two batches — five for radius, wheelbase ratio,
-tail swing and steering rate, then five more for width, extreme wheelbase
-ratios and the reversing response of an articulated combination, which is the
-axis the user picked next:
+space**, measured rather than argued. Fifteen invented vehicles were written
+against measured gaps in it, in three batches: five for radius, wheelbase ratio,
+tail swing and steering rate; five for width, extreme wheelbase ratios and the
+reversing response of an articulated combination; five for height, mirror
+protrusion, length and nose swing.
 
-| | thirteen | twenty-three |
+| | thirteen | twenty-eight |
 |---|---|---|
 | minimum radius | 2.94 – 7.27 m | 2.25 – 9.92 m |
-| wheelbase / length | 0.51 – 0.65 | 0.48 – 0.87 |
+| wheelbase / length | 0.51 – 0.65 | 0.39 – 0.87 |
 | tail swing | 0.05 – 1.15 m, empty from 0.12 to 0.43 | 0.01 – 1.49 m, filled at 0.23 / 0.26 / 0.30 |
+| nose swing | 1.02 – 4.10 m | 0.96 – 4.91 m |
 | steering rate | 100 – 160°/s | 55 – 170°/s |
 | width | 1.63 – 2.55 m, eleven of them 2.35 to 2.55 | 1.55 – 3.00 m |
+| height | 1.44 – 3.40 m | 1.10 – 4.20 m |
+| mirror outside the flank | 0.13 – 0.22 m | 0.12 – 0.55 m |
 | hitch to trailer axle | 2.90 and 7.60 m | 2.90, 4.60, 5.20, 7.60 m |
+
+Two of those rows are owed a level. **Height** is the one v8 made collidable
+and nothing exercises: the tunnel tug is 1.10 m and the gantry loader is 4.20,
+so a barrier hung between them separates the roster in a way no plan view can,
+and no shipped level has one. **Mirror protrusion** is the other: the recovery
+truck's collision rectangle is 3.35 m across on a 2.30 m body, which is wider
+than the widest bodywork in the game, so the only thing that can stop it is a
+gap measured against a mirror.
 
 What did not relax is constraint 17. A headless mesh check — build every
 vehicle, box every part, test the corners against the rectangles the physics
-actually collides with — passes all twenty-three, and caught two real
+actually collides with — passes all twenty-eight, and caught two real
 violations on the way. The tow car's coupling ball flared to 0.16 m across
 where the drawbar rectangle claims 0.12, so 20 mm of steel on each side was
 outside every rectangle in the game; the ball is now the width of its own
@@ -1397,7 +1408,7 @@ Six views of each new one were rendered and looked at, and the first pass of
 the four big ones gave them a cab step too shallow to see and, on the shuttle,
 a cab-sized side window on what is meant to be a bus — four coloured boxes.
 That is not a fidelity question, which the user has ruled out; it is whether a
-roster of twenty-three can be told apart, which is the whole point of having
+roster of twenty-eight can be told apart, which is the whole point of having
 one.
 
 The corollary the roster already supports and no level uses: the vehicles are

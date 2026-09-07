@@ -61,6 +61,30 @@ export const VEHICLES = {
       eye: [0.710, 0.860], look: [0.786, 0.890],
     },
   },
+  // The lowest thing here by 34 cm: 1.10 m against the hatchback's 1.44, which
+  // is the point now that collision has heights. It is the only vehicle that
+  // can be sent under something the rest of the roster has to go round, and
+  // until a level puts a barrier at 1.30 m nothing will ever notice.
+  tug: {
+    id: 'tug',
+    name: 'Tunnel Tug',
+    length: 3.20, width: 1.62, height: 1.10,
+    wheelbase: 2.20, rearOverhang: 0.45, trackWidth: 1.42,
+    wheelRadius: 0.26, wheelWidth: 0.17,
+    mirrors: { z: 2.150, out: 0.12, d: 0.1, h: 0.08, y: 0.85 },
+    maxSteer: deg(40), steerRate: deg(160),
+    accel: 3.0, brakeAccel: 6.0, rollDrag: 2.0,
+    maxSpeed: 2.8, maxReverse: 2.4, crawlSpeed: 1.0,
+    bodyColor: 0xd6c81c,
+    body: {
+      sill: 0.30, arch: 1.20, taper: [0.55, 0.94], dash: true,
+      top: [[1.000, 0.42], [0.960, 0.55], [0.860, 0.94], [0.820, 1.000],
+        [0.300, 1.000], [0.240, 0.72], [0.000, 0.62]],
+      glass: [1],
+      sides: [[0.330, 0.800, 0.56, 0.92]],
+      eye: [0.760, 0.780], look: [0.830, 0.930],
+    },
+  },
   // The bottom of the range, and the control for every level a bigger vehicle
   // has to fit into: short, narrow, and 38° of lock on a 2.30 m wheelbase.
   citycar: {
@@ -245,6 +269,32 @@ export const VEHICLES = {
       eye: [0.520, 0.780], look: [0.615, 0.930],
     },
   },
+  // The other end of the height axis: 4.20 m, where the concrete mixer had the
+  // record at 3.55 and every car is under 2.00. A mast on a chassis, so most
+  // of that height is 95 cm of body in the middle of the vehicle rather than a
+  // roof over the whole of it -- which matters, because the collider is one
+  // box and does not know that.
+  gantry: {
+    id: 'gantry',
+    name: 'Gantry Loader',
+    length: 6.80, width: 2.40, height: 4.20,
+    wheelbase: 4.60, rearOverhang: 1.10, trackWidth: 2.05,
+    wheelRadius: 0.55, wheelWidth: 0.32,
+    mirrors: { z: 5.020, out: 0.20, d: 0.1, h: 0.24, y: 1.75 },
+    maxSteer: deg(46), steerRate: deg(80),
+    accel: 1.9, brakeAccel: 4.2, rollDrag: 1.7,
+    maxSpeed: 2.2, maxReverse: 1.8, crawlSpeed: 0.8,
+    bodyColor: 0x3f46d0,
+    body: {
+      sill: 0.16, arch: 1.20, taper: [0.35, 0.94], dash: true,
+      top: [[1.000, 0.22], [0.985, 0.32], [0.955, 0.44], [0.940, 0.48],
+        [0.830, 0.48], [0.830, 0.30], [0.700, 0.30], [0.700, 1.000],
+        [0.560, 1.000], [0.560, 0.34], [0.000, 0.34]],
+      glass: [1],
+      sides: [[0.845, 0.930, 0.30, 0.46]],
+      eye: [0.900, 0.360], look: [0.945, 0.440],
+    },
+  },
   // Both ends swing. 3.45 m of wheelbase under 7.20 m of body puts wb/L at 0.48,
   // below anything else here, with 1.95 m in front of the front axle and 1.80 m
   // behind the rear one. So the nose sweeps 2.28 m outside the circle and the
@@ -313,6 +363,32 @@ export const VEHICLES = {
       glass: [1],
       sides: [[0.86, 0.95, 0.50, 0.88]],
       eye: [0.880, 0.560], look: [0.928, 0.957],
+    },
+  },
+  // The mirrors are the vehicle. They stand 55 cm outside a flank on a body only
+  // 2.30 m wide, which makes the rectangle the physics uses 3.35 m across --
+  // wider than the wheeled loader, which is the widest bodywork in the game.
+  // Everything else about it is an ordinary truck, so any gap it fails to fit
+  // failed on the mirrors and nothing else.
+  recovery: {
+    id: 'recovery',
+    name: 'Recovery Truck',
+    length: 7.40, width: 2.30, height: 3.00,
+    wheelbase: 4.30, rearOverhang: 2.10, trackWidth: 1.98,
+    wheelRadius: 0.46, wheelWidth: 0.28,
+    mirrors: { z: 4.900, out: 0.55, d: 0.12, h: 0.34, y: 2.15 },
+    maxSteer: deg(42), steerRate: deg(120),
+    accel: 2.2, brakeAccel: 4.8, rollDrag: 1.8,
+    maxSpeed: 2.5, maxReverse: 2.0, crawlSpeed: 0.85,
+    bodyColor: 0xd028b8,
+    body: {
+      sill: 0.19, arch: 1.22, taper: [0.50, 0.98], dash: true,
+      top: [[1.000, 0.32], [0.986, 0.48], [0.956, 0.90], [0.936, 1.000],
+        [0.740, 1.000], [0.740, 0.52], [0.320, 0.52], [0.320, 0.70],
+        [0.060, 0.70], [0.000, 0.44]],
+      glass: [1],
+      sides: [[0.755, 0.930, 0.48, 0.90]],
+      eye: [0.880, 0.600], look: [0.930, 0.930],
     },
   },
   // A one-box bus with its axles pushed to the ends: 6.90 m of wheelbase under
@@ -387,6 +463,32 @@ export const VEHICLES = {
       glass: [1],
       sides: [[0.730, 0.945, 0.46, 0.86]],
       eye: [0.880, 0.560], look: [0.926, 0.831],
+    },
+  },
+  // Short wheelbase, long ends, taken as far as it goes: 4.10 m of wheelbase
+  // under 10.40 m of body with 3.15 m hanging off each end. wb/L is 0.39,
+  // where the shuttle bus and the refuse truck held the floor at 0.48. Both
+  // ends swing, by 3.59 m at the nose and 0.84 at the tail, and the lock takes
+  // 75 deg/s to wind on, so neither of them is a surprise you can undo.
+  crane: {
+    id: 'crane',
+    name: 'Crane Carrier',
+    length: 10.40, width: 2.55, height: 3.40,
+    wheelbase: 4.10, rearOverhang: 3.15, trackWidth: 2.15,
+    wheelRadius: 0.52, wheelWidth: 0.32,
+    mirrors: { z: 6.210, out: 0.20, d: 0.1, h: 0.28, y: 1.85 },
+    maxSteer: deg(44), steerRate: deg(75),
+    accel: 1.8, brakeAccel: 4.2, rollDrag: 1.7,
+    maxSpeed: 2.2, maxReverse: 1.75, crawlSpeed: 0.8,
+    bodyColor: 0x7a1fa0,
+    body: {
+      sill: 0.20, arch: 1.20, taper: [0.40, 0.96], dash: true,
+      top: [[1.000, 0.26], [0.985, 0.38], [0.958, 0.62], [0.942, 0.66],
+        [0.850, 0.66], [0.850, 0.42], [0.640, 0.42], [0.640, 1.000],
+        [0.140, 1.000], [0.140, 0.46], [0.000, 0.46]],
+      glass: [1],
+      sides: [[0.865, 0.935, 0.42, 0.64]],
+      eye: [0.905, 0.480], look: [0.948, 0.620],
     },
   },
   // The user's own example, and the reason the roster is not a size ladder: it
@@ -481,6 +583,31 @@ export const VEHICLES = {
       glass: [1, 4],
       sides: [[0.05, 0.94, 0.58, 0.92]],
       eye: [0.871, 0.579], look: [0.900, 0.961],
+    },
+  },
+  // The longest single body in the game at 13.50 m, a metre and a half past the
+  // tour coach. 7.00 m of wheelbase carries it, so it turns on 5.47 m -- wider
+  // than the coach and narrower than the school bus -- and swings 4.91 m of
+  // nose and 1.10 m of tail. It is the only vehicle whose two ends are both
+  // problems at once and neither of them is the worst example of itself.
+  tramcoach: {
+    id: 'tramcoach',
+    name: 'Long Coach',
+    length: 13.50, width: 2.55, height: 3.30,
+    wheelbase: 7.00, rearOverhang: 4.00, trackWidth: 2.15,
+    wheelRadius: 0.52, wheelWidth: 0.30,
+    mirrors: { z: 8.760, out: 0.22, d: 0.1, h: 0.30, y: 2.40 },
+    maxSteer: deg(52), steerRate: deg(95),
+    accel: 2.0, brakeAccel: 4.4, rollDrag: 1.75,
+    maxSpeed: 2.4, maxReverse: 1.85, crawlSpeed: 0.8,
+    bodyColor: 0x9c1f4a,
+    body: {
+      sill: 0.17, arch: 1.22, taper: [0.50, 0.97], dash: true,
+      top: [[1.000, 0.32], [0.990, 0.52], [0.972, 0.94], [0.960, 1.000],
+        [0.020, 1.000], [0.000, 0.90]],
+      glass: [1, 4],
+      sides: [[0.05, 0.93, 0.48, 0.86]],
+      eye: [0.935, 0.630], look: [0.958, 0.955],
     },
   },
   towcar: {
