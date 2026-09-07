@@ -22,11 +22,17 @@ vehicles do it for you — the throttle is analog, but first gear is all there i
 
 ## Play it
 
-- [v6 — the current build](https://viktortar98.github.io/tight-fit/v6/): v5
+- [v7 — the current build](https://viktortar98.github.io/tight-fit/v7/):
+  twenty-one levels instead of fourteen, so every one of the thirteen vehicles
+  is driven somewhere; a level editor with its own list and its own bests; a
+  ghost left at each direction change, fading with age; and every level now
+  starting where the steering starts (commit `ba2e702`). The
+  [root URL](https://viktortar98.github.io/tight-fit/) serves the newest
+  version, which is v7 today.
+- [v6](https://viktortar98.github.io/tight-fit/v6/): v5
   with a cabin you can see from the driver's seat, a reversing panel that stays
   in that seat, fainter tyre marks, and turning circles you can switch on
-  (commit `dfdcaf0`). The [root URL](https://viktortar98.github.io/tight-fit/)
-  serves the newest version, which is v6 today.
+  (commit `dfdcaf0`).
 - [v5](https://viktortar98.github.io/tight-fit/v5/): thirteen vehicles instead
   of six, every body drawn from its own silhouette, and the four driving aids
   switchable (commit `c3eaf36`).
