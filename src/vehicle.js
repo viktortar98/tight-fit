@@ -103,6 +103,32 @@ export const VEHICLES = {
       eye: [0.479, 0.876], look: [0.535, 0.877],
     },
   },
+  // The other end of the wheels-at-the-corners idea, four times the wheelbase
+  // out from the pod: 3.74 m of it under 4.30 m of body, so wb/L is 0.87 and
+  // 28 cm hangs off each end -- just enough that the tyres stay inside the
+  // rectangle, which is what sets the floor. Neither end swings. What it sweeps
+  // is the circle and nothing else, which makes it the only thing here whose
+  // mirrors are the widest part of it in a turn.
+  platform: {
+    id: 'platform',
+    name: 'Platform Cart',
+    length: 4.30, width: 1.80, height: 1.55,
+    wheelbase: 3.74, rearOverhang: 0.28, trackWidth: 1.58,
+    wheelRadius: 0.25, wheelWidth: 0.18,
+    mirrors: { z: 3.300, out: 0.15, d: 0.1, h: 0.14, y: 1.18 },
+    maxSteer: deg(42), steerRate: deg(150),
+    accel: 2.8, brakeAccel: 5.6, rollDrag: 1.9,
+    maxSpeed: 2.7, maxReverse: 2.2, crawlSpeed: 0.95,
+    bodyColor: 0x9ecb1f,
+    body: {
+      sill: 0.20, arch: 1.20, taper: [0.55, 0.96], dash: true,
+      top: [[1.000, 0.30], [0.985, 0.44], [0.930, 0.92], [0.905, 1.000],
+        [0.720, 1.000], [0.720, 0.34], [0.000, 0.34]],
+      glass: [1],
+      sides: [[0.735, 0.900, 0.48, 0.88]],
+      eye: [0.845, 0.620], look: [0.900, 0.950],
+    },
+  },
   // Three boxes instead of two: 0.80 m more car than the hatchback, most of it
   // hung off the ends. Same class to drive, a different gap to fit into.
   saloon: {
@@ -191,6 +217,34 @@ export const VEHICLES = {
       eye: [0.508, 0.870], look: [0.544, 0.902],
     },
   },
+  // 3.00 m across, where the next widest thing was the coach at 2.55 and eleven
+  // of the eighteen were packed between 2.35 and 2.55. It turns on 3.30 m, so
+  // radius is not what stops it -- a doorway is. Both overhangs are 1.60 m,
+  // which is half the vehicle, and the lock winds on at 70 deg/s.
+  loader: {
+    id: 'loader',
+    name: 'Wheeled Loader',
+    length: 6.50, width: 3.00, height: 3.20,
+    wheelbase: 3.30, rearOverhang: 1.60, trackWidth: 2.45,
+    wheelRadius: 0.72, wheelWidth: 0.45,
+    mirrors: { z: 2.400, out: 0.22, d: 0.1, h: 0.30, y: 2.30 },
+    maxSteer: deg(45), steerRate: deg(70),
+    accel: 1.8, brakeAccel: 4.0, rollDrag: 1.7,
+    maxSpeed: 2.2, maxReverse: 1.9, crawlSpeed: 0.8,
+    bodyColor: 0xa63bc4,
+    // The cab is in the middle of this one, so there is no `dash`: that box is
+    // drawn a fixed distance behind the nose, which on a loader is out over the
+    // bucket.
+    body: {
+      sill: 0.26, arch: 1.15, taper: [0.55, 0.95],
+      top: [[1.000, 0.34], [0.930, 0.34], [0.860, 0.62], [0.790, 0.66],
+        [0.700, 0.66], [0.640, 1.000], [0.330, 1.000], [0.300, 0.72],
+        [0.060, 0.72], [0.000, 0.60]],
+      glass: [4, 6],
+      sides: [[0.360, 0.615, 0.62, 0.94]],
+      eye: [0.520, 0.780], look: [0.615, 0.930],
+    },
+  },
   // Both ends swing. 3.45 m of wheelbase under 7.20 m of body puts wb/L at 0.48,
   // below anything else here, with 1.95 m in front of the front axle and 1.80 m
   // behind the rear one. So the nose sweeps 2.28 m outside the circle and the
@@ -259,6 +313,30 @@ export const VEHICLES = {
       glass: [1],
       sides: [[0.86, 0.95, 0.50, 0.88]],
       eye: [0.880, 0.560], look: [0.928, 0.957],
+    },
+  },
+  // A one-box bus with its axles pushed to the ends: 6.90 m of wheelbase under
+  // 8.00 m of body, 55 cm of overhang at each. It is the shuttle bus's
+  // opposite -- the same idea of a bus at wb/L 0.86 against 0.48 -- so the two
+  // of them bracket the range and everything else lives between them.
+  apron: {
+    id: 'apron',
+    name: 'Apron Bus',
+    length: 8.00, width: 2.60, height: 2.90,
+    wheelbase: 6.90, rearOverhang: 0.55, trackWidth: 2.20,
+    wheelRadius: 0.46, wheelWidth: 0.28,
+    mirrors: { z: 6.850, out: 0.20, d: 0.1, h: 0.28, y: 2.15 },
+    maxSteer: deg(48), steerRate: deg(90),
+    accel: 2.2, brakeAccel: 4.8, rollDrag: 1.8,
+    maxSpeed: 2.5, maxReverse: 2.0, crawlSpeed: 0.85,
+    bodyColor: 0x18c0e0,
+    body: {
+      sill: 0.16, arch: 1.22, taper: [0.50, 0.97], dash: true,
+      top: [[1.000, 0.36], [0.985, 0.52], [0.955, 0.96], [0.940, 1.000],
+        [0.020, 1.000], [0.000, 0.92]],
+      glass: [1, 4],
+      sides: [[0.06, 0.91, 0.48, 0.88]],
+      eye: [0.905, 0.640], look: [0.938, 0.955],
     },
   },
   // The lock takes twice as long to wind on. 55 deg/s against a roster that runs
@@ -434,6 +512,75 @@ export const VEHICLES = {
       width: 1.9, height: 1.75,
       trackWidth: 1.62, wheelRadius: 0.29, wheelWidth: 0.2,
       maxAngle: deg(78),
+      drawbar: true,
+    },
+  },
+  // Half a semi's reversing distance: 4.60 m from the fifth wheel to the
+  // trailer axle against 7.60 m, on a tractor 70 cm shorter. The fold is the
+  // same shape and the answer comes back in half the room, which makes it the
+  // place to learn what a fifth wheel does before the yard levels ask.
+  cityartic: {
+    id: 'cityartic',
+    name: 'City Artic',
+    length: 5.60, width: 2.45, height: 3.20,
+    wheelbase: 3.40, rearOverhang: 0.90, trackWidth: 2.10,
+    wheelRadius: 0.48, wheelWidth: 0.30,
+    mirrors: { z: 4.570, out: 0.21, d: 0.1, h: 0.45, y: 2.75 },
+    maxSteer: deg(45), steerRate: deg(115),
+    accel: 2.1, brakeAccel: 4.4, rollDrag: 1.75,
+    maxSpeed: 2.4, maxReverse: 1.8, crawlSpeed: 0.8,
+    bodyColor: 0x0b6e8f,
+    body: {
+      sill: 0.288, arch: 1.10, taper: [0.60, 0.98], dash: true,
+      top: [[1.000, 0.42], [1.000, 0.93], [0.982, 1.00], [0.560, 1.00],
+        [0.560, 0.400], [0.000, 0.400]],
+      glass: [0],
+      sides: [[0.620, 0.960, 0.62, 0.92]],
+      eye: [0.800, 0.681], look: [0.870, 0.962],
+    },
+    trailer: {
+      name: 'short semitrailer',
+      hitch: 0.4,           // fifth wheel, just ahead of the drive axle
+      axleFromHitch: 4.6,
+      axleToFront: 5.6, axleToRear: 2.2,
+      width: 2.5, height: 3.6,
+      trackWidth: 2.08, wheelRadius: 0.46, wheelWidth: 0.28,
+      maxAngle: deg(80),
+      drawbar: false,
+    },
+  },
+  // The middle of the reversing range, which was empty: 5.20 m behind the
+  // hitch, between the tow car's 2.90 and the semi's 7.60. The hitch is 10 cm
+  // behind the tail like the tow car's and unlike the semi's, so it folds the
+  // same way round -- but over twice the distance, slowly enough to watch it
+  // happen and still do something about it.
+  dropside: {
+    id: 'dropside',
+    name: 'Lorry + Drawbar',
+    length: 7.00, width: 2.35, height: 2.80,
+    wheelbase: 4.00, rearOverhang: 1.90, trackWidth: 2.00,
+    wheelRadius: 0.46, wheelWidth: 0.28,
+    mirrors: { z: 4.650, out: 0.20, d: 0.1, h: 0.30, y: 2.10 },
+    maxSteer: deg(42), steerRate: deg(110),
+    accel: 2.1, brakeAccel: 4.6, rollDrag: 1.8,
+    maxSpeed: 2.4, maxReverse: 1.9, crawlSpeed: 0.85,
+    bodyColor: 0x1f9e3a,
+    body: {
+      sill: 0.19, arch: 1.22, taper: [0.50, 0.98], dash: true,
+      top: [[1.000, 0.33], [0.986, 0.49], [0.956, 0.93], [0.936, 1.000],
+        [0.760, 1.000], [0.760, 0.46], [0.000, 0.46]],
+      glass: [1],
+      sides: [[0.775, 0.930, 0.46, 0.88]],
+      eye: [0.880, 0.600], look: [0.926, 0.930],
+    },
+    trailer: {
+      name: 'dropside trailer',
+      hitch: -2.0,          // 10 cm behind the tail, on the end of a 1.9 m bar
+      axleFromHitch: 5.2,
+      axleToFront: 3.6, axleToRear: 3.0,
+      width: 2.4, height: 2.6,
+      trackWidth: 2.05, wheelRadius: 0.44, wheelWidth: 0.26,
+      maxAngle: deg(74),
       drawbar: true,
     },
   },

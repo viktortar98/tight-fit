@@ -1,7 +1,7 @@
 # Tight Fit
 
 A 3D parking game about threading a vehicle through spaces that look too small
-for it. Twenty-one levels, eighteen vehicles, no lap times and no "you were 4 cm off
+for it. Twenty-one levels, twenty-three vehicles, no lap times and no "you were 4 cm off
 centre" scoring — a level is passed when the vehicle is inside the bay, stopped,
 and you say you are done with it.
 
@@ -253,30 +253,43 @@ its geometry, and finding it is the level.
 | Micro Pod | 2.90 m | 2.51 m swept ring | 2.25 m | 2.9 m/s |
 | City Car | 3.57 m | 2.65 m | 2.94 m | 2.9 m/s |
 | Hatchback | 3.95 m | 2.83 m | 3.37 m | 2.9 m/s |
-| Saloon | 4.75 m | 3.03 m | 4.14 m | 2.85 m/s |
+| Platform Cart | 4.30 m | 3.20 m | 4.15 m | 2.7 m/s |
 | SUV | 4.72 m | 3.15 m | 4.34 m | 2.8 m/s |
+| Saloon | 4.75 m | 3.03 m | 4.14 m | 2.85 m/s |
 | Van | 5.30 m | 3.41 m | 5.12 m | 2.7 m/s |
 | Pickup Truck | 6.10 m | 3.43 m | 6.37 m | 2.7 m/s |
+| Wheeled Loader | 6.50 m | 5.06 m | 3.30 m | 2.2 m/s |
 | Shuttle Bus | 7.20 m | 4.39 m | 4.19 m | 2.6 m/s |
 | Step Van | 7.30 m | 4.92 m | 4.92 m | 2.55 m/s |
 | Box Lorry | 7.60 m | 4.28 m | 5.01 m | 2.5 m/s |
+| Apron Bus | 8.00 m | 5.67 m | 6.21 m | 2.5 m/s |
 | Concrete Mixer | 8.40 m | 4.89 m | 6.08 m | 2.3 m/s |
 | Fire Engine | 9.80 m | 4.74 m | 9.92 m | 2.5 m/s |
 | School Bus | 10.90 m | 5.65 m | 7.27 m | 2.45 m/s |
 | City Bus | 11.0 m | 6.60 m | 4.70 m | 2.5 m/s |
 | Refuse Truck | 11.30 m | 5.91 m | 4.22 m | 2.4 m/s |
 | Tour Coach | 12.0 m | 6.61 m | 4.77 m | 2.4 m/s |
-| Car + trailer | 4.60 m + 4.2 m | 3.05 m (car alone) | 4.08 m | 2.6 m/s |
+| Car + trailer | 4.60 m + 3.05 m | 3.05 m (car alone) | 4.08 m | 2.6 m/s |
+| City artic | 5.60 m + 7.80 m | 4.42 m (tractor alone) | 3.40 m | 2.4 m/s |
+| Lorry + drawbar | 7.00 m + 6.60 m | 4.32 m (lorry alone) | 4.44 m | 2.4 m/s |
 | Semi | 6.30 m + 13.0 m | 4.53 m (tractor alone) | 4.65 m | 2.3 m/s |
 
+The second column is the width of the ring the vehicle sweeps at full lock: the
+gap between the arc its inside rear wheel cuts and the arc its outside front
+corner cuts. The fourth is the radius the rear axle itself runs on. For the
+articulated combinations, the trailer figure is the trailer's own body.
+
 **Bigger is not harder in this roster**, and the table is arranged by length to
-show it. The two columns disagree all the way down. The city bus turns inside
-every truck in the game on a 4.70 m radius; the school bus is its length and
-width to within 10 cm and needs 7.27 m, because the engine ahead of its
-windscreen pushes the front axle a metre back down the body. The pickup is
-barely wider than a van and wants 6.37 m where the van wants 5.12. And the
-worst-steering vehicle in the game is not the longest one — it is the fire
-engine, which five other vehicles out-length.
+show it. The two columns disagree all the way down. The wheeled loader is the
+widest thing in the game at 3.00 m and turns on 3.30 m, tighter than everything
+here except the two smallest cars — what stops it is a doorway, not a corner.
+The school bus is the city bus's length and width to within 10 cm and needs
+7.27 m against its 4.70, because the engine ahead of its windscreen pushes the
+front axle a metre back down the body. The pickup is barely wider than a van
+and wants 6.37 m where the van wants 5.12. And the worst-steering vehicle in
+the game is neither the longest nor the widest — it is the fire engine, which
+is shorter than four of the trucks and buses under it in the table and turns
+2.65 m wider than any of them.
 
 Three pairs exist to isolate one variable each. The saloon and the SUV are the
 same length to within 3 cm and 12 cm apart in width, so whatever one can do and
@@ -288,22 +301,33 @@ the bus are a metre apart in length and 7 cm apart in radius, and what separates
 them is that 1.15 m of coach swings outside its own turning circle against
 0.67 m for the bus and 0.07 m for the hatchback.
 
-Five of the eighteen are invented rather than modelled on anything: the micro
-pod, the shuttle bus, the concrete mixer, the fire engine and the refuse truck.
-Each was written to stand in a part of the manoeuvring space nothing shipped
-stood in. Between them they take the minimum radius from 2.25 m to 9.92 m where
-the original roster spanned 2.94 to 7.27; the wheelbase-to-length ratio from
-0.48 to 0.78 where it spanned 0.51 to 0.65; and the steering rate down to 55°/s
-from a floor of 100. They also fill the hole in tail swing, which used to jump
-from 0.12 m straight to 0.43 with nothing in between — the fire engine, the
-mixer and the shuttle now sit at 0.23, 0.26 and 0.30. A vehicle here exists
-because of the question it asks, and a plausible badge on the front of it is not
-part of the question.
+Ten of the twenty-three are invented rather than modelled on anything: the
+micro pod, the platform cart, the wheeled loader, the shuttle bus, the apron
+bus, the concrete mixer, the fire engine, the refuse truck, the city artic and
+the lorry-and-drawbar. Each was written to stand in a part of the manoeuvring
+space nothing shipped stood in, and between them they widened every axis that
+was measured.
 
-The two articulated combinations are one hinge each — a drawbar behind the tow
-car's rear axle, a fifth wheel just in front of the tractor's. Both fold if you
-push the angle past the stop, and both reverse the way real ones do: the
-trailer steers, and the car chases it.
+| | the original thirteen | now |
+|---|---|---|
+| minimum radius | 2.94 – 7.27 m | 2.25 – 9.92 m |
+| wheelbase / length | 0.51 – 0.65 | 0.48 – 0.87 |
+| tail swing | 0.05 – 1.15 m | 0.01 – 1.49 m |
+| steering rate | 100 – 160°/s | 55 – 170°/s |
+| width | 1.63 – 2.55 m | 1.55 – 3.00 m |
+| hitch to trailer axle | 2.90 and 7.60 m | 2.90, 4.60, 5.20, 7.60 m |
+
+A vehicle here exists because of the question it asks, and a plausible badge on
+the front of it is not part of the question.
+
+The four articulated combinations are one hinge each. Two hang the hitch behind
+the tractor's rear axle — the tow car's drawbar and the lorry's — and two put
+it in front, on a fifth wheel. Which side of the axle it sits on decides which
+way the trailer swings when you turn; the distance from the hitch to the
+trailer's axle decides how far you have to reverse before you find out, and
+that is the last row of the table above. All four fold if you push the angle
+past the stop, and all four reverse the way real ones do: the trailer steers,
+and the tractor chases it.
 
 Your vehicle is the only saturated colour on the map. Everything else — parked
 cars, dropped trailers, walls, cones — is pastel, so at a glance you always
@@ -443,7 +467,7 @@ check that would have caught the shell/lining z-fighting), and `builders()`
 | File | |
 |---|---|
 | `src/geom.js` | oriented-rectangle maths: SAT overlap, containment, distance |
-| `src/vehicle.js` | kinematic bicycle model, articulation, the eighteen vehicle specs |
+| `src/vehicle.js` | kinematic bicycle model, articulation, the twenty-three vehicle specs |
 | `src/colliders.js` | obstacles as flat rectangles, shared by renderer and physics |
 | `src/objects.js` | the palette a level is built from, and what expands it |
 | `src/levels.js` | all twenty-one levels, in metres |

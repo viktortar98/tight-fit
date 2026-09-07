@@ -1090,7 +1090,7 @@ two metres away, and nothing in the game puts you there — it shows one vehicle
 from one of three cameras, in one level, and reaching a fault means driving to
 it first.
 
-So `dev.html` renders the whole matrix in one frame: eighteen vehicles by six
+So `dev.html` renders the whole matrix in one frame: twenty-three vehicles by six
 views, or twenty-one levels from above, or the turning circles at six locks. One
 image is one look at all of it, which is what keeps looking cheap enough to do
 on every change. `window.dev` on that page answers the countable half —
@@ -1366,22 +1366,39 @@ them to choose from, to explore". Matching real counterparts is explicitly
 list of things to reconcile against, not a list of defects.
 
 What replaced accuracy as the acceptance test is **coverage of the manoeuvring
-space**, measured on four axes rather than argued. Five invented vehicles were
-written against measured gaps in it, and moved the spans:
+space**, measured rather than argued. Ten invented vehicles were written
+against measured gaps in it, in two batches — five for radius, wheelbase ratio,
+tail swing and steering rate, then five more for width, extreme wheelbase
+ratios and the reversing response of an articulated combination, which is the
+axis the user picked next:
 
-| | thirteen | eighteen |
+| | thirteen | twenty-three |
 |---|---|---|
 | minimum radius | 2.94 – 7.27 m | 2.25 – 9.92 m |
-| wheelbase / length | 0.51 – 0.65 | 0.48 – 0.78 |
+| wheelbase / length | 0.51 – 0.65 | 0.48 – 0.87 |
 | tail swing | 0.05 – 1.15 m, empty from 0.12 to 0.43 | 0.01 – 1.49 m, filled at 0.23 / 0.26 / 0.30 |
 | steering rate | 100 – 160°/s | 55 – 170°/s |
+| width | 1.63 – 2.55 m, eleven of them 2.35 to 2.55 | 1.55 – 3.00 m |
+| hitch to trailer axle | 2.90 and 7.60 m | 2.90, 4.60, 5.20, 7.60 m |
 
 What did not relax is constraint 17. A headless mesh check — build every
 vehicle, box every part, test the corners against the rectangles the physics
-actually collides with — passes all eighteen, and found one real violation on
-the way: the tow car's coupling ball flared to 0.16 m across where the drawbar
-rectangle claims 0.12, so 20 mm of steel on each side was outside every
-rectangle in the game. The ball is now the width of its own collider.
+actually collides with — passes all twenty-three, and caught two real
+violations on the way. The tow car's coupling ball flared to 0.16 m across
+where the drawbar rectangle claims 0.12, so 20 mm of steel on each side was
+outside every rectangle in the game; the ball is now the width of its own
+collider. And the platform cart's first draft put the wheels 5 cm past the
+nose, which is what sets the floor on wheels-at-the-corners: the overhang has
+to clear the tyre, so wb/L stops at 0.87 rather than going wherever the idea
+leads.
+
+The second thing measurement did not settle is whether a vehicle is legible.
+Six views of each new one were rendered and looked at, and the first pass of
+the four big ones gave them a cab step too shallow to see and, on the shuttle,
+a cab-sized side window on what is meant to be a bus — four coloured boxes.
+That is not a fidelity question, which the user has ruled out; it is whether a
+roster of twenty-three can be told apart, which is the whole point of having
+one.
 
 The corollary the roster already supports and no level uses: the vehicles are
 not a size ladder. Steady-state articulation in a full-lock forward turn is
