@@ -22,13 +22,24 @@ vehicles do it for you — the throttle is analog, but first gear is all there i
 
 ## Play it
 
-- [v8 — the current build](https://viktortar98.github.io/tight-fit/v8/):
+- [v9 — the current build](https://viktortar98.github.io/tight-fit/v9/):
+  eighteen vehicles instead of thirteen. The five new ones are invented rather
+  than copied, each one written to stand where the roster was measured to be
+  thin — a pod that turns on 2.25 m and so turns inside anything else in the
+  game, a refuse truck carrying 4.3 m of its 11.3 behind the rear axle, a mixer
+  whose lock winds on at 55°/s against 95 for the next slowest, a fire engine
+  that wants 9.92 m of radius when the 12 m tour coach turns on 4.77, and a
+  shuttle bus that reaches the same low wheelbase ratio as the refuse truck
+  from the opposite end — 7.2 m with a long tail, against 11.3 m. The tow ball
+  is also the width of the collider that stands for it now, which it was not
+  before (commit `6f0aa96`). The
+  [root URL](https://viktortar98.github.io/tight-fit/) serves the newest
+  version, which is v9 today.
+- [v8](https://viktortar98.github.io/tight-fit/v8/):
   collision boxes with heights, so a door mirror clears a kerb and a traffic
   cone and still catches a wall; the tow car's drawbar collides with what it
   is drawn through; and every shipped level can be cloned into the editor
-  without unlocking it first (commit `d66e292`). The
-  [root URL](https://viktortar98.github.io/tight-fit/) serves the newest
-  version, which is v8 today.
+  without unlocking it first (commit `d66e292`).
 - [v7](https://viktortar98.github.io/tight-fit/v7/):
   twenty-one levels instead of fourteen, so every one of the thirteen vehicles
   is driven somewhere; a level editor with its own list and its own bests; a
@@ -56,6 +67,11 @@ vehicles do it for you — the throttle is analog, but first gear is all there i
 All of them are static builds of this repo on the `gh-pages` branch. v2 onwards
 score in the same unit and share a save key, so a best set in one shows up in
 the others; v1 scored in a different unit and keeps its own key.
+
+`master` is ahead of v9 and nothing below it is published. The twenty-eight
+vehicles counted at the top of this file, and the vehicle picker described
+under "Build your own", exist only in a local `pnpm dev`. Where this file and
+the newest build disagree on a number, this file is describing the repo.
 
 The rules this game is held to — what is scored, what is never scored, what a
 level has to prove before it ships — are in [DESIGN.md](DESIGN.md). Read that

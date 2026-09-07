@@ -17,10 +17,12 @@ import { Ghosts } from './ghosts.js';
 // on a hatchback's roof was in the build for two versions because nothing ever
 // looked at a hatchback's roof from two metres away.
 //
-// So this renders every case at once into a single frame: thirteen vehicles by
-// five views, or twenty-one levels from above. One image is one look at the whole
-// matrix, which is the only way looking at all of it stays cheap enough to do
-// every time. `report()` is the same sheet as text for anything countable.
+// So this renders every case at once into a single frame: every vehicle by five
+// views, or every level from above. Both sets are read from `VEHICLES` and
+// `LEVELS` rather than counted here, because a number written into this comment
+// is a number that goes stale the next time either list grows. One image is one
+// look at the whole matrix, which is the only way looking at all of it stays
+// cheap enough to do every time. `report()` is the same sheet as text for anything countable.
 //
 // Routes, on the hash:
 //   #cars                every vehicle, five views each
